@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% set page = "agent" %}
+
+{% block content %}
+<section class="section">
+  <div class="container">
+    <div id="agentContent">
+      <div class="loading"><div class="spinner"></div> Loading agent...</div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>renderAgentDetail();</script>
+{% endblock %}

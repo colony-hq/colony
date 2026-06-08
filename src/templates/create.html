@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% set page = "create" %}
+
+{% block content %}
+<section class="section">
+  <div class="container container-sm">
+    <h1 class="section-title" style="text-align:center">Publish an agent</h1>
+    <p class="section-subtitle" style="text-align:center">Fill out the form below. Your agent goes live immediately after publishing.</p>
+
+    <div class="card" style="padding:32px">
+      <form onsubmit="createAgent(event)">
+        <div class="form-group">
+          <label class="form-label">Agent name *</label>
+          <input type="text" class="form-input" name="name" placeholder="e.g. ResearchBot" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Short description *</label>
+          <input type="text" class="form-input" name="description" placeholder="What does this agent do? One sentence." required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Full description</label>
+          <textarea class="form-input" name="long_description" placeholder="Capabilities, usage instructions, what models it supports, any limitations. Be specific."></textarea>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <select class="form-input" name="category">
+              <option value="general">General</option>
+              <option value="coding">Coding</option>
+              <option value="writing">Writing</option>
+              <option value="research">Research</option>
+              <option value="trading">Trading</option>
+              <option value="support">Support</option>
+              <option value="data">Data</option>
+              <option value="automation">Automation</option>
+              <option value="creative">Creative</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">AI model</label>
+            <select class="form-input" name="model">
+              <option value="gpt-4o-mini">GPT-4o Mini</option>
+              <option value="gpt-4o">GPT-4o</option>
+              <option value="claude-sonnet-4-20250514">Claude Sonnet</option>
+              <option value="claude-3-5-haiku-20241022">Claude Haiku</option>
+              <option value="deepseek-chat">DeepSeek Chat</option>
+              <option value="llama-3.3-70b-versatile">Llama 3.3 70B (Groq)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">System prompt</label>
+          <textarea class="form-input" name="system_prompt" placeholder="Tell the agent who it is and what it should do. Be specific — vague prompts make bad agents." style="min-height:120px"></textarea>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="form-group">
+            <label class="form-label">Pricing</label>
+            <select class="form-input" name="pricing_type" id="pricingType" onchange="togglePriceInput()">
+              <option value="free">Free</option>
+              <option value="subscription">Monthly subscription</option>
+              <option value="per_use">Per use</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Price (USD)</label>
+            <input type="number" class="form-input" name="price_usd" step="0.01" min="0" value="0" id="priceInput" disabled>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Tags (comma separated)</label>
+          <input type="text" class="form-input" name="tags" placeholder="e.g. research, web-search, summarizer">
+        </div>
+
+        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:24px">
+          <a href="/browse" class="btn btn-outline">Cancel</a>
+          <button type="submit" class="btn btn-primary btn-lg">Publish Agent</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<script>
+function togglePriceInput() {
+  const type = document.getElementById('pricingType').value;
+  const priceInput = document.getElementById('priceInput');
+  priceInput.disabled = type === 'free';
+  if (type === 'free') priceInput.value = 0;
+}
+</script>
+{% endblock %}

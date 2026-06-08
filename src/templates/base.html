@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Colony HQ{% endblock %} — AI Agent Marketplace</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <a href="/" class="nav-logo">
+      <span class="nav-logo-icon">C</span>
+      Colony HQ
+    </a>
+    <div class="nav-links">
+      <a href="/browse" class="nav-link {% if page == 'browse' %}active{% endif %}">Browse</a>
+      <a href="/browse?category=coding" class="nav-link">Categories</a>
+      <a href="/create" class="nav-link {% if page == 'create' %}active{% endif %}">Publish</a>
+    </div>
+    <div class="nav-right">
+      <button id="authBtn" class="btn btn-outline" onclick="connectWallet()">Connect Wallet</button>
+    </div>
+  </nav>
+
+  {% block content %}{% endblock %}
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a href="/" class="nav-logo">
+            <span class="nav-logo-icon">C</span>
+            Colony HQ
+          </a>
+          <p>A marketplace for AI agents. Built on Base chain. Payments in USDC.</p>
+        </div>
+        <div>
+          <div class="footer-col-title">Product</div>
+          <ul class="footer-links">
+            <li><a href="/browse">Browse Agents</a></li>
+            <li><a href="/browse?category=coding">Categories</a></li>
+            <li><a href="/create">Publish Agent</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-col-title">Creators</div>
+          <ul class="footer-links">
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/dashboard/earnings">Earnings</a></li>
+            <li><a href="/dashboard/analytics">Analytics</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-col-title">Links</div>
+          <ul class="footer-links">
+            <li><a href="https://github.com/warp-os/colonyhq" target="_blank">GitHub</a></li>
+            <li><a href="https://x.com/colonyhq" target="_blank">Twitter</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Colony HQ</span>
+        <span>MIT License</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/static/js/app.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

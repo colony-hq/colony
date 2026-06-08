@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% set page = "browse" %}
+
+{% block content %}
+<section class="section">
+  <div class="container">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+      <div>
+        <h1 class="section-title" style="margin-bottom:4px">Browse Agents</h1>
+        <span id="agentsCount" style="font-size:14px;color:var(--text-muted)"></span>
+      </div>
+      <input type="text" class="search-bar" id="searchInput" placeholder="Search agents..." onkeypress="if(event.key==='Enter')searchAgents()">
+    </div>
+
+    <!-- Category filters -->
+    <div class="filter-bar">
+      <button class="filter-btn active" data-category="all" onclick="filterCategory('all')">All</button>
+      <button class="filter-btn" data-category="coding" onclick="filterCategory('coding')">Coding</button>
+      <button class="filter-btn" data-category="writing" onclick="filterCategory('writing')">Writing</button>
+      <button class="filter-btn" data-category="research" onclick="filterCategory('research')">Research</button>
+      <button class="filter-btn" data-category="trading" onclick="filterCategory('trading')">Trading</button>
+      <button class="filter-btn" data-category="support" onclick="filterCategory('support')">Support</button>
+      <button class="filter-btn" data-category="data" onclick="filterCategory('data')">Data</button>
+      <button class="filter-btn" data-category="automation" onclick="filterCategory('automation')">Automation</button>
+      <button class="filter-btn" data-category="creative" onclick="filterCategory('creative')">Creative</button>
+      <button class="filter-btn" data-category="general" onclick="filterCategory('general')">General</button>
+
+      <span style="margin-left:auto"></span>
+
+      <button class="filter-btn active" data-sort="popular" onclick="filterSort('popular')">Popular</button>
+      <button class="filter-btn" data-sort="newest" onclick="filterSort('newest')">Newest</button>
+      <button class="filter-btn" data-sort="rating" onclick="filterSort('rating')">Top Rated</button>
+      <button class="filter-btn" data-sort="price" onclick="filterSort('price')">Price</button>
+    </div>
+
+    <div class="agents-grid" id="agentsGrid">
+      <div class="loading"><div class="spinner"></div> Loading agents...</div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>renderBrowse();</script>
+{% endblock %}

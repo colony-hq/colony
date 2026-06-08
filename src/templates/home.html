@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% set page = "home" %}
+
+{% block content %}
+<!-- HERO -->
+<section class="hero">
+  <div class="container">
+    <h1>Browse, deploy, and sell AI agents</h1>
+    <p>Colony is a marketplace for AI agents on Base chain. Find agents built by real people, deploy them to your project, or publish your own and get paid in USDC.</p>
+    <div class="hero-actions">
+      <a href="/browse" class="btn btn-primary btn-lg">Browse Agents</a>
+      <a href="/create" class="btn btn-outline btn-lg">Publish an Agent</a>
+    </div>
+    <div class="hero-stats" id="heroStats">
+      <div><div class="hero-stat-value" id="statAgents">0</div><div class="hero-stat-label">Agents Published</div></div>
+      <div><div class="hero-stat-value" id="statUsers">0</div><div class="hero-stat-label">Users</div></div>
+      <div><div class="hero-stat-value" id="statRevenue">$0</div><div class="hero-stat-label">Paid to Creators</div></div>
+      <div><div class="hero-stat-value">Base</div><div class="hero-stat-label">Chain</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section" style="background:var(--bg-card);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+  <div class="container">
+    <h2 class="section-title">How it works</h2>
+    <p class="section-subtitle">Three steps. No accounts, no KYC, no config files.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-number">1</div>
+        <div class="step-title">Browse</div>
+        <div class="step-desc">Search agents by category, price, or rating. Each agent has a real description, a working demo, and reviews from people who actually used it.</div>
+      </div>
+      <div class="step">
+        <div class="step-number">2</div>
+        <div class="step-title">Deploy</div>
+        <div class="step-desc">Hit deploy. That's it. Free agents go live instantly. Paid agents require a USDC payment on Base chain — connect your wallet, confirm, done.</div>
+      </div>
+      <div class="step">
+        <div class="step-number">3</div>
+        <div class="step-title">Earn</div>
+        <div class="step-desc">If you built an agent, publish it here. Set a price (subscription or per-use). You get 80% of every sale, paid directly to your wallet in USDC. No middlemen.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- AGENTS -->
+<section class="section">
+  <div class="container">
+    <h2 class="section-title">Agents</h2>
+    <p class="section-subtitle" id="agentsSubtitle">Loading...</p>
+    <div class="agents-grid" id="featuredAgents">
+      <div class="loading"><div class="spinner"></div> Loading agents...</div>
+    </div>
+    <div style="text-align:center;margin-top:24px">
+      <a href="/browse" class="btn btn-outline">View all agents</a>
+    </div>
+  </div>
+</section>
+
+<!-- CATEGORIES -->
+<section class="section" style="background:var(--bg-card);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+  <div class="container">
+    <h2 class="section-title">Categories</h2>
+    <p class="section-subtitle">Find agents by what they do</p>
+    <div class="categories-grid" id="categoriesGrid">
+      <div class="loading"><div class="spinner"></div> Loading categories...</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOR CREATORS -->
+<section class="section">
+  <div class="container">
+    <div class="creator-section">
+      <div>
+        <h2>Publish your agent, get paid</h2>
+        <p>Built an AI agent that people actually want? Publish it on Colony. Set your own price. We take a 20% cut, you keep the rest. Payments land in your wallet as USDC on Base chain — no invoices, no payout schedule, no minimum threshold.</p>
+        <ul class="creator-bullets">
+          <li>Free, subscription, or per-use pricing — your choice</li>
+          <li>80% goes to you, 20% platform fee</li>
+          <li>USDC on Base — fast, cheap, works everywhere</li>
+          <li>Dashboard with installs, revenue, and reviews</li>
+        </ul>
+        <a href="/create" class="btn btn-primary" style="margin-top:16px">Publish an Agent</a>
+      </div>
+      <div class="code-block">
+        <span class="comment"># Your agent, in Python</span><br>
+        <span class="keyword">from</span> colony <span class="keyword">import</span> Agent, tool<br><br>
+        <span class="keyword">@tool</span><br>
+        <span class="keyword">def</span> <span class="func">search</span>(query: str) -> str:<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"""Search the web."""</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> results<br><br>
+        agent = Agent(<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;name=<span class="string">"research-bot"</span>,<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;tools=[search],<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;price=<span class="string">"9.99/month"</span><br>
+        )<br><br>
+        agent.publish()  <span class="comment"># live on Colony</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY BASE -->
+<section class="section" style="background:var(--bg-card);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+  <div class="container">
+    <h2 class="section-title" style="text-align:center">Why Base chain</h2>
+    <p class="section-subtitle" style="text-align:center">We picked Base because it's cheap, fast, and has real USDC liquidity.</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-title">Low fees</div>
+        <div class="feature-desc">Transactions cost less than a cent. You won't lose half your payment to gas.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-title">Fast settlement</div>
+        <div class="feature-desc">Payments confirm in seconds. No waiting 10 minutes for a block.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-title">No KYC</div>
+        <div class="feature-desc">Connect a wallet. Pay. That's the whole identity flow. We don't need your email or ID.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-title">Works everywhere</div>
+        <div class="feature-desc">Base is an Ethereum L2. Any wallet that works on Ethereum works on Base. MetaMask, Coinbase Wallet, Rainbow — all of them.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta-section">
+  <div class="container">
+    <h2>Start exploring</h2>
+    <p>No account needed. Connect your wallet when you're ready to deploy or publish.</p>
+    <div class="cta-actions">
+      <a href="/browse" class="btn btn-primary btn-lg">Browse Agents</a>
+      <a href="/create" class="btn btn-outline btn-lg">Publish an Agent</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function renderHome() {
+  // Load real stats
+  try {
+    const stats = await api('GET', '/api/stats');
+    document.getElementById('statAgents').textContent = stats.total_agents;
+    document.getElementById('statUsers').textContent = stats.total_users;
+    document.getElementById('statRevenue').textContent = `$${stats.total_revenue_usdc.toFixed(2)}`;
+  } catch {}
+
+  // Load agents
+  try {
+    const { agents, total } = await api('GET', '/api/agents?sort=newest&limit=6');
+    const grid = document.getElementById('featuredAgents');
+    const subtitle = document.getElementById('agentsSubtitle');
+
+    if (total === 0) {
+      subtitle.textContent = 'No agents published yet. Be the first.';
+      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-state-title">No agents yet</div><div class="empty-state-desc">The marketplace is empty. If you\'ve built an AI agent, publish it here.</div><a href="/create" class="btn btn-primary" style="margin-top:16px">Publish an Agent</a></div>';
+    } else {
+      subtitle.textContent = `${total} agent${total !== 1 ? 's' : ''} published by the community`;
+      grid.innerHTML = agents.map(a => agentCard(a)).join('');
+    }
+  } catch (err) {
+    console.error('Failed to load agents:', err);
+  }
+
+  // Load categories
+  try {
+    const { categories } = await api('GET', '/api/categories');
+    const grid = document.getElementById('categoriesGrid');
+    if (grid) {
+      grid.innerHTML = categories.map(c => `
+        <a href="/browse?category=${c.id}" class="category-card">
+          <div class="category-card-name">${c.name}</div>
+          <div class="category-card-desc">${c.description}</div>
+        </a>
+      `).join('');
+    }
+  } catch {}
+}
+
+renderHome();
+</script>
+{% endblock %}

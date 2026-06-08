@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% set page = "chat" %}
+
+{% block content %}
+<div class="chat-container">
+  <div class="chat-messages" id="chatMessages">
+    <div class="chat-message agent">
+      <div class="chat-avatar agent">AI</div>
+      <div class="chat-bubble agent">Hi! I'm {{ agent_name }}. How can I help you today?</div>
+    </div>
+  </div>
+  <div class="chat-input-area">
+    <input type="text" class="chat-input" id="chatInput" placeholder="Type a message..." onkeypress="if(event.key==='Enter')sendChatMessage('{{ agent_id }}')">
+    <button class="btn btn-primary" onclick="sendChatMessage('{{ agent_id }}')">Send</button>
+  </div>
+</div>
+{% endblock %}
