@@ -2780,7 +2780,7 @@ function buildQuery(params = {}) {
  * @returns {Promise<any>}
  */
 async function request(url, opts = {}) {
-const BACKEND_URL = "http://43.134.76.146";
+const BACKEND_URL = "https://api.colonyhq.dev";
   const res = await fetch(url.startsWith("/") ? BACKEND_URL + url : url, opts);
 
   // Try to parse JSON regardless of status so we get the error message
