@@ -1,5 +1,4 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/colony-hq/colony/main/.github/assets/colony-banner.png" alt="Colony" width="100%" />
 </p>
 
 <p align="center">
@@ -9,8 +8,6 @@
 
 <p align="center">
   <a href="https://github.com/colony-hq/colony/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
-  <a href="https://pypi.org/project/colony/"><img src="https://img.shields.io/pypi/v/colony.svg" alt="PyPI"></a>
-  <a href="https://pypi.org/project/colony/"><img src="https://img.shields.io/pypi/pyversions/colony.svg" alt="Python"></a>
   <a href="https://github.com/colony-hq/colony/stargazers"><img src="https://img.shields.io/github/stars/colony-hq/colony.svg" alt="Stars"></a>
 </p>
 
