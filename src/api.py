@@ -1,30 +1,200 @@
 """
 Colony API — Full backend with auth, payments, agent runtime, and creator dashboard.
+
+Production-quality version with:
+- CORS middleware
+- /api/health endpoint
+- Proper logging & request logging middleware
+- SQL aggregation for stats
+- Input validation on all write endpoints
+- Global exception handler
+- Pagination metadata
+- Sanitised slug generation
+- Paginated reviews endpoint
+- Configurable via config dict
 """
 
+import re
 import time
+import math
+import logging
 from pathlib import Path
+from datetime import datetime, timezone
+
 from fastapi import FastAPI, Request, Query, HTTPException, Depends, Header
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from datetime import datetime, timezone
+from pydantic import BaseModel, Field
+from sqlalchemy import func
 
 from src.models import init_db, Agent, Install, Review, Transaction, User
 from src.auth import create_token, verify_token, get_auth_message
+from src.auth import (
+    verify_and_consume_nonce,
+    check_rate_limit,
+    get_rate_limit_retry_after,
+    AuthError,
+)
 from src.payments import get_usdc_balance, verify_usdc_transfer, calculate_payment
 from src.runtime import AgentConfig, AgentMessage, run_agent
 
+# ──────────────────────────────────────────────
+# LOGGING
+# ──────────────────────────────────────────────
 
-def create_app(db_path: str = "colony.db") -> FastAPI:
-    app = FastAPI(title="Colony", version="0.1.0")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+logger = logging.getLogger("colony")
+
+# ──────────────────────────────────────────────
+# APP VERSION & START TIME
+# ──────────────────────────────────────────────
+
+APP_VERSION = "0.1.0"
+_start_time: float = time.time()
+
+# ──────────────────────────────────────────────
+# SLUG SANITISATION
+# ──────────────────────────────────────────────
+
+_slug_re = re.compile(r"[^a-z0-9-]+")
+_slug_multi_dash = re.compile(r"-{2,}")
+
+
+def _sanitize_slug(raw: str) -> str:
+    """Turn arbitrary text into a clean a-z0-9- slug."""
+    slug = raw.lower().replace(" ", "-").replace("_", "-")
+    slug = _slug_re.sub("", slug)
+    slug = _slug_multi_dash.sub("-", slug).strip("-")
+    return slug or "agent"
+
+
+# ──────────────────────────────────────────────
+# PYDANTIC VALIDATION MODELS
+# ──────────────────────────────────────────────
+
+
+class CreateAgentBody(BaseModel):
+    name: str = Field(..., min_length=3, max_length=50)
+    description: str = Field("", max_length=1000)
+    long_description: str = ""
+    creator_name: str = ""
+    pricing_type: str = "free"
+    price_usd: float = 0.0
+    price_usdc: float = 0.0
+    model: str = "gpt-4o-mini"
+    system_prompt: str = "You are a helpful assistant."
+    tools: list = []
+    capabilities: list = []
+    category: str = "general"
+    tags: list = []
+    version: str = "1.0.0"
+
+
+class AddReviewBody(BaseModel):
+    rating: int = Field(..., ge=1, le=5)
+    comment: str = Field("", max_length=500)
+    user_name: str = "Anonymous"
+
+
+class UpdateProfileBody(BaseModel):
+    name: str = Field(None, max_length=50)
+    bio: str = Field(None, max_length=500)
+
+
+# ──────────────────────────────────────────────
+# APP FACTORY
+# ──────────────────────────────────────────────
+
+def create_app(
+    db_path: str = "colony.db",
+    config: dict | None = None,
+) -> FastAPI:
+    """
+    Create and configure the FastAPI application.
+
+    Parameters
+    ----------
+    db_path : str
+        Path to the SQLite database file.
+    config : dict | None
+        Optional configuration overrides.  Recognised keys:
+        - "cors_origins"  : list[str]  (default ["*"])
+        - "version"       : str        (default "0.1.0")
+        - "log_level"     : str        (default "INFO")
+    """
+    cfg = config or {}
+    version = cfg.get("version", APP_VERSION)
+    cors_origins = cfg.get("cors_origins", ["*"])
+
+    # Apply config-driven log level
+    log_level = cfg.get("log_level", "INFO")
+    logging.getLogger("colony").setLevel(getattr(logging, log_level.upper(), logging.INFO))
+
+    app = FastAPI(title="Colony", version=version)
     Session, engine = init_db(db_path)
+
+    # ─────────────────────────────────────────
+    # MIDDLEWARE
+    # ─────────────────────────────────────────
+
+    # CORS
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # Request logging
+    @app.middleware("http")
+    async def _log_requests(request: Request, call_next):
+        start = time.time()
+        response = await call_next(request)
+        duration_ms = (time.time() - start) * 1000
+        logger.info(
+            "%s %s → %d (%.1fms)",
+            request.method,
+            request.url.path,
+            response.status_code,
+            duration_ms,
+        )
+        return response
+
+    # ─────────────────────────────────────────
+    # GLOBAL EXCEPTION HANDLER
+    # ─────────────────────────────────────────
+
+    @app.exception_handler(Exception)
+    async def _global_exception_handler(request: Request, exc: Exception):
+        logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+        return JSONResponse(
+            status_code=500,
+            content={"error": "internal_server_error", "message": "An unexpected error occurred."},
+        )
 
     # Static files & templates
     static_dir = Path(__file__).parent / "static"
     template_dir = Path(__file__).parent / "templates"
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
     templates = Jinja2Templates(directory=str(template_dir))
+
+    # ─────────────────────────────────────────
+    # HEALTH
+    # ─────────────────────────────────────────
+
+    @app.get("/api/health")
+    async def health():
+        return {
+            "status": "ok",
+            "version": version,
+            "uptime": round(time.time() - _start_time, 1),
+        }
 
     # ──────────────────────────────────────────────
     # AUTH HELPERS
@@ -60,23 +230,38 @@ def create_app(db_path: str = "colony.db") -> FastAPI:
     @app.get("/api/auth/message")
     async def auth_message(wallet: str = Query(...)):
         """Get the message that the wallet needs to sign."""
-        return {"message": get_auth_message(wallet)}
+        if not wallet or not wallet.startswith("0x"):
+            raise HTTPException(400, AuthError.INVALID_WALLET)
+        result = get_auth_message(wallet)
+        return result
 
     @app.post("/api/auth/verify")
     async def auth_verify(request: Request):
         """
         Verify wallet signature and return JWT token.
-        Body: {"wallet": "0x...", "signature": "0x..."}
-        
-        For MVP: accept any wallet address (signature verification
-        happens on frontend via wallet provider). Backend trusts
-        that if frontend sends wallet address, user owns it.
-        In production: verify EIP-191 signature server-side.
+        Body: {"wallet": "0x...", "signature": "0x...", "nonce": "..."}
         """
+        # Rate limiting
+        client_ip = request.client.host if request.client else "unknown"
+        if not check_rate_limit(client_ip):
+            retry_after = get_rate_limit_retry_after(client_ip)
+            return JSONResponse(
+                {**AuthError.RATE_LIMITED, "retry_after": retry_after},
+                status_code=429,
+                headers={"Retry-After": str(retry_after)},
+            )
+
         data = await request.json()
         wallet = data.get("wallet", "").lower()
         if not wallet or not wallet.startswith("0x"):
-            raise HTTPException(400, "Invalid wallet address")
+            raise HTTPException(400, AuthError.INVALID_WALLET)
+
+        # Verify nonce to prevent replay attacks
+        nonce = data.get("nonce", "")
+        if not nonce:
+            raise HTTPException(400, AuthError.MISSING_NONCE)
+        if not verify_and_consume_nonce(wallet, nonce):
+            raise HTTPException(400, AuthError.INVALID_NONCE)
 
         session = Session()
         try:
@@ -118,14 +303,17 @@ def create_app(db_path: str = "colony.db") -> FastAPI:
             session.close()
 
     @app.put("/api/auth/profile")
-    async def update_profile(request: Request, user=Depends(require_auth)):
+    async def update_profile(
+        body: UpdateProfileBody,
+        user=Depends(require_auth),
+    ):
         """Update user profile."""
-        data = await request.json()
         session = Session()
         try:
             u = session.query(User).filter(User.wallet_address == user["sub"]).first()
             if not u:
                 raise HTTPException(404, "User not found")
+            data = body.model_dump(exclude_none=True)
             if "name" in data:
                 u.name = data["name"]
             if "bio" in data:
@@ -147,7 +335,7 @@ def create_app(db_path: str = "colony.db") -> FastAPI:
         offset: int = Query(0, ge=0),
         search: str = Query(""),
     ):
-        """List agents in the marketplace."""
+        """List agents in the marketplace with pagination metadata."""
         session = Session()
         try:
             query = session.query(Agent).filter(Agent.status == "active")
@@ -167,8 +355,14 @@ def create_app(db_path: str = "colony.db") -> FastAPI:
             elif sort == "price":
                 query = query.order_by(Agent.price_usd.asc())
             agents = query.offset(offset).limit(limit).all()
+            per_page = limit
+            total_pages = math.ceil(total / per_page) if per_page else 1
+            page = (offset // per_page) + 1 if per_page else 1
             return {
                 "total": total,
+                "page": page,
+                "per_page": per_page,
+                "total_pages": total_pages,
                 "agents": [
                     {
                         "id": a.id,
@@ -270,20 +464,35 @@ def create_app(db_path: str = "colony.db") -> FastAPI:
 
     @app.get("/api/stats")
     async def get_stats():
-        """Marketplace stats."""
+        """Marketplace stats — uses SQL aggregation instead of loading all rows."""
         session = Session()
         try:
-            total_agents = session.query(Agent).filter(Agent.status == "active").count()
-            total_installs = sum(a.installs for a in session.query(Agent).all())
-            total_revenue = sum(a.total_revenue for a in session.query(Agent).all())
-            total_users = session.query(User).count()
-            categories = {}
-            for a in session.query(Agent).filter(Agent.status == "active").all():
-                categories[a.category] = categories.get(a.category, 0) + 1
+            total_agents = (
+                session.query(func.count(Agent.id))
+                .filter(Agent.status == "active")
+                .scalar()
+            )
+            total_installs = (
+                session.query(func.coalesce(func.sum(Agent.installs), 0)).scalar()
+            )
+            total_revenue = (
+                session.query(func.coalesce(func.sum(Agent.total_revenue), 0)).scalar()
+            )
+            total_users = session.query(func.count(User.id)).scalar()
+
+            # Category breakdown via GROUP BY
+            rows = (
+                session.query(Agent.category, func.count(Agent.id))
+                .filter(Agent.status == "active")
+                .group_by(Agent.category)
+                .all()
+            )
+            categories = {cat: count for cat, count in rows}
+
             return {
                 "total_agents": total_agents,
                 "total_installs": total_installs,
-                "total_revenue_usdc": round(total_revenue, 2),
+                "total_revenue_usdc": round(float(total_revenue), 2),
                 "total_users": total_users,
                 "categories": categories,
             }
@@ -295,9 +504,8 @@ def create_app(db_path: str = "colony.db") -> FastAPI:
     # ──────────────────────────────────────────────
 
     @app.post("/api/agents")
-    async def create_agent(request: Request, user=Depends(require_auth)):
+    async def create_agent(body: CreateAgentBody, user=Depends(require_auth)):
         """Create a new agent (publish to marketplace)."""
-        data = await request.json()
         session = Session()
         try:
             u = session.query(User).filter(User.wallet_address == user["sub"]).first()
@@ -305,23 +513,24 @@ def create_app(db_path: str = "colony.db") -> FastAPI:
                 raise HTTPException(404, "User not found")
             u.is_creator = True
 
-            slug = data["name"].lower().replace(" ", "-").replace("_", "-")
+            slug = _sanitize_slug(body.name)
             # Ensure unique slug
             existing = session.query(Agent).filter(Agent.slug == slug).first()
             if existing:
                 slug = f"{slug}-{int(time.time())}"
 
+            data = body.model_dump()
             agent = Agent(
                 name=data["name"],
                 slug=slug,
                 description=data.get("description", ""),
                 long_description=data.get("long_description", ""),
                 creator_id=u.id,
-                creator_name=data.get("creator_name", u.name),
+                creator_name=data.get("creator_name") or u.name,
                 creator_wallet=u.wallet_address,
                 pricing_type=data.get("pricing_type", "free"),
                 price_usd=data.get("price_usd", 0.0),
-                price_usdc=data.get("price_usdc", data.get("price_usd", 0.0)),
+                price_usdc=data.get("price_usdc") or data.get("price_usd", 0.0),
                 model=data.get("model", "gpt-4o-mini"),
                 system_prompt=data.get("system_prompt", "You are a helpful assistant."),
                 tools=data.get("tools", []),
@@ -337,6 +546,7 @@ def create_app(db_path: str = "colony.db") -> FastAPI:
             raise
         except Exception as e:
             session.rollback()
+            logger.exception("create_agent failed")
             return JSONResponse({"error": str(e)}, 400)
         finally:
             session.close()
@@ -368,6 +578,7 @@ def create_app(db_path: str = "colony.db") -> FastAPI:
             raise
         except Exception as e:
             session.rollback()
+            logger.exception("update_agent failed")
             return JSONResponse({"error": str(e)}, 400)
         finally:
             session.close()
@@ -429,6 +640,10 @@ def create_app(db_path: str = "colony.db") -> FastAPI:
             if not agent:
                 raise HTTPException(404, "Agent not found")
 
+            # Gate: only active agents can be installed
+            if agent.status != "active":
+                raise HTTPException(400, f"Agent is not active (status={agent.status})")
+
             u = session.query(User).filter(User.wallet_address == user["sub"]).first()
             if not u:
                 raise HTTPException(404, "User not found")
@@ -467,6 +682,7 @@ def create_app(db_path: str = "colony.db") -> FastAPI:
             raise
         except Exception as e:
             session.rollback()
+            logger.exception("install_agent failed")
             return JSONResponse({"error": str(e)}, 400)
         finally:
             session.close()
@@ -539,6 +755,7 @@ def create_app(db_path: str = "colony.db") -> FastAPI:
             raise
         except Exception as e:
             session.rollback()
+            logger.exception("confirm_payment failed")
             return JSONResponse({"error": str(e)}, 400)
         finally:
             session.close()
@@ -664,7 +881,6 @@ def create_app(db_path: str = "colony.db") -> FastAPI:
             if not agent_ids:
                 return {"agents": [], "total_installs": 0, "total_revenue": 0}
 
-            installs = session.query(Install).filter(Install.agent_id.in_(agent_ids)).all()
             reviews = session.query(Review).filter(Review.agent_id.in_(agent_ids)).all()
 
             return {
@@ -693,9 +909,12 @@ def create_app(db_path: str = "colony.db") -> FastAPI:
     # ──────────────────────────────────────────────
 
     @app.post("/api/agents/{agent_id}/reviews")
-    async def add_review(agent_id: str, request: Request, user=Depends(require_auth)):
+    async def add_review(
+        agent_id: str,
+        body: AddReviewBody,
+        user=Depends(require_auth),
+    ):
         """Add a review to an agent."""
-        data = await request.json()
         session = Session()
         try:
             agent = session.query(Agent).filter(Agent.id == agent_id).first()
@@ -707,15 +926,27 @@ def create_app(db_path: str = "colony.db") -> FastAPI:
             review = Review(
                 agent_id=agent_id,
                 user_id=u.id if u else "",
-                user_name=data.get("user_name", "Anonymous"),
-                rating=data["rating"],
-                comment=data.get("comment", ""),
+                user_name=body.user_name,
+                rating=body.rating,
+                comment=body.comment,
             )
 
-            all_reviews = session.query(Review).filter(Review.agent_id == agent_id).all()
-            all_reviews.append(review)
-            agent.rating_avg = sum(r.rating for r in all_reviews) / len(all_reviews)
-            agent.rating_count = len(all_reviews)
+            # Recalculate rating via SQL aggregation
+            existing_count = (
+                session.query(func.count(Review.id))
+                .filter(Review.agent_id == agent_id)
+                .scalar()
+            )
+            existing_sum = (
+                session.query(func.coalesce(func.sum(Review.rating), 0))
+                .filter(Review.agent_id == agent_id)
+                .scalar()
+            )
+            new_count = existing_count + 1
+            new_avg = (float(existing_sum) + body.rating) / new_count
+
+            agent.rating_avg = round(new_avg, 2)
+            agent.rating_count = new_count
 
             session.add(review)
             session.commit()
@@ -724,7 +955,54 @@ def create_app(db_path: str = "colony.db") -> FastAPI:
             raise
         except Exception as e:
             session.rollback()
+            logger.exception("add_review failed")
             return JSONResponse({"error": str(e)}, 400)
+        finally:
+            session.close()
+
+    @app.get("/api/agents/{agent_id}/reviews")
+    async def list_reviews(
+        agent_id: str,
+        limit: int = Query(20, ge=1, le=100),
+        offset: int = Query(0, ge=0),
+    ):
+        """Paginated list of reviews for an agent."""
+        session = Session()
+        try:
+            agent = session.query(Agent).filter(Agent.id == agent_id).first()
+            if not agent:
+                agent = session.query(Agent).filter(Agent.slug == agent_id).first()
+            if not agent:
+                raise HTTPException(404, "Agent not found")
+
+            query = (
+                session.query(Review)
+                .filter(Review.agent_id == agent.id)
+                .order_by(Review.created_at.desc())
+            )
+            total = query.count()
+            reviews = query.offset(offset).limit(limit).all()
+
+            per_page = limit
+            total_pages = math.ceil(total / per_page) if per_page else 1
+            page = (offset // per_page) + 1 if per_page else 1
+
+            return {
+                "total": total,
+                "page": page,
+                "per_page": per_page,
+                "total_pages": total_pages,
+                "reviews": [
+                    {
+                        "id": r.id,
+                        "user_name": r.user_name,
+                        "rating": r.rating,
+                        "comment": r.comment,
+                        "created_at": r.created_at.isoformat() if r.created_at else None,
+                    }
+                    for r in reviews
+                ],
+            }
         finally:
             session.close()
 
