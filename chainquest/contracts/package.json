@@ -1,0 +1,20 @@
+{
+  "name": "chainquest-contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ChainQuest smart contracts — turn-based RPG on Robinhood Chain",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:robinhood": "hardhat run scripts/deploy.js --network robinhoodTestnet",
+    "export-abi": "node scripts/export-abi.js"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.26.0",
+    "solc": "0.8.28"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.1.0"
+  }
+}
