@@ -274,9 +274,12 @@ export function buildWreck(kit, api, scene) {
       b.bar('wood', [xTop + run * t + 0.1, yTop + (yLow - yTop) * t + 0.01, zr - 0.7], [xTop + run * t + 0.1, yTop + (yLow - yTop) * t + 0.01, zr + 0.7], 0.08, 0.06, { color: 0x5a4838 });
     }
     b.box('wood', { x: xTop + run * 0.55, y: yTop + (yLow - yTop) * 0.55 - 0.6, z: zr, w: 0.8, h: 0.8, d: 0.9, yaw: 0.3, roll: 0.2, color: 0x5a4838, vc: weather });
-    // Colliders: steps climbing toward the hull (local -x), each rise <= 0.38.
-    b.within({ x: xTop + run, y: 0, z: zr, yaw: Math.PI / 2 }, () => {
-      b.collStairs({ x: 0, z0: 0, y0: yLow, y1: yTop, run, w: 1.4, maxRise: 0.38, base: -3.4 - HY, surface: 'wood', tag: 'wreck-ramp' });
+    // Colliders: steps climbing toward the hull (local -x), each rise <= 0.38. They continue
+    // under water past the visible planks so a swimmer (feet ~ -1.1) can step onto the foot.
+    const yFoot = -1.25 - HY;
+    const runC = run * (yTop - yFoot) / (yTop - yLow);
+    b.within({ x: xTop + runC, y: 0, z: zr, yaw: Math.PI / 2 }, () => {
+      b.collStairs({ x: 0, z0: 0, y0: yFoot, y1: yTop, run: runC, w: 1.4, maxRise: 0.38, base: -3.4 - HY, surface: 'wood', tag: 'wreck-ramp' });
     });
     api.anchors['wreck:ramp'] = b.world(xTop + run, yLow + HY, zr);
   }

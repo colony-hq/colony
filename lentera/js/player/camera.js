@@ -329,8 +329,12 @@ export function createCameraRig(ctx) {
       focus.side = a >= b - 0.2 ? 1 : -1;
     }
     const s = focus.side;
-    const back = 1.75 + Math.min(1.2, d * 0.18);
-    tmp.set(p.x - dx * back + rx * s * 0.95, head + 0.12, p.z - dz * back + rz * s * 0.95);
+    // The dialogue panel covers the bottom ~45% (desktop) / ~55% (portrait phones), so frame the
+    // NPC's face in the upper part of the screen with the player off to one side.
+    const portrait = (ctx.engine?.size?.h ?? 1) > (ctx.engine?.size?.w ?? 1);
+    const back = 2.0 + Math.min(1.4, d * 0.2) + (portrait ? 0.9 : 0);
+    const sideOff = portrait ? 0.9 : 1.25;
+    tmp.set(p.x - dx * back + rx * s * sideOff, head + 0.4, p.z - dz * back + rz * s * sideOff);
     // Pull in if blocked.
     const vx = tmp.x - p.x, vy = tmp.y - head, vz = tmp.z - p.z;
     const len = Math.hypot(vx, vy, vz);
@@ -338,8 +342,12 @@ export function createCameraRig(ctx) {
     const k = Math.max(0.3, Math.min(1, (hit - 0.3) / len));
     want.set(p.x + vx * k, head + vy * k, p.z + vz * k);
     keepAboveGround(want);
-    wantLook.set(lerp(p.x, tmp2.x, 0.72), lerp(head - 0.05, tmp2.y, 0.72), lerp(p.z, tmp2.z, 0.72));
-    wantFov = baseFov - 8;
+    // Aim below the NPC's head so the head lands ~30% from the top of the frame.
+    const lx = lerp(p.x, tmp2.x, 0.85), lz = lerp(p.z, tmp2.z, 0.85);
+    const camToNpc = Math.hypot(tmp2.x - want.x, tmp2.y - want.y, tmp2.z - want.z);
+    const drop = camToNpc * Math.tan(((portrait ? 15 : 10.5) * Math.PI) / 180);
+    wantLook.set(lx, tmp2.y - drop, lz);
+    wantFov = baseFov - (portrait ? 2 : 8);
   }
 
   // ------------------------------------------------------------------------------------------

@@ -194,17 +194,20 @@ export function createEngine({ canvas, quality: requested } = {}) {
 
 // Frame-time watchdog: steps quality down when the game runs badly for a while.
 export function createPerfGovernor(engine, { enabled = true } = {}) {
-  let acc = 0, frames = 0, slowWindows = 0, cooldown = 4;
+  // Measured on the wall clock: the loop clamps dt, which would hide very slow frames.
+  let start = performance.now(), frames = 0, slowWindows = 0, cooldown = 4;
   return {
     enabled,
-    update(dt) {
+    update() {
       frames++;
-      acc += dt;
+      const now = performance.now();
+      const acc = (now - start) / 1000;
       if (acc < 2) return;
       const ms = (acc / frames) * 1000;
+      start = now;
       engine.stats.frameMs = ms;
       engine.stats.fps = 1000 / ms;
-      acc = 0; frames = 0;
+      frames = 0;
       if (cooldown > 0) { cooldown -= 2; return; }
       if (!this.enabled) return;
       if (ms > 42) slowWindows++;

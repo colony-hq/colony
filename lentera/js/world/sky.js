@@ -385,14 +385,20 @@ export function createSky(ctx) {
     },
   };
 
-  // Resume the evening where a saved game left it.
-  ctx.events?.on?.('game:start', ({ newGame } = {}) => {
+  // Resume the evening where a saved game left it. quest.js calls state.load() inside its own
+  // game:start handler, so the loaded progress is only reliable on game:loaded.
+  const resume = () => {
     const prog = ctx.state?.progress;
-    if (newGame || !prog) { sky.setTimeOfDay(AUTO_START, 0); return; }
+    if (!prog) return;
     if (prog.finished || prog.quest === 'done') { sky.setTimeOfDay(1, 0); return; }
     const played = prog.playTime || 0;
     sky.setTimeOfDay(Math.min(AUTO_END, AUTO_START + (AUTO_END - AUTO_START) * (played / AUTO_SECONDS)), 0);
+  };
+  ctx.events?.on?.('game:start', ({ newGame } = {}) => {
+    if (newGame) sky.setTimeOfDay(AUTO_START, 0);
+    else resume();
   });
+  ctx.events?.on?.('game:loaded', resume);
 
   apply(tod);
   placeKeyLight();
