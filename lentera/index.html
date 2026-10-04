@@ -1,0 +1,126 @@
+<title>LENTERA: Kabut Nusantara</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gloock&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;0,800;1,400&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one full-bleed WebGL canvas; every UI layer is an absolutely positioned root on top.
+   Single deliberate night palette (the game is always at dusk/night), so no light theme. */
+:root {
+  color-scheme: dark;
+  --ink: #0b0f1c;          /* night sky, deepest surface */
+  --ink-2: #141a2c;        /* panels */
+  --ink-3: #1f2740;        /* raised panel / hover */
+  --paper: #efe6d2;        /* primary text: warm lamplit paper */
+  --kabut: #a7aec4;        /* secondary text: fog */
+  --lentera: #ffb547;      /* accent: lantern amber */
+  --lentera-soft: rgba(255, 181, 71, 0.16);
+  --bara: #e2683c;         /* ember: danger, hurt, low light */
+  --kilau: #8fe3d0;        /* jade sparkle: collectibles, CREDIT earned */
+  --soga: #8a5a34;         /* batik soga brown: frames, rules */
+  --tier-redup: #8c8fa3;
+  --tier-sedang: #e9c46a;
+  --tier-terang: #fff1c1;
+  --font-display: 'Gloock', 'Georgia', 'Times New Roman', serif;
+  --font-body: 'Alegreya Sans', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  --fs-xs: clamp(11px, 0.72rem, 12px);
+  --fs-s: clamp(13px, 0.85rem, 14px);
+  --fs-m: clamp(15px, 1rem, 17px);
+  --fs-l: clamp(18px, 1.3rem, 22px);
+  --fs-xl: clamp(26px, 2.4rem, 40px);
+  --fs-title: clamp(48px, 11vw, 132px);
+  --radius: 10px;
+  --gutter: 16px;
+  --shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+  --ease: cubic-bezier(.2, .7, .2, 1);
+}
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-body);
+  font-size: var(--fs-m);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+#app { position: fixed; inset: 0; overflow: hidden; background: var(--ink); }
+#gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; outline: none; }
+#ui { position: absolute; inset: 0; pointer-events: none; }
+#ui > * { position: absolute; inset: 0; }
+#ui button, #ui [data-interactive] { pointer-events: auto; }
+#fade { background: #000; opacity: 0; transition: opacity 0.6s var(--ease); pointer-events: none; }
+#fade.on { opacity: 1; }
+:focus-visible { outline: 2px solid var(--lentera); outline-offset: 2px; }
+
+/* Loading screen (main.js drives [data-bar] and [data-label]). */
+#loading {
+  position: fixed; inset: 0; z-index: 50; display: grid; place-items: center;
+  background: radial-gradient(120% 90% at 50% 70%, #1a2038 0%, var(--ink) 60%);
+  transition: opacity 0.9s var(--ease);
+  padding-inline: var(--gutter);
+}
+#loading.done { opacity: 0; pointer-events: none; }
+#loading .wrap { display: grid; justify-items: center; gap: 18px; text-align: center; max-width: 520px; }
+#loading .flame {
+  width: 26px; height: 40px; border-radius: 50% 50% 45% 45% / 62% 62% 38% 38%;
+  background: radial-gradient(circle at 50% 70%, #fff6d8 0%, #ffcf6b 30%, #ff8a2a 62%, rgba(255, 110, 30, 0) 75%);
+  filter: drop-shadow(0 0 18px rgba(255, 170, 60, 0.9));
+  animation: lentera-flicker 1.6s ease-in-out infinite;
+}
+#loading h1 {
+  font-family: var(--font-display); font-weight: 400; margin: 0;
+  font-size: clamp(42px, 9vw, 84px); letter-spacing: 0.08em; line-height: 1;
+  color: var(--paper); text-shadow: 0 0 30px rgba(255, 181, 71, 0.25);
+}
+#loading .sub { font-size: var(--fs-s); letter-spacing: 0.32em; text-transform: uppercase; color: var(--kabut); }
+#loading .bar { width: min(320px, 70vw); height: 2px; background: rgba(239, 230, 210, 0.12); overflow: hidden; border-radius: 2px; }
+#loading .bar > i { display: block; height: 100%; background: var(--lentera); transform-origin: left; transform: scaleX(0.02); transition: transform 0.4s var(--ease); }
+#loading [data-label] { font-size: var(--fs-s); color: var(--kabut); min-height: 1.4em; }
+#loading.error [data-label] { color: var(--bara); }
+#loading noscript, #loading .nogl { color: var(--bara); font-size: var(--fs-s); }
+@keyframes lentera-flicker {
+  0%, 100% { transform: scale(1) rotate(-1deg); opacity: 1; }
+  30% { transform: scale(1.06, 0.96) rotate(2deg); opacity: 0.92; }
+  60% { transform: scale(0.96, 1.05) rotate(-2deg); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #loading .flame { animation: none; }
+}
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+<div id="app">
+  <canvas id="gl" tabindex="0" aria-label="Dunia LENTERA"></canvas>
+  <div id="ui">
+    <div id="hud"></div>
+    <div id="prompts"></div>
+    <div id="dialogue"></div>
+    <div id="journal"></div>
+    <div id="touch"></div>
+    <div id="toasts"></div>
+    <div id="menus"></div>
+    <div id="fade"></div>
+  </div>
+  <div id="loading" role="status" aria-live="polite">
+    <div class="wrap">
+      <div class="flame" aria-hidden="true"></div>
+      <h1>LENTERA</h1>
+      <div class="sub">Kabut Nusantara</div>
+      <div class="bar"><i data-bar></i></div>
+      <div data-label>Memuat…</div>
+      <noscript>Game ini butuh JavaScript.</noscript>
+    </div>
+  </div>
+</div>
+<script type="module" src="js/main.js"></script>
