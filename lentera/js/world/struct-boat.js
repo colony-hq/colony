@@ -9,6 +9,7 @@ import { LANDMARKS } from './heightfield.js';
 const L = 6.6; // hull length
 const HB = 0.42; // max half beam
 export const JUKUNG_SEAT = new THREE.Vector3(0, -0.12, 1.15); // floorboards behind the mast
+export const JUKUNG_THWART = new THREE.Vector3(0, 0.34, 0.55); // top of the middle thwart (seat plank)
 export const OUTRIGGER = 1.6;
 
 const halfBeam = (s) => HB * Math.pow(Math.max(0, Math.sin(Math.PI * s)), 0.55);
@@ -166,6 +167,7 @@ export function createBoat(kit, api) {
     object: root,
     manual: false,
     seatLocal: JUKUNG_SEAT.clone(),
+    thwartLocal: JUKUNG_THWART.clone(),
     seat,
     setPose(x, z, yaw = pose.yaw) {
       pose.x = x; pose.z = z; pose.yaw = yaw;

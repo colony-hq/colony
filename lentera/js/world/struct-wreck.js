@@ -38,12 +38,11 @@ export function buildWreck(kit, api, scene) {
   b.push({ pitch: PITCH, roll });
 
   const weather = (x, y, z, nx, ny, nz, c) => {
-    // World-ish height: algae below the waterline, salt crust just above it.
-    const wy = y; // frames carry world coords after transform
+    // World height: algae below the waterline, salt crust just above it.
+    const wy = y;
     if (wy < 0.25) c.lerp(new THREE.Color(0.14, 0.2, 0.13), Math.min(1, (0.25 - wy) / 0.8) * 0.85);
     else if (wy < 0.7) c.lerp(new THREE.Color(0.72, 0.72, 0.66), 0.25 * (1 - (wy - 0.25) / 0.45));
   };
-
   // ---- Hull (outer planking) with a few missing strakes + inner face. ----------------------
   const hull = surfaceGeo(16, 40, (u, v) => {
     const s = v, phi = (u - 0.5) * Math.PI;
@@ -53,10 +52,57 @@ export function buildWreck(kit, api, scene) {
   orient(hull, [0, -1, 0]);
   // Stem post rising from the forefoot to the bowsprit.
   b.add('wood', tubeGeo([new THREE.Vector3(0, keel(0.02) + 0.4, zAt(0.02)), new THREE.Vector3(0, sheer(0) - 0.4, zAt(0) - 0.25), new THREE.Vector3(0, sheer(0) + 0.5, zAt(0) + 0.15), new THREE.Vector3(0, sheer(0) + 0.95, zAt(0) + 0.6)], 0.16, 6, 12), {}, { color: 0x4a3a2c, vc: weather });
-  b.add('wood', hull, {}, {
-    color: 0x6e5a46, jitter: 0.03,
-    vc: weather,
-  });
+  b.add('wood', hull, {}, { color: 0x6e5a46, jitter: 0.03, vc: weather });
+  // Strake battens: thin ridges along the planking at fixed girth angles (real geometry lines).
+  for (const side of [-1, 1]) {
+    for (const phi0 of [0.42, 0.62, 0.8, 0.96, 1.1, 1.24, 1.38]) {
+      const pts = [];
+      for (let i = 0; i <= 18; i++) {
+        const s0 = 0.03 + (i / 18) * 0.95;
+        const phi = side * phi0;
+        const hb = halfBeam(s0), ys = sheer(s0), yk = keel(s0);
+        pts.push(new THREE.Vector3(hb * Math.sin(phi) + side * 0.015, ys - (ys - yk) * Math.pow(Math.cos(phi), secExp(s0)), zAt(s0)));
+      }
+      b.add('wood', tubeGeo(pts, 0.03, 3, 30), {}, { color: 0x4a3c30, jitter: 0.05, vc: weather });
+    }
+  }
+  // Gash in the port bow: a dark, jagged opening conforming to the hull, splintered edges.
+  {
+    const hullPt = (s0, phi, off = 0) => {
+      const hb = halfBeam(s0), ys = sheer(s0), yk = keel(s0);
+      const c = Math.cos(phi), sn = Math.sin(phi);
+      const x = hb * sn, y = ys - (ys - yk) * Math.pow(Math.abs(c), secExp(s0));
+      return [x - off, y, zAt(s0)];
+    };
+    const r = b.rand;
+    const gash = surfaceGeo(6, 4, (u, v) => {
+      const edge = Math.min(u, 1 - u, v, 1 - v);
+      const jag = edge < 0.2 ? (r() - 0.5) * 0.06 : 0;
+      return hullPt(0.235 + u * 0.075 + jag, -1.22 + v * 0.42 + jag * 3, 0.03);
+    });
+    orient(gash, [-1, 0, 0]);
+    b.add('paint', gash, {}, { color: 0x0b0907, jitter: 0 });
+    for (let k = 0; k < 7; k++) {
+      const s0 = 0.235 + (k / 6) * 0.075, phi = k % 2 ? -1.22 : -0.8;
+      const a = hullPt(s0, phi, 0.02);
+      b.bar('wood', a, [a[0] - 0.25, a[1] + (k % 2 ? -0.35 : 0.35), a[2] + (r() - 0.5) * 0.3], 0.05, 0.12, { color: 0x4a3a2c, vc: weather });
+    }
+  }
+  // Barnacle crust along the waterline.
+  for (let i = 0; i < 70; i++) {
+    const s0 = 0.08 + b.rand() * 0.86, side = b.rand() < 0.5 ? -1 : 1;
+    const hb = halfBeam(s0), ys = sheer(s0), yk = keel(s0);
+    // Find the hull height that sits near world y 0.15 (water line) on this side.
+    let best = null, bestD = 1e9;
+    for (let k = 0; k <= 12; k++) {
+      const phi = side * (0.25 + (k / 12) * 1.3);
+      const lp = [hb * Math.sin(phi), ys - (ys - yk) * Math.pow(Math.cos(phi), secExp(s0)), zAt(s0)];
+      const wy = b.world(lp[0], lp[1], lp[2]).y;
+      const d = Math.abs(wy - (0.05 + b.rand() * 0.35));
+      if (d < bestD) { bestD = d; best = lp; }
+    }
+    if (best && bestD < 0.3) b.rock('rock', { x: best[0] + side * 0.02, y: best[1], z: best[2], r: 0.05 + b.rand() * 0.07, detail: 0, squash: 0.6, color: 0xb8b4a6, jitter: 0.15 });
+  }
   // Transom closing the stern.
   {
     const ys = sheer(1), yk = keel(1), hb = halfBeam(1);

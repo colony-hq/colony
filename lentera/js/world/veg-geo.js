@@ -106,12 +106,13 @@ export function coconutPalm(seed, H = 10, lean = 2.6) {
   tube(trunk, pts, (t) => (t < 0.05 ? 0.32 - t * 2 : 0.22 - t * 0.07), 6, 8, (t) => 0.5 * t * t, (t) => [0.62 + 0.2 * t, 0.56 + 0.18 * t, 0.48 + 0.14 * t]);
   const leaves = new Mesher();
   const fr = atlasUV('frond');
-  const nF = 10;
+  const nF = 13;
   for (let i = 0; i < nF; i++) {
     const a = (i / nF) * Math.PI * 2 + r() * 0.3;
     const dir = V(Math.cos(a), 0, Math.sin(a));
-    const upper = i % 3 === 0;
-    ribbon(leaves, top.clone().add(V(0, 0.1, 0)), dir, 4.2 + r() * 1.0, 0.8, upper ? 0.75 : 0.45, upper ? 1.05 : 1.15, fr, 5, 0.9, { fold: 0.25, col: 1.15 + r() * 0.2 });
+    const tier = i % 3; // 0: young upright, 1: spreading, 2: old drooping
+    const rise = [0.95, 0.55, 0.3][tier], droop = [1.0, 1.1, 1.3][tier];
+    ribbon(leaves, top.clone().add(V(0, 0.1 - tier * 0.08, 0)), dir, 4.0 + r() * 1.1, 0.95, rise, droop, fr, 5, 0.9, { fold: 0.28, col: (tier === 2 ? 1.0 : 1.18) + r() * 0.2 });
   }
   // Coconuts.
   const cu = atlasUV('coconut');

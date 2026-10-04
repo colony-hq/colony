@@ -49,6 +49,8 @@ export function createStructures(ctx) {
     update(dt, t) {
       kit.update(dt, t);
       for (const fn of updaters) fn(dt, t);
+      cullAcc += dt;
+      if (cullAcc > 0.25 || dt === 0) { cullAcc = 0; cullRegions(); }
     },
   };
 
@@ -72,6 +74,38 @@ export function createStructures(ctx) {
   step('candi', () => buildCandi(kit, api, scene, updaters));
   step('wreck', () => buildWreck(kit, api, scene, updaters));
   step('lighthouse', () => buildLighthouse(kit, api, scene, updaters));
+
+  // ---- Per-region distance culling (frustum culling already happens per merged mesh). --------
+  const preset = ctx.engine?.preset || {};
+  const D = preset.drawDistance || 480;
+  const cull = [];
+  const sphereOf = (obj) => {
+    const box = new THREE.Box3();
+    obj.updateMatrixWorld(true);
+    box.setFromObject(obj);
+    const sp = new THREE.Sphere();
+    box.getBoundingSphere(sp);
+    return sp;
+  };
+  for (const g of kit.groups) {
+    if (/^boat/.test(g.name) || !g.children.length) continue;
+    const near = g.name === 'airterjun-cave' ? 130 : D;
+    cull.push({ obj: g, sphere: sphereOf(g), max: near });
+  }
+  if (api.waterfall) {
+    cull.push({ obj: api.waterfall.foam, sphere: new THREE.Sphere(api.waterfall.foam.position.clone(), 8), max: 260 });
+    cull.push({ obj: api.waterfall.mist, sphere: new THREE.Sphere(api.waterfall.foam.position.clone(), 14), max: 260 });
+  }
+  let cullAcc = 1;
+  function cullRegions() {
+    const cam = ctx.camera?.position;
+    if (!cam) return;
+    for (const c of cull) {
+      const d = cam.distanceTo(c.sphere.center) - c.sphere.radius;
+      c.obj.visible = d < c.max;
+    }
+  }
+  api.cullList = cull;
 
   // Guarantee the contract even if a region failed to build.
   const L = LANDMARKS;

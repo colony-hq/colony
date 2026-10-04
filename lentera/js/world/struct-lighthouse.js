@@ -119,18 +119,9 @@ export function buildLighthouse(kit, api, scene, updaters) {
   lamp.name = 'mercusuar:lamp';
   lamp.add(glass, lens);
   scene.add(lamp);
-  // Rotating light beams (additive cones), visible when the lamp glows strongly.
-  const beamTex = beamTexture();
-  const beamMat = patchMaterial(new THREE.MeshBasicMaterial({ map: beamTex, color: new THREE.Color(1.0, 0.82, 0.55), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+  // The rotating beams belong to gameplay's finale.js; keep an (empty) group for compatibility.
   const beams = new THREE.Group();
-  for (const s of [-1, 1]) {
-    const g = new THREE.CylinderGeometry(9, 0.4, 140, 16, 1, true);
-    g.translate(0, 70, 0);
-    g.rotateZ(s * Math.PI / 2);
-    const m = new THREE.Mesh(g, beamMat);
-    m.frustumCulled = false;
-    beams.add(m);
-  }
+  beams.name = 'mercusuar:beams';
   beams.position.set(cx, ly1 + 1.1, cz);
   beams.visible = false;
   scene.add(beams);
@@ -149,15 +140,11 @@ export function buildLighthouse(kit, api, scene, updaters) {
       glassMat.opacity = 0.32 + glowV * 0.4;
       lensMat.color.setRGB(0.08 + glowV * 4.5, 0.075 + glowV * 3.4, 0.07 + glowV * 1.9);
       winMat.color.setScalar(glowV * 0.9 + 0.04);
-      beamMat.opacity = Math.max(0, (glowV - 0.45) / 0.55) * 0.55;
-      beams.visible = beamMat.opacity > 0.001;
     },
-    setBeams(on) { beams.userData.forced = on; },
-    beamSpeed: 0.35,
   };
   lighthouse.setLampGlow(0);
   api.lighthouse = lighthouse;
-  updaters.push((dt) => { if (beams.visible) beams.rotation.y += dt * lighthouse.beamSpeed; });
+  void updaters;
 
   // ---- Keeper's hut, seaward parapet, props (second builder: separate culling region). -----
   const h = kit.builder('mercusuar-yard');
@@ -251,18 +238,4 @@ export function buildLighthouse(kit, api, scene, updaters) {
   }
   h.build(scene);
   return group;
-}
-
-function beamTexture() {
-  const c = document.createElement('canvas');
-  c.width = 4; c.height = 128;
-  const g = c.getContext('2d');
-  const grd = g.createLinearGradient(0, 0, 0, 128);
-  grd.addColorStop(0, 'rgba(255,255,255,0)');
-  grd.addColorStop(0.75, 'rgba(255,255,255,0.35)');
-  grd.addColorStop(1, 'rgba(255,255,255,1)');
-  g.fillStyle = grd; g.fillRect(0, 0, 4, 128);
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  return t;
 }

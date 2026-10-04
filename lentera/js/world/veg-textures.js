@@ -154,8 +154,8 @@ function paintAtlas(S) {
       g.fill();
     }
   };
-  cell('grass', (w, h) => blades(w, h, 46, ['#3e5e22', '#9aa84a']));
-  cell('grass2', (w, h) => { blades(w, h, 34, ['#4a6224', '#b0a856']); for (let i = 0; i < 6; i++) { g.fillStyle = r() < 0.5 ? '#e8e0b0' : '#d8a8c0'; g.beginPath(); g.arc(w / 2 + R(-60, 60), h * R(0.2, 0.5), R(3, 5), 0, Math.PI * 2); g.fill(); } });
+  cell('grass', (w, h) => blades(w, h, 46, ['#5a7e30', '#b8c05c']));
+  cell('grass2', (w, h) => { blades(w, h, 34, ['#64822e', '#c4bc66']); for (let i = 0; i < 6; i++) { g.fillStyle = r() < 0.5 ? '#e8e0b0' : '#d8a8c0'; g.beginPath(); g.arc(w / 2 + R(-60, 60), h * R(0.2, 0.5), R(3, 5), 0, Math.PI * 2); g.fill(); } });
   cell('reed', (w, h) => {
     blades(w, h, 26, ['#5a6a34', '#a8a868']);
     for (let i = 0; i < 4; i++) { g.fillStyle = '#6a4a2a'; const x = w / 2 + R(-50, 50); g.fillRect(x - 3, h * R(0.05, 0.2), 6, 34); }

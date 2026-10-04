@@ -59,16 +59,8 @@ export function buildKampung(kit, api, scene) {
   scene.add(fireObj);
   api.campfires.kampung = { object: fireObj, position: fireObj.position.clone() };
   api.anchors['campfire:kampung'] = fireObj.position.clone();
-  // Sarni's log sits just behind her spot, tangent to the fire ring.
-  const S = LANDMARKS.npcs.sarni;
-  {
-    const dx = S.x - C.x, dz = S.z - C.z, L = Math.hypot(dx, dz);
-    const ux = dx / L, uz = dz / L;
-    const lx = S.x + ux * 0.32, lz = S.z + uz * 0.32;
-    b.within({ x: 0, y: heightAt(lx, lz), z: 0 }, () => sittingLog(b, lx, lz, yawTangent(ux, uz), 1.9));
-    api.anchors['seat:sarni'] = new THREE.Vector3(lx, heightAt(lx, lz) + 0.42, lz);
-  }
-  for (const [ang, len] of [[0.25, 1.7], [1.75, 2.0], [-1.2, 1.6]]) {
+  // Sitting logs for villagers/the player (Mbah Sarni brings her own dingklik stool: npcs.js).
+  for (const [ang, len] of [[0.25, 1.7], [2.2, 2.0], [-0.6, 1.6], [2.95, 1.5]]) {
     const r = 4.3;
     const lx = C.x + Math.cos(ang) * r, lz = C.z + Math.sin(ang) * r;
     b.within({ x: 0, y: heightAt(lx, lz), z: 0 }, () => sittingLog(b, lx, lz, yawTangent(Math.cos(ang), Math.sin(ang)), len));
@@ -116,7 +108,7 @@ export function buildKampung(kit, api, scene) {
     { word: 'Mercusuar', to: [40, 150] },
     { word: 'Candi', to: [8, 110] },
     { word: 'Pantai Barat', to: [-40, 170] },
-    { word: 'Telaga', to: [-60, 168], len: 0.95 },
+    { word: 'Telaga', to: [-60, 168], len: 1.1 },
   ], regions);
 
   // Scatter of everyday props.
@@ -435,7 +427,7 @@ function buildWarung(b, Wp, regions, api) {
   const W = 5.4, back = 1.8, front = -1.25;
   const hF = 2.55, hB = 3.25; // eave heights (lean-to roof sloping to the front)
   // Floor slab (packed earth + cement) flush with the ground.
-  b.box('plaster', { x: 0, y0: -0.25, z: (back + front) / 2 - 0.2, w: W + 0.2, h: 0.28, d: back - front + 0.8, color: 0x9a9184, jitter: 0.05 });
+  b.box('stone', { x: 0, y0: -0.25, z: (back + front) / 2 - 0.2, w: W + 0.2, h: 0.28, d: back - front + 0.8, color: 0x9a9184, jitter: 0.05, uvOff: false });
   // Posts.
   const posts = [[-W / 2, front - 0.9], [W / 2, front - 0.9], [-W / 2, back], [W / 2, back], [0, back]];
   for (const [x, z] of posts) {

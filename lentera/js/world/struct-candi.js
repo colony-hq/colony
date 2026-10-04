@@ -406,10 +406,6 @@ export function buildCandi(kit, api, scene, updaters) {
   api.campfires.candi = { object: fireObj, position: fireObj.position.clone() };
   api.anchors['campfire:candi'] = fireObj.position.clone();
   {
-    const Ls = LANDMARKS.npcs.laras;
-    const bx = Ls.x + Math.sin(Ls.yaw) * 0.42, bz = Ls.z + Math.cos(Ls.yaw) * 0.42;
-    b.box('stone', { x: bx, y0: heightAt(bx, bz) - 0.1, z: bz, w: 0.7, h: 0.52, d: 0.42, yaw: Ls.yaw, color: STONE, jitter: 0.1, vc: moss(heightAt(bx, bz)) });
-    api.anchors['seat:laras'] = new THREE.Vector3(bx, heightAt(bx, bz) + 0.42, bz);
     const ox = CF.x - 3.2, oz = CF.z - 1.2;
     b.box('stone', { x: ox, y0: heightAt(ox, oz) - 0.1, z: oz, w: 1.1, h: 0.5, d: 0.5, yaw: 1.2, color: STONE, jitter: 0.1, vc: moss(heightAt(ox, oz)) });
   }

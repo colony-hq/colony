@@ -12,13 +12,58 @@ import {
   heightAt, slopeAt, distToPath, distToRiver, LANDMARKS, EXCLUSIONS,
 } from './heightfield.js';
 import { mulberry32, createNoise2D, fbm } from '../core/noise.js';
-import { createVegTextures } from './veg-textures.js';
+import { createVegTextures, atlasUV } from './veg-textures.js';
 import { windMaterial, InstSet, vegUniforms } from './veg-instancing.js';
 import {
   coconutPalm, broadleafTree, bananaPlant, fern, shrub, tuft, bambooClump, kambojaTree, beringin, rockShape,
 } from './veg-geo.js';
 
 const smoothstep = (a, b, v) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
+
+// Vines hanging from the waterfall's lip shelf (x = -157, z -40.6..-25.4) and over the cave
+// mouth: chains of leafy cards (banyan leaf cluster), swaying with the leaf wind.
+function buildVines(rng) {
+  const pos = [], nrm = [], uv = [], col = [], wind = [], idx = [];
+  const uvr = atlasUV('fern');
+  const add = (x, yTop, z, len, facing) => {
+    const segs = Math.max(2, Math.round(len / 1.1));
+    let px = x, pz = z;
+    for (let k = 0; k < segs; k++) {
+      const y0 = yTop - (k / segs) * len, y1 = yTop - ((k + 1) / segs) * len;
+      const w = 0.55 - k * 0.05;
+      const ox = Math.cos(facing) * w, oz = Math.sin(facing) * w;
+      const base = pos.length / 3;
+      const nx = -Math.sin(facing), nz = Math.cos(facing);
+      const quad = [[px - ox, y0, pz - oz, uvr.u0, uvr.v1], [px + ox, y0, pz + oz, uvr.u1, uvr.v1], [px + ox, y1, pz + oz, uvr.u1, uvr.v0], [px - ox, y1, pz - oz, uvr.u0, uvr.v0]];
+      quad.forEach(([qx, qy, qz, u, v], q) => {
+        pos.push(qx, qy, qz); nrm.push(nx, 0.3, nz); uv.push(u, v);
+        const c = 1.0 + 0.25 * (1 - k / segs); col.push(c, c * 1.05, c);
+        wind.push(q < 2 ? 0.15 * (k / segs) : 0.15 * ((k + 1) / segs));
+      });
+      idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+      px += (rng() - 0.5) * 0.15; pz += (rng() - 0.5) * 0.15;
+    }
+  };
+  for (let i = 0; i < 22; i++) {
+    const z = -40.3 + rng() * 14.6;
+    if (z > -36.6 && z < -29.4) continue; // keep the falls clear
+    add(-158.3 - rng() * 0.4, 28.6 - rng() * 0.6, z, 3 + rng() * 5, Math.PI / 2 + (rng() - 0.5) * 0.3);
+  }
+  for (let i = 0; i < 18; i++) {
+    const side = rng() < 0.5 ? -1 : 1;
+    const x = -156.8 + rng() * 6.2;
+    add(x, 28.4 - rng() * 1.0, -33 + side * (7.9 + rng() * 0.4), 2.5 + rng() * 4.5, 0 + (rng() - 0.5) * 0.3);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.setAttribute('aWind', new THREE.Float32BufferAttribute(wind, 1));
+  g.setIndex(idx);
+  g.computeBoundingSphere();
+  return g;
+}
 
 export function createVegetation(ctx) {
   try {
@@ -287,11 +332,11 @@ function buildVegetation(ctx) {
   // ---- Reeds in the cove shallows; ferns by the cave mouth. ------------------------------------
   {
     const A = LANDMARKS.airTerjun;
-    jgrid(808, 2.6, (x, z, rng) => {
-      if (Math.hypot(x - A.cove.x, z - A.cove.z) > 40) return;
+    jgrid(808, 1.8, (x, z, rng) => {
+      if (Math.hypot(x - A.cove.x, z - A.cove.z) > 44) return;
       const h = heightAt(x, z);
-      if (h < -0.9 || h > 0.5) return;
-      if (rng() > 0.45 * Math.max(0.5, density)) return;
+      if (h < -1.3 || h > 0.9) return;
+      if (rng() > 0.6 * Math.max(0.5, density)) return;
       if (Math.hypot(x - A.top.x + 3, z - A.top.z) < 7) return; // plunge point
       if (blocked(x, z, 0.5)) return;
       place(sets.reed, x, h - 0.05, z, rng() * 6.28, 0.8 + rng() * 0.5, { color: tint(rng, 1, 0.2, 0.1), h: 1.7, r: 0.6 });
@@ -302,6 +347,23 @@ function buildVegetation(ctx) {
       const h = heightAt(x, z);
       if (h < 0.4 || slopeAt(x, z) > 0.9 || Math.abs(z + 33) < 6.5) continue;
       place(sets.fern, x, h - 0.05, z, rng() * 6.28, 0.9 + rng() * 0.6, { color: tint(rng, 0.9, 0.2), h: 1, r: 1 });
+    }
+  }
+
+  // ---- Hanging vines on the waterfall shelf and the cliff around the cave mouth. ---------------
+  {
+    const rng = mulberry32(1212);
+    const vineGeo = buildVines(rng);
+    const vines = new THREE.Mesh(vineGeo, leafMat);
+    vines.name = 'veg:vines';
+    vines.castShadow = false;
+    vines.receiveShadow = true;
+    scene.add(vines);
+    for (let i = 0; i < 16; i++) {
+      const x = -152 + rng() * 14, z = rng() < 0.5 ? -41.5 - rng() * 3 : -24.5 + rng() * 3;
+      const h = heightAt(x, z);
+      if (h < 26) continue;
+      place(sets.fern, x, h - 0.05, z, rng() * 6.28, 1.0 + rng() * 0.6, { color: tint(rng, 1, 0.2), h: 1, r: 1 });
     }
   }
 
@@ -323,9 +385,11 @@ function buildVegetation(ctx) {
       const h = heightAt(x, z);
       if (h < 1.9 || h > 42) return;
       if (slopeAt(x, z) > 0.6 || distToPath(x, z) < 1.5) return;
-      if (blocked(x, z, -1.5, { ignoreKampung: true })) return;
+      const dk = Math.hypot(x - K.x, z - K.z);
+      if (dk < 24 + rng() * 8) return; // trampled plaza
+      if (blocked(x, z, dk < 45 ? 0.5 : -1.5, { ignoreKampung: true })) return;
       const set = rng() < 0.18 ? sets.grass2 : sets.grass;
-      place(set, x, h - 0.04, z, rng() * 6.28, 0.7 + rng() * 0.7, { color: tint(rng, 1, 0.25, 0.15), h: 0.6, r: 0.4 });
+      place(set, x, h - 0.04, z, rng() * 6.28, 0.7 + rng() * 0.7, { color: tint(rng, 1.25, 0.25, 0.15), h: 0.6, r: 0.4 });
     });
   }
 

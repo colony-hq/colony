@@ -42,7 +42,11 @@ export function buildWaterfall(kit, api, scene, updaters) {
       const k = (v.y - RY0) / (RY1 - RY0);
       const yNew = yb + k * (RY1 - yb);
       dy += yNew - v.y;
-      if (v.x < -150 && !top) { if (v.z < -33) dz += (1 - k) * 0.8; else dz -= (1 - k) * 0.8; }
+      if (v.x < -150 && !top) {
+        if (v.z < -33) dz += (1 - k) * 0.8; else dz -= (1 - k) * 0.8;
+        dz += nz3(v.x * 1.3, v.y * 0.7, v.z, 0.09) * 2.2; // craggy shelf flanks
+        dx += nz3(v.x, v.y * 1.1 + 5, v.z * 1.3, 0.11) * 1.2;
+      }
       // Notch where the river pours over the lip.
       if (top && v.z > -36.5 && v.z < -29.5) dy -= 0.35;
       p.setXYZ(i, v.x + dx, v.y + dy, v.z + dz);
@@ -60,6 +64,7 @@ export function buildWaterfall(kit, api, scene, updaters) {
       color: 0x8c7c6c, jitter: 0, uvOff: false,
       vc: (x, y, z, nx, ny, nz, c) => {
         if (ny > 0.55) c.lerp(new THREE.Color(0.32, 0.42, 0.24), 0.75); // grassy moss on top
+        else if (nz3(x * 2.1, y * 1.7, z * 2.3, 0.2) > 0.12 && y > 12) c.lerp(new THREE.Color(0.3, 0.38, 0.22), 0.55); // moss streaks
         else if (ny < -0.5) c.multiplyScalar(0.62); // underside of the shelf
         else if (y < 14) c.multiplyScalar(0.7); // wet, darker near the spray
         if (Math.abs(z + 33) < 4.5 && x < -153) c.multiplyScalar(0.6); // behind the falls
@@ -69,7 +74,7 @@ export function buildWaterfall(kit, api, scene, updaters) {
     b.collBox({ x: (-156 + -150.5) / 2, y: 22, z: -33, w: 5.5, h: RY1 - 22, d: 14, surface: 'rock', tag: 'cave-roof' });
   }
   // Extra boulders breaking the silhouette of the shelf and the cliff around the mouth.
-  for (const [x, y, z, r] of [[-155.6, 26.2, -41.0, 2.0], [-155.6, 25.6, -25.2, 1.8], [-151.5, 27.5, -24.6, 1.8], [-150, 28.3, -42.2, 2.0], [-147.5, 28.2, -23.9, 1.8], [-156.2, 22.6, -38.6, 1.4], [-156.2, 22.9, -27.4, 1.3], [-151.2, 9.0, -38.9, 1.6], [-151.2, 9.2, -27.0, 1.5]]) {
+  for (const [x, y, z, r] of [[-155.6, 26.2, -41.0, 2.0], [-155.6, 25.6, -25.2, 1.8], [-151.5, 27.5, -24.6, 1.8], [-150, 28.3, -42.2, 2.0], [-147.5, 28.2, -23.9, 1.8]]) {
     b.rock('rock', { x, y, z, r, squash: 0.85, rough: 0.35, detail: 1, color: 0x7d786c, jitter: 0.08, vc: (px, py, pz, nx, ny, nz, c) => { if (ny > 0.6) c.lerp(new THREE.Color(0.3, 0.4, 0.22), 0.7); } });
   }
   // Rocks at the waterline around the plunge pool and the cave mouth.
@@ -78,45 +83,39 @@ export function buildWaterfall(kit, api, scene, updaters) {
   }
 
   // ---- Cave interior: rock walls hiding the terrain slot ramps, moss, crystals, pedestal. ------
-  // Wall surfaces sit just inside the carved floor (z -37.5..-27.5, x < -137.5) so they hide the
-  // steep terrain ramps of the slot. wallAt(i, x, y) gives the surface z for decals.
-  const wallZ = [-37.35, -27.65];
-  // Plan radius of the cave around its axis (z = -33): straight sides, then a rounded apse that
-  // follows the carved slot's capsule end (centre x = -142).
-  const AX = -142.6, APSE = 3.9, SIDE = 4.35;
-  const wallD = (x, y, zw) => nz3(x, y, zw, 0.21) * 0.9 + nz3(x * 1.7, y * 1.3, zw, 0.37) * 0.4;
-  const halfAt = (x) => (x > AX ? Math.sqrt(Math.max(0, APSE * APSE - (x - AX) * (x - AX))) * (SIDE / APSE) : SIDE);
-  const wallAt = (i, x, y) => {
-    const d = wallD(x, y, wallZ[i]);
-    return -33 + (i === 0 ? -1 : 1) * (halfAt(x) - Math.abs(d) * 0.9 - 0.05);
+  // Built as its own region so it can be culled at short range.
+  {
+  const b = kit.builder('airterjun-cave');
+  // The cave wall follows an explicit plan curve that stays inside the truly flat floor of the
+  // carved slot (the terrain grid makes its rounded end narrower than the analytic capsule):
+  // straight sides, shoulders at x ~ -140, and a small niche behind the pedestal.
+  const wallD = (x, y, z) => nz3(x, y, z, 0.21) * 0.9 + nz3(x * 1.7, y * 1.3, z, 0.37) * 0.4;
+  const plan = new THREE.CatmullRomCurve3([
+    [-152.2, -37.35], [-146, -37.4], [-141.6, -37.3], [-140.45, -36.5], [-140.1, -35.2], [-139.2, -34.75],
+    [-138.3, -33.9], [-138.05, -33], [-138.3, -32.1], [-139.2, -31.25], [-140.1, -30.8], [-140.45, -29.5],
+    [-141.6, -28.15], [-146, -28.05], [-152.2, -28.1],
+  ].map(([x, z]) => new THREE.Vector3(x, 0, z)), false, 'centripetal');
+  const planLen = plan.getLength();
+  const planPt = (u) => {
+    const p = plan.getPointAt(u), t = plan.getTangentAt(u);
+    return { x: p.x, z: p.z, nx: -t.z, nz: t.x, tx: t.x, tz: t.z }; // (nx, nz) points into the cave
   };
-  // One continuous U-shaped rock surface: param s along the plan curve, y up; displaced inward.
-  const straight = AX + 151.6;
-  const planLen = straight * 2 + Math.PI * APSE;
-  const planAt = (s) => {
-    if (s < straight) return [-151.6 + s, -33 - SIDE, 0, 1];
-    if (s > straight + Math.PI * APSE) return [AX - (s - straight - Math.PI * APSE), -33 + SIDE, 0, -1];
-    const th = (s - straight) / APSE; // 0..pi around the apse
-    return [AX + Math.sin(th) * APSE, -33 - Math.cos(th) * SIDE, -Math.sin(th), Math.cos(th)];
+  const wallPoint = (u, y) => {
+    const q = planPt(u);
+    const d = Math.abs(wallD(q.x, y, q.z)) * 0.9 + 0.05;
+    return { x: q.x + q.nx * d, y, z: q.z + q.nz * d, nx: q.nx, nz: q.nz };
   };
   {
-    const g = surfaceGeo(46, 8, (u, v) => {
-      const [x, z, ix, iz] = planAt(u * planLen); // (ix, iz) = inward direction
-      const y = -2.6 + v * 10.8;
-      const d = Math.abs(wallD(x, y, z)) * 0.9 + 0.05;
-      return [x + ix * d, y, z + iz * d];
+    const g = surfaceGeo(Math.round(planLen / 0.6), 8, (u, v) => {
+      const w = wallPoint(u, -2.6 + v * 10.8);
+      return [w.x, w.y, w.z];
     });
-    orient(g, [-1, 0, 0]); // interior-facing: the apse normals point back toward the mouth
+    orient(g, [-1, 0, 0]); // interior-facing: the niche normals point back toward the mouth
     b.add('rock', g, {}, { color: 0x7a6e62, jitter: 0.04, vc: (x, y, z, nx, ny, nz, c) => { c.multiplyScalar(0.5 + 0.5 * Math.min(1, Math.max(0, (y - 1) / 6))); if (y < 1.8 && x < -148) c.lerp(new THREE.Color(0.12, 0.16, 0.12), 0.5); } });
   }
-  for (const [i, zw] of wallZ.entries()) {
-    const out = i === 0 ? -1 : 1;
-    b.collBox({ x: (-152 + AX) / 2, y: -2.5, z: zw + out * 0.6, w: AX + 152, h: 10.1, d: 1.2, surface: 'rock', walkable: false, tag: 'cave-wall' });
-  }
-  for (let k = 0; k <= 6; k++) {
-    const th = (k / 6) * Math.PI;
-    const x = AX + Math.sin(th) * (APSE + 0.6), z = -33 - Math.cos(th) * (SIDE + 0.6);
-    b.collBox({ x, y: -1, z, w: 1.4, h: 9, d: 1.4, yaw: -th, surface: 'rock', walkable: false, tag: 'cave-wall' });
+  for (let k = 0; k <= 34; k++) {
+    const q = planPt(k / 34);
+    b.collBox({ x: q.x - q.nx * 0.6, y: -2.5, z: q.z - q.nz * 0.6, w: (planLen / 34) + 0.4, h: 10.1, d: 1.2, yaw: Math.atan2(-q.tz, q.tx), surface: 'rock', walkable: false, tag: 'cave-wall' });
   }
   // Flat stepping stones to the pedestal, wet pebbles along the walls.
   for (let i = 0; i < 9; i++) {
@@ -126,31 +125,27 @@ export function buildWaterfall(kit, api, scene, updaters) {
     b.rock('rock', { x, y: y + 0.02, z, r: 0.5 + b.r(0, 0.12), squash: 0.22, rough: 0.15, color: 0x8c8274, jitter: 0.1 });
   }
   for (let i = 0; i < 26; i++) {
-    const side = b.rand() < 0.5 ? 0 : 1;
-    const x = b.r(-151, -139.4);
-    const hw = halfAt(x);
-    const z = side === 0 ? -33 - b.r(hw - 1.3, hw - 0.3) : -33 + b.r(hw - 1.3, hw - 0.3);
+    const w = wallPoint(b.r(0.04, 0.96), 1.4);
+    const x = w.x + w.nx * b.r(0.2, 0.9), z = w.z + w.nz * b.r(0.2, 0.9);
     const y = heightAt(x, z);
     if (y < 1.0 || y > 1.7) continue;
-    b.rock('rock', { x, y: y + 0.02, z, r: b.r(0.15, 0.55), squash: 0.55, color: 0x5d564c, jitter: 0.12 });
+    b.rock('rock', { x, y: y + 0.02, z, r: b.r(0.15, 0.5), squash: 0.55, color: 0x5d564c, jitter: 0.12 });
   }
-  // Glowing moss: small clustered patches on the walls (surface-hugging), a few on the floor.
-  for (let c = 0; c < 16; c++) {
-    const i = c % 2;
-    const cxm = b.r(-152, -139), cym = b.r(1.0, 5.5);
+  // Glowing moss: small clustered patches hugging the wall surface, a few on the floor.
+  for (let c = 0; c < 18; c++) {
+    const u0 = b.r(0.06, 0.94), y0 = b.r(1.0, 5.5);
     const n = 3 + Math.floor(b.r(0, 4));
     for (let k = 0; k < n; k++) {
-      const x = cxm + b.r(-0.7, 0.7), y = cym + b.r(-0.5, 0.5);
-      const z = wallAt(i, x, y) + (i === 0 ? 0.04 : -0.04);
-      b.add('glow', new THREE.CircleGeometry(b.r(0.06, 0.2), 6), { x, y, z, yaw: i === 0 ? 0 : Math.PI, sx: b.r(1, 1.8) }, { color: MOSS_GLOW, jitter: 0.35 });
+      const w = wallPoint(Math.min(0.99, Math.max(0.01, u0 + b.r(-0.025, 0.025))), y0 + b.r(-0.5, 0.5));
+      b.add('glow', new THREE.CircleGeometry(b.r(0.06, 0.2), 9), { x: w.x + w.nx * 0.05, y: w.y, z: w.z + w.nz * 0.05, yaw: Math.atan2(w.nx, w.nz), sx: b.r(1, 1.8), roll: b.r(0, 3) }, { color: MOSS_GLOW, jitter: 0.35 });
     }
   }
   for (let k = 0; k < 14; k++) {
-    const x = b.r(-148, -139.5);
-    const z = -33 + (b.rand() < 0.5 ? -1 : 1) * b.r(Math.min(2.6, halfAt(x) - 0.9), halfAt(x) - 0.4);
+    const x = b.r(-148, -141.5);
+    const z = -33 + (b.rand() < 0.5 ? -1 : 1) * b.r(2.4, 3.6);
     const y = heightAt(x, z);
     if (y > 1.6) continue;
-    b.add('glow', new THREE.CircleGeometry(b.r(0.08, 0.22), 6), { x, y: y + 0.02, z, pitch: -Math.PI / 2, sx: b.r(1, 1.6) }, { color: [MOSS_GLOW[0] * 0.7, MOSS_GLOW[1] * 0.7, MOSS_GLOW[2] * 0.7], jitter: 0.3 });
+    b.add('glow', new THREE.CircleGeometry(b.r(0.08, 0.22), 9), { x, y: y + 0.02, z, pitch: -Math.PI / 2, sx: b.r(1, 1.6) }, { color: [MOSS_GLOW[0] * 0.7, MOSS_GLOW[1] * 0.7, MOSS_GLOW[2] * 0.7], jitter: 0.3 });
   }
   const crystalCluster = (x, y, z, s, dir = 1) => {
     for (let k = 0; k < 6; k++) {
@@ -163,12 +158,12 @@ export function buildWaterfall(kit, api, scene, updaters) {
       b.add('glow', g2, { x, y, z, pitch: b.r(-0.5, 0.5) + (dir < 0 ? Math.PI : 0), roll: b.r(-0.5, 0.5) }, { color: [CRYSTAL[0] * 0.55, CRYSTAL[1] * 0.55, CRYSTAL[2] * 0.6], jitter: 0.25 });
     }
   };
-  crystalCluster(-139.7, 1.4, -34.9, 0.9);
-  crystalCluster(-139.9, 1.4, -31.2, 0.75);
-  crystalCluster(-144.8, 1.4, -36.6, 0.55);
-  crystalCluster(-146.5, 1.4, -29.3, 0.6);
-  crystalCluster(-141.8, 6.9, -35.6, 0.6, -1);
-  crystalCluster(-143.8, 7.0, -30.0, 0.5, -1);
+  crystalCluster(-139.0, 1.4, -34.1, 0.85);
+  crystalCluster(-139.1, 1.4, -31.9, 0.7);
+  crystalCluster(-144.8, 1.4, -36.5, 0.55);
+  crystalCluster(-146.5, 1.4, -28.9, 0.6);
+  crystalCluster(-142.2, 6.9, -36.4, 0.6, -1);
+  crystalCluster(-143.8, 7.0, -29.4, 0.5, -1);
   // Pedestal for Api Tirta: carved stone column with a water bowl, offerings around it.
   const F = A.flame;
   const yF = heightAt(F.x, F.z);
@@ -178,6 +173,8 @@ export function buildWaterfall(kit, api, scene, updaters) {
   b.collCyl({ x: F.x, y: yF, z: F.z, r: 0.62, h: 1.04, surface: 'stone' });
   api.anchors['flame:tirta'] = new THREE.Vector3(F.x, yF + 1.5, F.z);
   api.anchors['cave:entrance'] = new THREE.Vector3(CV.entrance.x, heightAt(CV.entrance.x, CV.entrance.z), CV.entrance.z);
+  api.regions['airterjun-cave'] = b.build(scene);
+  }
 
   // ---- Tirta campfire on the cove's south shore. -----------------------------------------------
   const CF = A.campfire;

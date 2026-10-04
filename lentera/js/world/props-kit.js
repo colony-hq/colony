@@ -268,6 +268,9 @@ export function createKit(ctx) {
 
   const kit = {
     ctx, textures, mats, uniforms, texMs,
+    // Untextured dark iron and rope share the 'paint' material (one draw call per region).
+    alias: { metal: 'paint', rope: 'paint' },
+    groups: [],
     // Register an extra material (e.g. a glow variant that is dimmed separately).
     addMat(key, material, { cast = false, receive = false, atlas = true } = {}) {
       mats[key] = { material: patchMaterial(material), cast, receive, atlas };
@@ -318,6 +321,7 @@ export class Builder {
   // Add a geometry (consumed) at transform t with colour options o.
   // o: { color, jitter (0..1 brightness variation), hue, ao: [y0, y1, min], vc: fn(p, n, c), uvOff, sway: fn|number }
   add(matKey, geo, t = {}, o = {}) {
+    matKey = this.kit.alias[matKey] || matKey;
     if (!this.kit.mats[matKey]) throw new Error('unknown material ' + matKey);
     const m = this.frame.m.clone().multiply(makeMatrix(t));
     // Sway weights are computed in local geometry space (before transform).
@@ -487,6 +491,7 @@ export class Builder {
     }
     this.buckets.clear();
     if (parent) parent.add(group);
+    this.kit.groups.push(group);
     return group;
   }
 }

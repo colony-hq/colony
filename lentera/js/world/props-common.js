@@ -163,7 +163,7 @@ export function bench(b, len = 1.8, h = 0.45, color = COL.woodWarm) {
 }
 
 // Signboard arm pointing toward local +x with a painted label on both faces.
-export function signArm(b, region, len = 1.05, hgt = 0.22) {
+export function signArm(b, region, len = 1.25, hgt = 0.27) {
   const t = 0.045;
   b.box('wood', { x: len / 2 - 0.05, y: 0, z: 0, w: len - 0.1, h: hgt, d: t, grain: 'x', color: 0xa0764c, jitter: 0.08 });
   // Arrow tip.
@@ -180,12 +180,12 @@ export function signpost(b, x, gy, z, arms, regions) {
   b.within({ x, y: gy, z }, () => {
     b.cyl('wood', { x: 0, y0: -0.3, z: 0, r: 0.075, rt: 0.065, h: 2.6, seg: 7, color: COL.woodDark, ao: [gy, gy + 0.5, 0.6] });
     b.add('wood', new THREE.ConeGeometry(0.1, 0.18, 4), { x: 0, y: 2.38, z: 0, yaw: Math.PI / 4 }, { color: COL.woodDark });
-    // Small stone cairn at the foot.
-    for (let i = 0; i < 4; i++) b.rock('rock', { x: Math.cos(i * 1.7) * 0.28, y: 0.05, z: Math.sin(i * 1.7) * 0.28, r: b.r(0.12, 0.18), detail: 0, color: 0x8a867e });
+    // Wedge stakes at the foot.
+    for (let i = 0; i < 3; i++) b.box('wood', { x: Math.cos(i * 2.1) * 0.16, y: 0.05, z: Math.sin(i * 2.1) * 0.16, w: 0.08, h: 0.3, d: 0.05, yaw: i * 2.1, roll: 0.3, color: 0x5a4030 });
     arms.forEach((arm, i) => {
       const dx = arm.to[0] - x, dz = arm.to[1] - z;
       const yaw = Math.atan2(-dz, dx);
-      b.within({ x: 0, y: 2.05 - i * 0.32, z: 0, yaw }, () => signArm(b, regions['sign:' + arm.word], arm.len || 1.05));
+      b.within({ x: 0, y: 2.05 - i * 0.36, z: 0, yaw }, () => signArm(b, regions['sign:' + arm.word], arm.len || 1.25));
     });
     b.collCyl({ x: 0, y: -0.3, z: 0, r: 0.12, h: 2.6, surface: 'wood', walkable: false });
   });

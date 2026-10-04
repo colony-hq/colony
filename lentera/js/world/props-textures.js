@@ -494,7 +494,7 @@ function decalAtlas(S) {
     for (const [r, w] of words) {
       board(r, ['#8a5a34', '#5c3a1f']);
       g.fillStyle = '#f3e6c8';
-      g.font = `${Math.round(54 * k)}px ${font}`;
+      g.font = `700 ${Math.round(60 * k)}px ${font}`;
       g.textAlign = 'center'; g.textBaseline = 'middle';
       g.shadowColor = 'rgba(0,0,0,0.5)'; g.shadowBlur = 3 * k;
       g.fillText(w, r.x + r.w / 2, r.y + r.h / 2 + 3 * k, r.w - 40 * k);
@@ -781,7 +781,7 @@ export function createPropTextures(ctx) {
   };
   const batik = timed('batik', () => batikAtlas(hi ? 256 : 128));
   out.batik = { map: tex(batik, true, false) };
-  const decal = timed('decal', () => decalAtlas(A));
+  const decal = timed('decal', () => decalAtlas(1024));
   out.decal = { map: tex(decal.canvas, true, false), regions: decal.regions };
   // Redraw sign text once the UI fonts are available (they load asynchronously).
   try {
@@ -817,7 +817,7 @@ export function createPropMaterials(ctx, T) {
   std('rock', { map: T.rock.map, normalMap: T.rock.normal, roughness: 0.95 }, { tile: 5, normalScale: 1.2 });
   std('plaster', { map: T.plaster.map, normalMap: T.plaster.normal, roughness: 0.9 }, { tile: 2.5, normalScale: 0.7 });
   std('rooftile', { map: T.rooftile.map, normalMap: T.rooftile.normal, roughness: 0.8 }, { tile: 1, normalScale: 1 });
-  std('paint', { roughness: 0.62 }, { tile: 0 });
+  std('paint', { roughness: 0.7, metalness: 0.08 }, { tile: 0 });
   std('metal', { roughness: 0.5, metalness: 0.55 }, { tile: 0 });
   std('relief', { map: T.relief.map, normalMap: T.relief.normal, roughness: 0.92 }, { tile: 0, normalScale: 1.4 });
   std('decal', { map: T.decal.map, roughness: 0.75, alphaTest: 0.5, transparent: false }, { tile: 0 });
