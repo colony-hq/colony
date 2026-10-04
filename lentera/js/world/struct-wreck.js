@@ -281,7 +281,7 @@ export function buildWreck(kit, api, scene) {
     b.within({ x: xTop + runC, y: 0, z: zr, yaw: Math.PI / 2 }, () => {
       b.collStairs({ x: 0, z0: 0, y0: yFoot, y1: yTop, run: runC, w: 1.4, maxRise: 0.38, base: -3.4 - HY, surface: 'wood', tag: 'wreck-ramp' });
     });
-    api.anchors['wreck:ramp'] = b.world(xTop + run, yLow + HY, zr);
+    api.anchors['wreck:ramp'] = b.world(xTop + run, yLow, zr);
   }
   b.pop();
 
