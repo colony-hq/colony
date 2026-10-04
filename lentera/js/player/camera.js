@@ -266,7 +266,9 @@ export function createCameraRig(ctx) {
     glideK = damp(glideK, pl.gliding ? 1 : 0, 2.2, dt);
     swimK = damp(swimK, swimming ? 1 : 0, 3, dt);
     zoomCur = damp(zoomCur, zoomTarget, 7, dt);
-    const desired = zoomCur + sprintK * C.sprintPull + glideK * C.glidePull + swimK * 0.4;
+    // Portrait screens: pull back and widen so the player does not fill the frame.
+    const portrait = clamp((1.25 - (cam.aspect || 1.7)) / 0.75, 0, 1);
+    const desired = zoomCur + sprintK * C.sprintPull + glideK * C.glidePull + swimK * 0.4 + portrait * 1.3;
     const cp = Math.cos(rig.pitch), sp = Math.sin(rig.pitch);
     const dx = Math.sin(rig.yaw) * cp, dy = sp, dz = Math.cos(rig.yaw) * cp;
     // Over-the-shoulder offset when zoomed in close.
@@ -280,7 +282,7 @@ export function createCameraRig(ctx) {
     want.set(px + dx * dist, pivot.y + dy * dist, pz + dz * dist);
     keepAboveGround(want);
     wantLook.set(px, pivot.y + 0.18 + Math.max(0, -rig.pitch) * 0.6, pz);
-    wantFov = baseFov + sprintK * C.sprintFov + glideK * C.glideFov;
+    wantFov = baseFov + sprintK * C.sprintFov + glideK * C.glideFov + portrait * 8;
   }
 
   function keepAboveGround(v) {

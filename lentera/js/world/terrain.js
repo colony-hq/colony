@@ -113,7 +113,7 @@ lCol = mix(lCol, wet, wetM);
 lCol = mix(lCol, seabed, 1.0 - smoothstep(-1.2, -0.25, lH));
 
 // Rock on steep slopes: triplanar noise (no vertical smearing) and horizontal strata.
-float rockM = smoothstep(0.15, 0.27, lSlope + (nDet.a - 0.5) * 0.14);
+float rockM = smoothstep(0.19, 0.25, lSlope + (nMid.a - 0.5) * 0.06 + (nDet.a - 0.5) * 0.05);
 if (rockM > 0.0) {
   vec3 aw = abs(lN0);
   aw = pow(aw, vec3(4.0));

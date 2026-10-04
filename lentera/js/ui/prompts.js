@@ -15,15 +15,15 @@ const CSS = `
 .lp-ip { position: absolute; left: 0; top: 0; opacity: 0; transition: opacity 0.18s var(--ease); will-change: transform; }
 .lp-ip.on { opacity: 1; }
 .lp-ip-in {
-  display: flex; align-items: center; gap: 10px; padding: 6px 15px 6px 7px; border-radius: 999px; white-space: nowrap;
+  display: flex; align-items: center; gap: 10px; padding: 7px 17px 7px 8px; border-radius: 999px; white-space: nowrap;
   background: linear-gradient(180deg, rgba(22, 28, 48, 0.86), rgba(11, 15, 28, 0.86));
   border: 1px solid rgba(255, 181, 71, 0.38); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.38), 0 0 20px rgba(255, 181, 71, 0.12);
   -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); transform-origin: 50% 100%;
 }
 .lp-ip.on .lp-ip-in { animation: lp-pop 0.32s var(--ease); }
-.lp-ip-cap { display: flex; font-size: 17px; }
+.lp-ip-cap { display: flex; font-size: 19px; }
 .lp-ip-cap .lk { margin: 0; }
-.lp-ip-label { font: 600 var(--fs-s)/1 var(--font-body); letter-spacing: 0.02em; color: var(--paper); }
+.lp-ip-label { font: 600 clamp(14px, 0.95rem, 16px)/1 var(--font-body); letter-spacing: 0.02em; color: var(--paper); }
 .lp-ip-stem { position: relative; width: 1px; height: 16px; margin: 0 auto; background: linear-gradient(rgba(255, 181, 71, 0.7), rgba(255, 181, 71, 0.1)); }
 .lp-ip-stem::after {
   content: ''; position: absolute; left: 50%; bottom: -3px; width: 5px; height: 5px; border-radius: 50%; transform: translateX(-50%);
