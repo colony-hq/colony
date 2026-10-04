@@ -18,14 +18,17 @@ const fract = (v) => v - Math.floor(v);
 export function tileNoise(seed) {
   const lattices = new Map();
   const rand = mulberry32(seed);
+  let lastK = -1, lastL = null;
   function lattice(Px, Py) {
     const k = Px * 4096 + Py;
+    if (k === lastK) return lastL;
     let l = lattices.get(k);
     if (!l) {
       l = new Float32Array(Px * Py);
       for (let i = 0; i < l.length; i++) l[i] = rand();
       lattices.set(k, l);
     }
+    lastK = k; lastL = l;
     return l;
   }
   function get(u, v, Px, Py = Px) {
@@ -33,7 +36,8 @@ export function tileNoise(seed) {
     const x = u * Px, y = v * Py;
     const xi = Math.floor(x), yi = Math.floor(y);
     let fx = x - xi, fy = y - yi;
-    const x0 = ((xi % Px) + Px) % Px, y0 = ((yi % Py) + Py) % Py;
+    let x0 = xi % Px; if (x0 < 0) x0 += Px;
+    let y0 = yi % Py; if (y0 < 0) y0 += Py;
     const x1 = (x0 + 1) % Px, y1 = (y0 + 1) % Py;
     fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy);
     const a = l[y0 * Px + x0], b = l[y0 * Px + x1], c = l[y1 * Px + x0], d = l[y1 * Px + x1];
@@ -715,8 +719,8 @@ function reliefAtlas(S) {
       const i = y * W + x;
       const u = x / W, v = y / H;
       const h = Hf[i];
-      const pit = N.fbm(u, v, 128, 128, 2);
-      const moss = smooth(0.55, 0.75, N.fbm(u, v, 8, 8, 4) + (1 - h) * 0.35);
+      const pit = N.get(u, v, 128, 128);
+      const moss = smooth(0.55, 0.75, N.fbm(u, v, 8, 8, 2) + (1 - h) * 0.35);
       const cav = 0.45 + h * 0.6;
       let r = cav * (0.62 + pit * 0.18), gg = cav * (0.63 + pit * 0.18), b = cav * (0.58 + pit * 0.16);
       r = mix(r, r * 0.62, moss); gg = mix(gg, gg * 0.85, moss); b = mix(b, b * 0.5, moss);
@@ -760,21 +764,24 @@ export function createPropTextures(ctx) {
     return t;
   };
   const pair = (rec) => ({ map: tex(rec.color), normal: rec.normal ? tex(rec.normal, false) : null });
+  const times = {};
+  const timed = (name, fn) => { const t = performance.now(); const r = fn(); times[name] = Math.round(performance.now() - t); return r; };
 
   const out = {
-    wood: pair(woodRecipe(S, 101)),
-    bamboo: pair(bambooRecipe(S, 202)),
-    gedek: pair(gedekRecipe(S, 303)),
-    thatch: pair(thatchRecipe(S, 404)),
-    stone: pair(stoneRecipe(S, 505)),
-    rock: pair(rockRecipe(S, 606)),
-    plaster: pair(plasterRecipe(S, 707)),
-    rooftile: pair(rooftileRecipe(S, 808)),
-    water: { map: tex(waterNoiseRecipe(hi ? 256 : 128, 909).color, false) },
+    times,
+    wood: timed('wood', () => pair(woodRecipe(S, 101))),
+    bamboo: timed('bamboo', () => pair(bambooRecipe(S, 202))),
+    gedek: timed('gedek', () => pair(gedekRecipe(S, 303))),
+    thatch: timed('thatch', () => pair(thatchRecipe(S, 404))),
+    stone: timed('stone', () => pair(stoneRecipe(S, 505))),
+    rock: timed('rock', () => pair(rockRecipe(S, 606))),
+    plaster: timed('plaster', () => pair(plasterRecipe(S, 707))),
+    rooftile: timed('rooftile', () => pair(rooftileRecipe(S, 808))),
+    water: timed('water', () => ({ map: tex(waterNoiseRecipe(hi ? 256 : 128, 909).color, false) })),
   };
-  const batik = batikAtlas(hi ? 256 : 128);
+  const batik = timed('batik', () => batikAtlas(hi ? 256 : 128));
   out.batik = { map: tex(batik, true, false) };
-  const decal = decalAtlas(A);
+  const decal = timed('decal', () => decalAtlas(A));
   out.decal = { map: tex(decal.canvas, true, false), regions: decal.regions };
   // Redraw sign text once the UI fonts are available (they load asynchronously).
   try {
@@ -783,7 +790,7 @@ export function createPropTextures(ctx) {
       out.decal.map.needsUpdate = true;
     }).catch(() => {});
   } catch { /* ignore */ }
-  const relief = reliefAtlas(A);
+  const relief = timed('relief', () => reliefAtlas(hi ? 768 : 512));
   out.relief = { map: tex(relief.color, true, false), normal: tex(relief.normal, false, false), regions: relief.regions };
   out.sprite = { map: tex(spriteCanvas(64), true, false) };
   return out;

@@ -27,16 +27,17 @@ function hullPaint(x, y, z, nx, ny, nz, c) {
   else c.setRGB(0.12, 0.28, 0.55);
 }
 
-export function buildJukung(b, { sail = true, wreck = false } = {}) {
+export function buildJukung(b, { sail = true, wreck = false, lod = 1 } = {}) {
+  const q = (n) => Math.max(3, Math.round(n * lod));
   // Outer hull: phi across (-pi/2 port gunwale .. 0 keel .. +pi/2 starboard gunwale), s along.
-  const outer = surfaceGeo(14, 30, (u, v) => {
+  const outer = surfaceGeo(q(14), q(30), (u, v) => {
     const s = v, phi = (u - 0.5) * Math.PI;
     const hb = halfBeam(s), yg = gunwale(s), yk = keel(s);
     return [hb * Math.sin(phi), yg - (yg - yk) * Math.pow(Math.cos(phi), 1.3), zAt(s)];
   });
   b.add('wood', outer, {}, { vc: wreck ? null : hullPaint, color: wreck ? 0x6a5a48 : 0xffffff, jitter: 0.04 });
   // Inner hull (unpainted, slightly inset), facing inward.
-  const inner = surfaceGeo(10, 26, (u, v) => {
+  const inner = surfaceGeo(q(10), q(26), (u, v) => {
     const s = 0.02 + v * 0.96, phi = (u - 0.5) * Math.PI;
     const hb = halfBeam(s) * 0.9, yg = gunwale(s) - 0.01, yk = keel(s) + 0.05;
     return [hb * Math.sin(phi), yg - (yg - yk) * Math.pow(Math.cos(phi), 1.3), zAt(s)];
@@ -46,7 +47,7 @@ export function buildJukung(b, { sail = true, wreck = false } = {}) {
   for (const side of [-1, 1]) {
     const pts = [];
     for (let i = 0; i <= 16; i++) { const s = 0.015 + (i / 16) * 0.97; pts.push(new THREE.Vector3(side * halfBeam(s), gunwale(s) + 0.01, zAt(s))); }
-    b.add('wood', tubeGeo(pts, 0.025, 4, 32), {}, { color: 0x1d3a6a });
+    b.add('wood', tubeGeo(pts, 0.025, 4, q(32)), {}, { color: 0x1d3a6a });
   }
   // Bow beak (swordfish nose) and stern post.
   b.rod('wood', [0, gunwale(0.01) - 0.05, zAt(0.01)], [0, 1.02, -L / 2 - 0.55], 0.035, { rt: 0.008, color: 0x1d3a6a });
@@ -72,7 +73,7 @@ export function buildJukung(b, { sail = true, wreck = false } = {}) {
   // Outrigger booms + floats.
   for (const zb of [-1.1, 1.05]) {
     const pts = [[-OUTRIGGER, 0.14], [-1.35, 0.4], [-0.9, 0.58], [0, 0.64], [0.9, 0.58], [1.35, 0.4], [OUTRIGGER, 0.14]].map(([x, y]) => new THREE.Vector3(x, y, zb));
-    b.add('bamboo', tubeGeo(pts, 0.04, 6, 24), {}, { color: 0xc8b07a });
+    b.add('bamboo', tubeGeo(pts, 0.04, lod < 1 ? 4 : 6, q(24)), {}, { color: 0xc8b07a });
     for (const side of [-1, 1]) {
       b.rod('rope', [side * halfBeam(0.5) * 0.95, 0.42, zb - 0.06], [side * halfBeam(0.5) * 0.95, 0.42, zb + 0.06], 0.05, { color: COL.rope, seg: 5 });
       b.rod('bamboo', [side * OUTRIGGER, 0.05, zb], [side * OUTRIGGER, 0.18, zb], 0.025, { color: 0x6a5030 });
@@ -80,7 +81,7 @@ export function buildJukung(b, { sail = true, wreck = false } = {}) {
   }
   for (const side of [-1, 1]) {
     const pts = [[-2.25, 0.22], [-1.9, 0.07], [-1.2, 0.03], [0, 0.03], [1.2, 0.03], [1.9, 0.07], [2.2, 0.18]].map(([z, y]) => new THREE.Vector3(side * OUTRIGGER, y, z));
-    b.add('bamboo', tubeGeo(pts, 0.07, 7, 24), {}, { color: wreck ? 0x8a7a5a : 0xd2bb80 });
+    b.add('bamboo', tubeGeo(pts, 0.07, lod < 1 ? 5 : 7, q(24)), {}, { color: wreck ? 0x8a7a5a : 0xd2bb80 });
   }
   if (wreck || !sail) return;
   // Mast, spars and furled-sail ready lashing points.

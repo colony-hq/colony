@@ -421,6 +421,7 @@ export function createMenus(ctx) {
   // First gesture anywhere unlocks audio so the title music can start.
   const unlockAudio = () => { try { ctx.audio?.unlock?.(); } catch { /* ignore */ } };
   window.addEventListener('pointerdown', unlockAudio, { passive: true });
+  window.addEventListener('touchend', unlockAudio, { passive: true }); // older iOS only unlocks here
   window.addEventListener('keydown', unlockAudio);
 
   // ---- Input -------------------------------------------------------------

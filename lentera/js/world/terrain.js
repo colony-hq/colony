@@ -85,7 +85,7 @@ float lH = lP.y + (nMid.g - 0.5) * 0.9 + (nDet.b - 0.5) * 0.35;
 // Sand with soft wind ripples.
 float rip = sin(dot(lP.xz, vec2(0.83, 0.55)) * 3.1 + nDet.g * 8.0 + nMid.r * 6.0) * 0.5 + 0.5;
 vec3 sand = mix(uSandA, uSandB, smoothstep(0.25, 0.75, nMid.b)) * (0.96 + 0.06 * nFin.a) * (0.97 + 0.045 * rip);
-vec3 wet = uWetSand * (0.9 + 0.16 * nFin.g);
+vec3 wet = uWetSand * (0.94 + 0.08 * nDet.g);
 vec3 seabed = mix(uSeabedA, uSeabedB, smoothstep(-1.2, -9.0, lP.y + (nMid.r - 0.5) * 3.0));
 seabed *= 0.85 + 0.25 * nDet.a;
 
@@ -105,10 +105,10 @@ float coastD = vCoast + (nMid.g - 0.5) * 9.0 + (nDet.r - 0.5) * 3.0;
 float lowGround = 1.0 - smoothstep(3.2, 5.5, lP.y);
 float beach = (1.0 - smoothstep(13.0, 16.5, coastD)) * lowGround;
 beach = max(beach, 1.0 - smoothstep(1.0, 1.6, lH)); // anything at the waterline is sand
-float sandy = (1.0 - smoothstep(15.0, 26.0, coastD)) * lowGround * smoothstep(0.42, 0.7, nDet.b * 0.7 + nFin.g * 0.3);
+float sandy = (1.0 - smoothstep(15.0, 26.0, coastD)) * lowGround * smoothstep(0.4, 0.68, nDet.b * 0.75 + nMid.r * 0.25);
 lCol = mix(lCol, mix(lCol, sand * 0.9, 0.65), sandy * (1.0 - beach));
 lCol = mix(lCol, sand, beach);
-float wetM = 1.0 - smoothstep(0.1, 0.85, lH);
+float wetM = 1.0 - smoothstep(0.08, 0.5, lP.y + (nDet.g - 0.5) * 0.25);
 lCol = mix(lCol, wet, wetM);
 lCol = mix(lCol, seabed, 1.0 - smoothstep(-1.2, -0.25, lH));
 

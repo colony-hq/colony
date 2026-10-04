@@ -185,37 +185,64 @@ function flower(g, x, y, s) {
   g.fillStyle = '#f2c642'; g.beginPath(); g.arc(x, y, s * 0.3, 0, Math.PI * 2); g.fill();
 }
 
-// Bleed colour into transparent texels and pack into a (flipped) DataTexture.
+// Fill the colour of transparent texels from their opaque surroundings (push-pull pyramid),
+// so mipmapped alpha-tested edges keep leaf colour instead of fringing dark; pack into a
+// row-flipped DataTexture (v = 1 at the top of the painted canvas).
 function toDataTexture(canvas, aniso) {
   const W = canvas.width, H = canvas.height;
   const src = canvas.getContext('2d').getImageData(0, 0, W, H).data;
-  const rgba = new Uint8Array(src.length);
-  rgba.set(src);
-  // Un-premultiply guard: canvas returns straight alpha already; bleed RGB into alpha<128 texels.
-  const filled = new Uint8Array(W * H);
-  for (let i = 0; i < W * H; i++) filled[i] = rgba[i * 4 + 3] > 127 ? 1 : 0;
-  for (let pass = 0; pass < 8; pass++) {
-    const next = filled.slice();
-    for (let y = 0; y < H; y++) {
-      for (let x = 0; x < W; x++) {
-        const i = y * W + x;
-        if (filled[i]) continue;
-        let r = 0, gg = 0, b = 0, n = 0;
-        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-          const xx = x + dx, yy = y + dy;
-          if (xx < 0 || yy < 0 || xx >= W || yy >= H) continue;
-          const j = yy * W + xx;
-          if (!filled[j]) continue;
-          r += rgba[j * 4]; gg += rgba[j * 4 + 1]; b += rgba[j * 4 + 2]; n++;
-        }
-        if (n) { rgba[i * 4] = r / n; rgba[i * 4 + 1] = gg / n; rgba[i * 4 + 2] = b / n; next[i] = 1; }
+  // Level 0 (alpha-weighted colour).
+  const levels = [];
+  let w = W, h = H;
+  let col = new Float32Array(w * h * 3), wt = new Float32Array(w * h);
+  for (let i = 0; i < w * h; i++) {
+    const a = src[i * 4 + 3] > 127 ? 1 : 0;
+    wt[i] = a;
+    col[i * 3] = src[i * 4] * a; col[i * 3 + 1] = src[i * 4 + 1] * a; col[i * 3 + 2] = src[i * 4 + 2] * a;
+  }
+  levels.push({ w, h, col, wt });
+  while (w > 1 && h > 1) {
+    const nw = w >> 1, nh = h >> 1;
+    const nc = new Float32Array(nw * nh * 3), nwt = new Float32Array(nw * nh);
+    for (let y = 0; y < nh; y++) for (let x = 0; x < nw; x++) {
+      const o = y * nw + x;
+      let cr = 0, cg = 0, cb = 0, sw = 0;
+      for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) {
+        const i = (y * 2 + dy) * w + (x * 2 + dx);
+        cr += col[i * 3]; cg += col[i * 3 + 1]; cb += col[i * 3 + 2]; sw += wt[i];
+      }
+      nc[o * 3] = cr; nc[o * 3 + 1] = cg; nc[o * 3 + 2] = cb; nwt[o] = sw;
+    }
+    w = nw; h = nh; col = nc; wt = nwt;
+    levels.push({ w, h, col, wt });
+  }
+  // Pull: normalise each level, fill empty texels from the parent level.
+  for (let l = levels.length - 1; l >= 0; l--) {
+    const L = levels[l];
+    const P = levels[l + 1];
+    for (let y = 0; y < L.h; y++) for (let x = 0; x < L.w; x++) {
+      const i = y * L.w + x;
+      if (L.wt[i] > 0) {
+        const k = 1 / L.wt[i];
+        L.col[i * 3] *= k; L.col[i * 3 + 1] *= k; L.col[i * 3 + 2] *= k; L.wt[i] = 1;
+      } else if (P) {
+        const j = Math.min(P.h - 1, y >> 1) * P.w + Math.min(P.w - 1, x >> 1);
+        L.col[i * 3] = P.col[j * 3]; L.col[i * 3 + 1] = P.col[j * 3 + 1]; L.col[i * 3 + 2] = P.col[j * 3 + 2]; L.wt[i] = 1;
       }
     }
-    filled.set(next);
   }
-  // Flip rows so v = 1 is the top of the painted canvas.
-  const out = new Uint8Array(rgba.length);
-  for (let y = 0; y < H; y++) out.set(rgba.subarray(y * W * 4, (y + 1) * W * 4), (H - 1 - y) * W * 4);
+  const base = levels[0].col;
+  const out = new Uint8Array(W * H * 4);
+  for (let y = 0; y < H; y++) {
+    const row = (H - 1 - y) * W;
+    for (let x = 0; x < W; x++) {
+      const i = y * W + x, o = (row + x) * 4;
+      const a = src[i * 4 + 3];
+      if (a > 127) { out[o] = src[i * 4]; out[o + 1] = src[i * 4 + 1]; out[o + 2] = src[i * 4 + 2]; }
+      else { out[o] = base[i * 3]; out[o + 1] = base[i * 3 + 1]; out[o + 2] = base[i * 3 + 2]; }
+      out[o + 3] = a;
+    }
+  }
   const t = new THREE.DataTexture(out, W, H, THREE.RGBAFormat);
   t.colorSpace = THREE.SRGBColorSpace;
   t.generateMipmaps = true;
@@ -267,12 +294,18 @@ export function createVegTextures(ctx) {
   const hi = (ctx.engine?.preset?.name || 'medium') !== 'low';
   const maxAniso = ctx.renderer?.capabilities?.getMaxAnisotropy?.() || 1;
   const aniso = Math.min(maxAniso, hi ? 4 : 1);
-  const atlas = toDataTexture(paintAtlas(hi ? 1024 : 512), aniso);
+  const t0 = performance.now();
+  const painted = paintAtlas(hi ? 1024 : 512);
+  const t1 = performance.now();
+  const atlas = toDataTexture(painted, aniso);
+  const t2 = performance.now();
   const mk = (cv, srgb) => { const t = new THREE.CanvasTexture(cv); if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = aniso; return t; };
   const S = hi ? 256 : 128;
   const bark = barkTex(S, 31, false);
   const palm = barkTex(S, 47, true);
+  const times = { paint: Math.round(t1 - t0), bleed: Math.round(t2 - t1), bark: Math.round(performance.now() - t2) };
   return {
+    times,
     atlas,
     bark: { map: mk(bark.color, true), normal: mk(bark.normal, false) },
     palm: { map: mk(palm.color, true), normal: mk(palm.normal, false) },

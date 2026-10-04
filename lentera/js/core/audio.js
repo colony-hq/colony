@@ -198,8 +198,9 @@ export function createAudio(ctx) {
       paramT = 0.1;
       const now = ac.currentTime;
       const mode = state.mode;
-      const fogK = smoothstep(0.25, 0.95, amb.env.fog || 0);
-      const worldCut = mode === 'pause' ? 650 : mode === 'journal' ? 2200 : 18000 - 16200 * fogK;
+      // Kabut muffles the world gradually; only genuinely deep fog gets really dull.
+      const fogK = smoothstep(0.55, 1.0, amb.env.fog || 0);
+      const worldCut = mode === 'pause' ? 650 : mode === 'journal' ? 2200 : 18000 * Math.pow(0.14, fogK);
       const musicCut = mode === 'pause' ? 850 : mode === 'journal' ? 2600 : 18000;
       bus.world.frequency.setTargetAtTime(worldCut, now, 0.25);
       bus.musicFilter.frequency.setTargetAtTime(musicCut, now, 0.25);

@@ -134,9 +134,11 @@ export function firewood(b, { len = 1.6, rows = 4 } = {}) {
 
 // Bell-shaped stupa finial (ratna). Local origin = base.
 export function ratna(b, s = 1, mat = 'stone', color = 0xa8a69c) {
-  const prof = [[0.42, 0], [0.42, 0.1], [0.3, 0.14], [0.36, 0.22], [0.4, 0.38], [0.36, 0.58], [0.24, 0.72], [0.16, 0.78], [0.18, 0.84], [0.12, 0.88], [0.08, 1.1], [0.04, 1.35], [0.0, 1.45]]
+  const prof = (s < 0.7
+    ? [[0.42, 0], [0.42, 0.12], [0.34, 0.2], [0.4, 0.4], [0.3, 0.66], [0.16, 0.8], [0.08, 1.1], [0.0, 1.45]]
+    : [[0.42, 0], [0.42, 0.1], [0.3, 0.14], [0.36, 0.22], [0.4, 0.38], [0.36, 0.58], [0.24, 0.72], [0.16, 0.78], [0.18, 0.84], [0.12, 0.88], [0.08, 1.1], [0.04, 1.35], [0.0, 1.45]])
     .map(([r, h]) => [r * s, h * s]);
-  b.add(mat, latheGeo(prof, 10), {}, { color, jitter: 0.08 });
+  b.add(mat, latheGeo(prof, s < 0.7 ? 7 : 10), {}, { color, jitter: 0.08 });
 }
 
 // Coil of rope lying on a deck.
@@ -179,7 +181,7 @@ export function signpost(b, x, gy, z, arms, regions) {
     b.cyl('wood', { x: 0, y0: -0.3, z: 0, r: 0.075, rt: 0.065, h: 2.6, seg: 7, color: COL.woodDark, ao: [gy, gy + 0.5, 0.6] });
     b.add('wood', new THREE.ConeGeometry(0.1, 0.18, 4), { x: 0, y: 2.38, z: 0, yaw: Math.PI / 4 }, { color: COL.woodDark });
     // Small stone cairn at the foot.
-    for (let i = 0; i < 4; i++) b.rock('rock', { x: Math.cos(i * 1.7) * 0.28, y: 0.05, z: Math.sin(i * 1.7) * 0.28, r: b.r(0.12, 0.18), color: 0x8a867e });
+    for (let i = 0; i < 4; i++) b.rock('rock', { x: Math.cos(i * 1.7) * 0.28, y: 0.05, z: Math.sin(i * 1.7) * 0.28, r: b.r(0.12, 0.18), detail: 0, color: 0x8a867e });
     arms.forEach((arm, i) => {
       const dx = arm.to[0] - x, dz = arm.to[1] - z;
       const yaw = Math.atan2(-dz, dx);

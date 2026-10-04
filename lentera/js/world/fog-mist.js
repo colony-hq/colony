@@ -93,7 +93,7 @@ void main() {
   vec3 v = normalize(vLenteraWorld - cameraPosition);
   vec3 col = lenteraKabutColor(v, 0.55 + 0.45 * n) * 1.14;
   float ld = length(vLenteraWorld - uFogLanternPos);
-  col += uFogLanternColor * uFogLanternGlow * 0.5 * exp(-ld / (0.55 * uFogLanternRadius + 2.0));
+  col += uFogLanternColor * uFogLanternGlow * uFogLanternLive * 0.5 * exp(-ld / (0.55 * uFogLanternRadius + 2.0));
   float fh = lenteraHaze(length(vLenteraWorld - cameraPosition));
   col = mix(col, lenteraHazeColor(v), fh);
   gl_FragColor = vec4(col, a);

@@ -50,15 +50,19 @@ uniform vec3 uVegDir;
 
 // A set of instances sharing transforms across parts (e.g. trunk + leaves).
 export class InstSet {
-  constructor(name, parts, { maxDist = 300, margin = 6 } = {}) {
+  constructor(name, parts, { maxDist = 300, margin = 6, shadowDist = 0 } = {}) {
     this.name = name;
     this.parts = parts; // [{ geometry, material, cast, receive }]
     this.maxDist = maxDist;
     this.margin = margin;
+    // Instances closer than shadowDist go to a shadow-casting mesh; the rest to a non-casting
+    // twin, so the shadow pass only draws what can actually land in the (player-centred) map.
+    this.shadowDist = shadowDist;
     this.mats = [];
     this.cols = [];
     this.spheres = [];
     this.meshes = [];
+    this.far = [];
   }
   add(matrix, color, cx, cy, cz, radius) {
     this.mats.push(...matrix.elements);
@@ -73,19 +77,22 @@ export class InstSet {
     this.sphArr = new Float32Array(this.spheres);
     this.mats = this.cols = this.spheres = null;
     if (!n) return;
-    for (const p of this.parts) {
+    const mk = (p, cast) => {
       const mesh = new THREE.InstancedMesh(p.geometry, p.material, n);
       mesh.name = 'veg:' + this.name;
       mesh.frustumCulled = false;
-      mesh.castShadow = !!p.cast;
+      mesh.castShadow = cast;
       mesh.receiveShadow = p.receive !== false;
       mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(n * 3), 3);
       mesh.instanceColor.setUsage(THREE.DynamicDrawUsage);
       mesh.count = 0;
       scene.add(mesh);
-      this.meshes.push(mesh);
-    }
+      return mesh;
+    };
+    this.split = this.shadowDist > 0 && this.parts.some((p) => p.cast);
+    for (const p of this.parts) this.meshes.push(mk(p, !!p.cast));
+    if (this.split) for (const p of this.parts) this.far.push(mk(p, false));
   }
   cull(cam, frustum, distScale = 1) {
     const n = this.count;
@@ -95,32 +102,44 @@ export class InstSet {
     const md2 = md * md;
     const cx = cam.x, cy = cam.y, cz = cam.z;
     const sph = _sphere;
-    let v = 0;
-    const dstM = this.meshes.map((m) => m.instanceMatrix.array);
-    const dstC = this.meshes.map((m) => m.instanceColor.array);
+    let v = 0, f = 0;
+    const nearM = this.meshes.map((m) => m.instanceMatrix.array);
+    const nearC = this.meshes.map((m) => m.instanceColor.array);
+    const farM = this.far.map((m) => m.instanceMatrix.array);
+    const farC = this.far.map((m) => m.instanceColor.array);
+    const sd2 = this.split ? this.shadowDist * this.shadowDist : Infinity;
     for (let i = 0; i < n; i++) {
       const x = S[i * 4], y = S[i * 4 + 1], z = S[i * 4 + 2], r = S[i * 4 + 3];
       const dx = x - cx, dy = y - cy, dz = z - cz;
-      if (dx * dx + dy * dy + dz * dz > md2) continue;
+      const d2 = dx * dx + dy * dy + dz * dz;
+      if (d2 > md2) continue;
       sph.center.set(x, y, z);
       sph.radius = r + this.margin;
       if (!frustum.intersectsSphere(sph)) continue;
-      for (let k = 0; k < dstM.length; k++) {
-        dstM[k].set(M.subarray(i * 16, i * 16 + 16), v * 16);
-        dstC[k][v * 3] = C[i * 3]; dstC[k][v * 3 + 1] = C[i * 3 + 1]; dstC[k][v * 3 + 2] = C[i * 3 + 2];
+      const near = d2 < sd2;
+      const dM = near ? nearM : farM, dC = near ? nearC : farC;
+      const slot = near ? v++ : f++;
+      for (let k = 0; k < dM.length; k++) {
+        dM[k].set(M.subarray(i * 16, i * 16 + 16), slot * 16);
+        dC[k][slot * 3] = C[i * 3]; dC[k][slot * 3 + 1] = C[i * 3 + 1]; dC[k][slot * 3 + 2] = C[i * 3 + 2];
       }
-      v++;
     }
-    for (const m of this.meshes) {
-      m.count = v;
-      m.instanceMatrix.clearUpdateRanges();
-      m.instanceMatrix.addUpdateRange(0, v * 16);
-      m.instanceMatrix.needsUpdate = true;
-      m.instanceColor.clearUpdateRanges();
-      m.instanceColor.addUpdateRange(0, v * 3);
-      m.instanceColor.needsUpdate = true;
-    }
-    return v;
+    const flush = (meshes, cnt) => {
+      for (const m of meshes) {
+        m.count = cnt;
+        m.visible = cnt > 0;
+        if (!cnt) continue;
+        m.instanceMatrix.clearUpdateRanges();
+        m.instanceMatrix.addUpdateRange(0, cnt * 16);
+        m.instanceMatrix.needsUpdate = true;
+        m.instanceColor.clearUpdateRanges();
+        m.instanceColor.addUpdateRange(0, cnt * 3);
+        m.instanceColor.needsUpdate = true;
+      }
+    };
+    flush(this.meshes, v);
+    flush(this.far, f);
+    return v + f;
   }
 }
 const _sphere = new THREE.Sphere();

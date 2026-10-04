@@ -68,6 +68,7 @@ export function createPlayer(ctx) {
   let slideDustT = 0;
   let pinnedAt = -1, pinT = 0;
   const extVel = new THREE.Vector3();
+  const kinPrev = new THREE.Vector3(S.x, S.y, S.z);
   const wish = { x: 0, z: 0, mag: 0 };
   const lookTmp = new THREE.Vector3();
   const tmp = new THREE.Vector3();
@@ -187,9 +188,13 @@ export function createPlayer(ctx) {
       pinT = Math.max(0, pinT - dt);
       if (player.kinematic || pinT > 0) {
         // Externally driven (cutscenes / per-frame teleports): keep animation + lantern alive.
+        if (player.kinematic) {
+          if (kinPrev.distanceTo(pos) < 3) extVel.copy(pos).sub(kinPrev).divideScalar(dt);
+          else extVel.set(0, 0, 0);
+          player.grounded = true;
+        }
         vel.set(0, 0, 0);
         player.gliding = false;
-        if (player.kinematic) player.grounded = true;
       } else {
         const n = Math.min(4, Math.max(1, Math.ceil(dt / SUB - 0.01)));
         const h = dt / n;
@@ -198,6 +203,7 @@ export function createPlayer(ctx) {
       }
       timers(dt, playing);
       visuals(dt, t, playing);
+      kinPrev.copy(pos);
     },
   };
 
@@ -723,7 +729,7 @@ export function createPlayer(ctx) {
   }
 
   function visuals(dt, t, playing) {
-    const pinned = pinT > 0 && !player.kinematic;
+    const pinned = pinT > 0 || player.kinematic;
     if (!pinned) extVel.multiplyScalar(Math.exp(-12 * dt));
     const hs = pinned ? Math.hypot(extVel.x, extVel.z) : Math.hypot(vel.x, vel.z);
     player.speed = hs;

@@ -103,22 +103,22 @@ export function coconutPalm(seed, H = 10, lean = 2.6) {
   const trunk = new Mesher();
   const top = V(0, H, -lean);
   const pts = [V(0, 0, 0), V(0, H * 0.3, -lean * 0.06), V(0, H * 0.62, -lean * 0.3), V(0, H * 0.86, -lean * 0.65), top];
-  tube(trunk, pts, (t) => (t < 0.05 ? 0.32 - t * 2 : 0.22 - t * 0.07), 7, 10, (t) => 0.5 * t * t, (t) => [0.62 + 0.2 * t, 0.56 + 0.18 * t, 0.48 + 0.14 * t]);
+  tube(trunk, pts, (t) => (t < 0.05 ? 0.32 - t * 2 : 0.22 - t * 0.07), 6, 8, (t) => 0.5 * t * t, (t) => [0.62 + 0.2 * t, 0.56 + 0.18 * t, 0.48 + 0.14 * t]);
   const leaves = new Mesher();
   const fr = atlasUV('frond');
-  const nF = 11;
+  const nF = 10;
   for (let i = 0; i < nF; i++) {
     const a = (i / nF) * Math.PI * 2 + r() * 0.3;
     const dir = V(Math.cos(a), 0, Math.sin(a));
     const upper = i % 3 === 0;
-    ribbon(leaves, top.clone().add(V(0, 0.1, 0)), dir, 4.2 + r() * 1.0, 0.8, upper ? 0.75 : 0.45, upper ? 1.05 : 1.15, fr, 6, 0.9, { fold: 0.25, col: 1.15 + r() * 0.2 });
+    ribbon(leaves, top.clone().add(V(0, 0.1, 0)), dir, 4.2 + r() * 1.0, 0.8, upper ? 0.75 : 0.45, upper ? 1.05 : 1.15, fr, 5, 0.9, { fold: 0.25, col: 1.15 + r() * 0.2 });
   }
   // Coconuts.
   const cu = atlasUV('coconut');
-  for (let k = 0; k < 5; k++) {
-    const a = (k / 5) * Math.PI * 2;
-    const c = top.clone().add(V(Math.cos(a) * 0.32, -0.35 - (k % 2) * 0.12, Math.sin(a) * 0.32));
-    const sg = new THREE.SphereGeometry(0.17, 6, 4);
+  for (let k = 0; k < 3; k++) {
+    const a = (k / 3) * Math.PI * 2;
+    const c = top.clone().add(V(Math.cos(a) * 0.3, -0.35 - (k % 2) * 0.12, Math.sin(a) * 0.3));
+    const sg = new THREE.SphereGeometry(0.19, 5, 3);
     const P = sg.attributes.position, N = sg.attributes.normal;
     const base = leaves.p.length / 3;
     for (let i = 0; i < P.count; i++) leaves.vert(V(P.getX(i) + c.x, P.getY(i) + c.y, P.getZ(i) + c.z), V(N.getX(i), N.getY(i), N.getZ(i)), (cu.u0 + cu.u1) / 2, (cu.v0 + cu.v1) / 2, 0.9, 0.4);
@@ -141,12 +141,12 @@ export function broadleafTree(seed, H = 8.5, ketapang = false) {
   const clusters = [];
   if (ketapang) {
     // Pagoda tiers of horizontal limbs.
-    const tiers = [[H * 0.42, 3.6, 5], [H * 0.62, 2.8, 5], [H * 0.82, 1.9, 4]];
+    const tiers = [[H * 0.42, 3.6, 4], [H * 0.62, 2.8, 4], [H * 0.82, 1.9, 3]];
     for (const [y, L, n] of tiers) {
       for (let i = 0; i < n; i++) {
         const a = (i / n) * Math.PI * 2 + r() * 0.5;
         const end = V(Math.cos(a) * L, y + 0.4, Math.sin(a) * L);
-        tube(trunk, [V(0, y - 0.2, 0), V(Math.cos(a) * L * 0.5, y + 0.15, Math.sin(a) * L * 0.5), end], (t) => 0.11 - t * 0.07, 5, 4, (t) => 0.15 + 0.2 * t, BK);
+        tube(trunk, [V(0, y - 0.2, 0), V(Math.cos(a) * L * 0.5, y + 0.15, Math.sin(a) * L * 0.5), end], (t) => 0.11 - t * 0.07, 4, 3, (t) => 0.15 + 0.2 * t, BK);
         clusters.push({ c: end.clone().add(V(0, 0.3, 0)), rx: 1.7, ry: 0.6, n: 7 });
         clusters.push({ c: V(Math.cos(a) * L * 0.55, y + 0.45, Math.sin(a) * L * 0.55), rx: 1.2, ry: 0.5, n: 3 });
       }
@@ -157,7 +157,7 @@ export function broadleafTree(seed, H = 8.5, ketapang = false) {
       const a = (i / n) * Math.PI * 2 + r() * 0.8;
       const L = 1.8 + r() * 1.3;
       const end = V(Math.cos(a) * L, t0 + 1.5 + r() * 1.8, Math.sin(a) * L);
-      tube(trunk, [V(0, t0 - 0.3, 0), V(Math.cos(a) * L * 0.4, t0 + 0.8, Math.sin(a) * L * 0.4), end], (t) => 0.17 - t * 0.1, 5, 4, (t) => 0.1 + 0.2 * t, BK);
+      tube(trunk, [V(0, t0 - 0.3, 0), V(Math.cos(a) * L * 0.4, t0 + 0.8, Math.sin(a) * L * 0.4), end], (t) => 0.17 - t * 0.1, 4, 3, (t) => 0.1 + 0.2 * t, BK);
       clusters.push({ c: end.clone().add(V(0, 0.9, 0)), rx: 2.1 + r() * 0.6, ry: 1.6, n: 13 });
     }
     clusters.push({ c: crown.clone().add(V(0, 1.6, 0)), rx: 2.6, ry: 1.8, n: 14 });
@@ -193,16 +193,16 @@ export function bananaPlant(seed) {
   const m = new Mesher();
   const su = atlasUV('stem');
   const H = 1.9 + r() * 0.6;
-  tube(m, [V(0, -0.1, 0), V(0.02, H * 0.5, 0), V(0, H, 0.02)], (t) => 0.13 - t * 0.04, 6, 3, (t) => 0.06 * t, 0.9, 0.0001);
+  tube(m, [V(0, -0.1, 0), V(0.02, H * 0.5, 0), V(0, H, 0.02)], (t) => 0.13 - t * 0.04, 5, 2, (t) => 0.06 * t, 0.9, 0.0001);
   // Map the stem to the solid stem swatch.
   const P = m.uv;
   for (let i = 0; i < P.length; i += 2) { P[i] = (su.u0 + su.u1) / 2; P[i + 1] = (su.v0 + su.v1) / 2; }
   const bu = atlasUV('banana');
-  const n = 7;
+  const n = 6;
   for (let i = 0; i < n; i++) {
     const a = (i / n) * Math.PI * 2 + r() * 0.4;
     const dir = V(Math.cos(a), 0, Math.sin(a));
-    ribbon(m, V(0, H - 0.05, 0), dir, 1.7 + r() * 0.5, 0.36, 1.2, 1.25 + r() * 0.3, bu, 5, 0.35, { fold: 0.1, twist: r() * 0.5 - 0.25 });
+    ribbon(m, V(0, H - 0.05, 0), dir, 1.7 + r() * 0.5, 0.38, 1.2, 1.25 + r() * 0.3, bu, 4, 0.35, { fold: 0.1, twist: r() * 0.5 - 0.25 });
   }
   return { leaves: m.build(), height: H + 1.2, radius: 2 };
 }
@@ -211,9 +211,9 @@ export function fern(seed) {
   const r = mulberry32(seed);
   const m = new Mesher();
   const fu = atlasUV('fern');
-  for (let i = 0; i < 9; i++) {
-    const a = (i / 9) * Math.PI * 2 + r() * 0.3;
-    ribbon(m, V(0, 0.05, 0), V(Math.cos(a), 0, Math.sin(a)), 0.85 + r() * 0.3, 0.2, 1.0, 1.1, fu, 4, 0.12, { fold: 0.15 });
+  for (let i = 0; i < 7; i++) {
+    const a = (i / 7) * Math.PI * 2 + r() * 0.3;
+    ribbon(m, V(0, 0.05, 0), V(Math.cos(a), 0, Math.sin(a)), 0.85 + r() * 0.3, 0.22, 1.0, 1.1, fu, 3, 0.12, { fold: 0.15 });
   }
   return { leaves: m.build(), height: 0.9, radius: 1 };
 }
@@ -261,7 +261,7 @@ export function bambooClump(seed) {
     const ox = Math.cos(a) * out, oz = Math.sin(a) * out;
     const rr = 0.055 + r() * 0.035;
     const pts = [V(bx, -0.2, bz), V(bx + ox * 0.08, H * 0.4, bz + oz * 0.08), V(bx + ox * 0.45, H * 0.8, bz + oz * 0.45), V(bx + ox, H, bz + oz)];
-    tube(culms, pts, (t) => rr * (1 - t * 0.45), 5, 6, (t) => 0.9 * t * t, (t) => 0.8 + 0.2 * t);
+    tube(culms, pts, (t) => rr * (1 - t * 0.45), 4, 4, (t) => 0.9 * t * t, (t) => 0.8 + 0.2 * t);
     const curve = new THREE.CatmullRomCurve3(pts);
     for (let k = 0; k < 5; k++) {
       const t = 0.5 + k * 0.1;

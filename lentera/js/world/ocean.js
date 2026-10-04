@@ -250,7 +250,7 @@ export function createOcean(ctx) {
         if (lw && lw.lengthSq() > 0) shared.uLanternPos.value.copy(lw);
         else if (p.position) shared.uLanternPos.value.set(p.position.x, p.position.y + 1.2, p.position.z);
         const L = p.lanternLight;
-        const on = L ? clamp(L.intensity / 6, 0, 2.5) * (L.visible === false ? 0 : 1) : 1;
+        const on = L ? clamp(L.intensity / 5, 0, 3) * (L.visible === false ? 0 : 1) : 1;
         shared.uLanternI.value = on * clamp((p.lanternRadius ?? 16) / 14, 0.4, 1.4);
         if (L && L.color) shared.uLanternColor.value.copy(L.color);
       }

@@ -74,19 +74,20 @@ function buildVegetation(ctx) {
     rockB: rockShape(202, 0.85, 0.42, true),
   };
   const D = preset.drawDistance || 480;
+  const SD = preset.shadows ? 70 : 0; // shadow casters only near the camera
   const sets = {
-    palmA: new InstSet('palmA', [{ geometry: G.palmA.trunk, material: palmMat, cast: true }, { geometry: G.palmA.leaves, material: leafMat, cast: true }], { maxDist: D * 0.6 }),
-    palmB: new InstSet('palmB', [{ geometry: G.palmB.trunk, material: palmMat, cast: true }, { geometry: G.palmB.leaves, material: leafMat, cast: true }], { maxDist: D * 0.6 }),
-    treeA: new InstSet('treeA', [{ geometry: G.treeA.trunk, material: barkMat, cast: true }, { geometry: G.treeA.leaves, material: leafMat, cast: true }], { maxDist: D * 0.6 }),
-    treeB: new InstSet('treeB', [{ geometry: G.treeB.trunk, material: barkMat, cast: true }, { geometry: G.treeB.leaves, material: leafMat, cast: true }], { maxDist: D * 0.6 }),
-    bamboo: new InstSet('bamboo', [{ geometry: G.bamboo.trunk, material: bambooMat, cast: true }, { geometry: G.bamboo.leaves, material: leafMat, cast: true }], { maxDist: D * 0.5 }),
-    kamboja: new InstSet('kamboja', [{ geometry: G.kamboja.trunk, material: barkMat, cast: true }, { geometry: G.kamboja.leaves, material: leafMat, cast: true }], { maxDist: 220 }),
-    banana: new InstSet('banana', [{ geometry: G.banana.leaves, material: leafMat, cast: true }], { maxDist: 170 }),
+    palmA: new InstSet('palmA', [{ geometry: G.palmA.trunk, material: palmMat, cast: true }, { geometry: G.palmA.leaves, material: leafMat, cast: true }], { maxDist: D * 0.6, shadowDist: SD }),
+    palmB: new InstSet('palmB', [{ geometry: G.palmB.trunk, material: palmMat, cast: true }, { geometry: G.palmB.leaves, material: leafMat, cast: true }], { maxDist: D * 0.6, shadowDist: SD }),
+    treeA: new InstSet('treeA', [{ geometry: G.treeA.trunk, material: barkMat, cast: true }, { geometry: G.treeA.leaves, material: leafMat, cast: true }], { maxDist: D * 0.6, shadowDist: SD }),
+    treeB: new InstSet('treeB', [{ geometry: G.treeB.trunk, material: barkMat, cast: true }, { geometry: G.treeB.leaves, material: leafMat, cast: true }], { maxDist: D * 0.6, shadowDist: SD }),
+    bamboo: new InstSet('bamboo', [{ geometry: G.bamboo.trunk, material: bambooMat, cast: true }, { geometry: G.bamboo.leaves, material: leafMat, cast: true }], { maxDist: D * 0.5, shadowDist: SD }),
+    kamboja: new InstSet('kamboja', [{ geometry: G.kamboja.trunk, material: barkMat, cast: true }, { geometry: G.kamboja.leaves, material: leafMat, cast: true }], { maxDist: 220, shadowDist: SD }),
+    banana: new InstSet('banana', [{ geometry: G.banana.leaves, material: leafMat, cast: true }], { maxDist: 170, shadowDist: SD }),
     fern: new InstSet('fern', [{ geometry: G.fern.leaves, material: leafMat, cast: false }], { maxDist: hi ? 95 : 70, margin: 2 }),
-    shrub: new InstSet('shrub', [{ geometry: G.shrub.leaves, material: leafMat, cast: hi }], { maxDist: hi ? 140 : 100, margin: 3 }),
+    shrub: new InstSet('shrub', [{ geometry: G.shrub.leaves, material: leafMat, cast: hi }], { maxDist: hi ? 140 : 100, margin: 3, shadowDist: SD * 0.6 }),
     reed: new InstSet('reed', [{ geometry: G.reed.leaves, material: grassMat, cast: false }], { maxDist: 120, margin: 2 }),
-    rockA: new InstSet('rockA', [{ geometry: G.rockA, material: rockMat, cast: true }], { maxDist: D * 0.45 }),
-    rockB: new InstSet('rockB', [{ geometry: G.rockB, material: rockMat, cast: true }], { maxDist: D * 0.45 }),
+    rockA: new InstSet('rockA', [{ geometry: G.rockA, material: rockMat, cast: true }], { maxDist: D * 0.45, shadowDist: SD }),
+    rockB: new InstSet('rockB', [{ geometry: G.rockB, material: rockMat, cast: true }], { maxDist: D * 0.45, shadowDist: SD }),
   };
   if (preset.grass) {
     sets.grass = new InstSet('grass', [{ geometry: G.grass.leaves, material: grassMat, cast: false }], { maxDist: hi ? 60 : 45, margin: 1 });
@@ -383,6 +384,7 @@ function buildVegetation(ctx) {
     visible,
     banyan: banyanPos,
     buildMs: Math.round(performance.now() - t0),
+    texTimes: tex.times,
     setWind(v) { vegUniforms.uVegWind.value = v; },
     update(dt, t) {
       vegUniforms.uVegTime.value = t;

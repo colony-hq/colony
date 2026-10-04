@@ -408,7 +408,7 @@ function buildHair(B, look, hr, headC, b) {
 
   if (style === 'kerudung') {
     const col = look.scarf;
-    const k = 1.13;
+    const k = 1.08;
     // Crown + a wrap that leaves the face open.
     B.add(new THREE.SphereGeometry(hr * k, 18, 6, 0, Math.PI * 2, 0, Math.PI * 0.36), BONE.head, col, { at: [cx, cy + 0.01, cz + 0.01], scale: [0.97, 1.05, 1.04] });
     const open = 0.98;
@@ -418,6 +418,11 @@ function buildHair(B, look, hr, headC, b) {
     // Chin wrap.
     B.add(new THREE.TorusGeometry(hr * 0.86, 0.034, 6, 16, Math.PI), BONE.head, col, {
       at: [cx, cy + 0.005, cz + 0.005], rot: [0.32, 0, Math.PI], scale: [1.02, 1.16, 1],
+    });
+    // Back panel falling from the crown to the shoulder blades (sways on the hair bone).
+    B.add(lathe([[0.03, -0.42], [0.12, -0.38], [0.16, -0.22], [0.165, -0.05], [0.14, 0.04], [0.05, 0.09]], 12), BONE.hair, col, {
+      at: [0, -0.04, 0.035], scale: [1.08, 1, 0.42],
+      weights: (x, y) => (y < 1.4 ? [[BONE.chest, 0.6], [BONE.hair, 0.4]] : [[BONE.hair, 1]]),
     });
     // Drape over shoulders and chest (follows the chest, top blended to the neck).
     B.add(lathe([[0.24 * b.width, -0.2], [0.245 * b.width, -0.16], [0.205 * b.width, -0.06], [0.14, 0.03], [0.1, 0.1], [0.075, 0.16]], 16), BONE.chest, col, {

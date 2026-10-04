@@ -209,7 +209,7 @@ export function latheGeo(profile, seg = 12) {
 // Tube along points (array of Vector3), radius r.
 export function tubeGeo(points, r, radial = 5, segs = null) {
   const curve = new THREE.CatmullRomCurve3(points);
-  const n = segs || Math.max(4, points.length * 3);
+  const n = segs || Math.max(4, points.length * 2);
   const g = new THREE.TubeGeometry(curve, n, r, radial, false);
   const len = curve.getLength();
   const uv = g.attributes.uv;
@@ -396,7 +396,7 @@ export class Builder {
     const A = new THREE.Vector3(...a), B = new THREE.Vector3(...b);
     const dir = B.clone().sub(A);
     const len = dir.length();
-    const g = cylGeo(o.rt ?? r, r, len, o.seg || 6, !!o.open);
+    const g = cylGeo(o.rt ?? r, r, len, o.seg || (r < 0.05 ? 4 : 6), o.open ?? (r < 0.05));
     g.translate(0, len / 2, 0);
     const q = new THREE.Quaternion().setFromUnitVectors(UP, dir.normalize());
     g.applyQuaternion(q);

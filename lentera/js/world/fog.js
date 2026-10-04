@@ -38,6 +38,7 @@ const uniforms = {
   uFogLanternPos: { value: new THREE.Vector3() },
   uFogLanternGlow: { value: 1 }, // in-scatter strength of the lantern (intro/finale may animate)
   uFogLanternRadius: { value: 16 },
+  uFogLanternLive: { value: 1 }, // follows the player's lantern light (flicker, flare, unlit)
   uFogAmount: { value: 1 }, // 0 = kabut gone (finale), 1 = full
   uFogDensity: { value: 0.046 }, // kabut extinction per metre deep inside the layer
   uFogBase: { value: 8.5 }, // height of the layer's half-density level (before pockets)
@@ -69,6 +70,7 @@ uniform vec3 uFogLanternColor;
 uniform vec3 uFogLanternPos;
 uniform float uFogLanternGlow;
 uniform float uFogLanternRadius;
+uniform float uFogLanternLive;
 uniform float uFogAmount;
 uniform float uFogDensity;
 uniform float uFogBase;
@@ -173,7 +175,8 @@ vec4 lenteraKabut(LenteraRay r, bool infinite) {
   float tc = dot(lp, r.d);
   float h2 = max(dot(lp, lp) - tc * tc, 0.0);
   float R = 0.42 * uFogLanternRadius + 2.0;
-  if (h2 < 36.0 * R * R && uFogLanternGlow > 0.0) {
+  float live = uFogLanternGlow * uFogLanternLive;
+  if (h2 < 36.0 * R * R && live > 0.0) {
     float H2 = R * R + h2;
     float H = sqrt(H2);
     float ta = tS - tc, tb = r.L - tc;
@@ -181,7 +184,7 @@ vec4 lenteraKabut(LenteraRay r, bool infinite) {
     float Fb = tb / (2.0 * H2 * (H2 + tb * tb)) + atan(tb / H) / (2.0 * H2 * H);
     float S = R * R * R * R * max(Fb - Fa, 0.0);
     float dl = 1.0 / (1.0 + exp(uFogFalloff * (uFogLanternPos.y - uFogBase - uFogCam.x)));
-    glow = 0.68 * uFogLanternGlow * uFogAmount * (1.0 - exp(-uFogDensity * dl * S * 2.6)) * (0.6 + 0.8 * nA);
+    glow = 0.68 * live * uFogAmount * (1.0 - exp(-uFogDensity * dl * S * 2.6)) * (0.6 + 0.8 * nA);
   }
   float hl = smoothstep(-10.0, 9.0, pB.y - uFogBase - uFogCam.x) * (0.75 + 0.5 * nB);
   return vec4(k, glow, tS, clamp(hl, 0.0, 1.0));
@@ -400,6 +403,8 @@ export function createFog(ctx) {
         else uniforms.uFogLanternPos.value.set(p.position.x, p.position.y + 1.2, p.position.z);
         const r = p.lanternRadius ?? 16;
         uniforms.uFogLanternRadius.value = Math.max(0, r);
+        const L = p.lanternLight;
+        uniforms.uFogLanternLive.value = L ? (L.visible === false ? 0 : clamp(L.intensity / 5, 0, 3)) : 1;
         fog.setClearing('lantern', p.position.x, p.position.z, r, 1);
       }
       // Ease clearing radii.

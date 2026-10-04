@@ -151,9 +151,11 @@ export function createKain({ material, cols = 5, rows = 9, length = 0.95 }) {
         // Constraints.
         for (let it = 0; it < 4; it++) {
           for (let j = 0; j < rows; j++) {
-            const taper = 1 - 0.12 * (j / (rows - 1)) * (1 - open);
+            // Closed: a drape that widens toward the hem; open: a taut wing.
+            const along = j / (rows - 1);
+            const taper = 1 + 0.38 * along * (1 - open) - 0.15 * along * open;
             const hr = hRestTop * taper;
-            for (let i = 0; i < cols - 1; i++) constrain(j * cols + i, j * cols + i + 1, hr, 0.9, open < 0.3);
+            for (let i = 0; i < cols - 1; i++) constrain(j * cols + i, j * cols + i + 1, hr, j === 0 ? 0 : 0.85, false);
           }
           for (let j = 0; j < rows - 1; j++) {
             for (let i = 0; i < cols; i++) constrain(j * cols + i, (j + 1) * cols + i, segLen, 1, false);

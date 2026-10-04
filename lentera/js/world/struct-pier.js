@@ -113,7 +113,7 @@ export function buildPier(kit, api, scene) {
   // Beached jukungs on the sand either side of the pier.
   for (const [x, z, yaw, roll] of [[-8.5, 203.5, 0.25, 0.04], [9.2, 202.5, -0.35, -0.05], [-14.5, 201, 0.6, 0.06]]) {
     const y = heightAt(x, z) - 0.02;
-    b.within({ x, y, z, yaw, roll }, () => buildJukung(b, { sail: false }));
+    b.within({ x, y, z, yaw, roll }, () => buildJukung(b, { sail: false, lod: 0.5 }));
     b.collBox({ x, y: y - 0.4, z, w: 0.85, h: 0.82, d: 5.6, yaw, surface: 'wood' });
   }
   // A few oars and floats propped against the entrance.
