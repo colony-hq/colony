@@ -5,7 +5,7 @@
 
 import { injectStyle, h } from '../../core/dom.js';
 import { ITEMS } from '../../data/items.js';
-import { esc, qtyLabel, safe, onLongPress } from '../util.js';
+import { cap, esc, qtyLabel, safe, onLongPress } from '../util.js';
 
 const CSS = `
 .u-inv { display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: 36px; gap: 1px 2px; }
@@ -22,7 +22,7 @@ const CSS = `
 [data-layout=phone] .u-slot .q { font-size: 12px; left: 4px; top: 2px; }
 `;
 
-export const itemOrange = (name) => `<span style="color:#ff9f43">${esc(name)}</span>`;
+export const itemOrange = (name) => `<span style="color:#ff9f43">${esc(cap(String(name ?? '')))}</span>`;
 
 // Fallback options when the game builder's ctx.game is missing.
 function fallbackOptions(id) {

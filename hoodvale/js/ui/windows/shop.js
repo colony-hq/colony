@@ -11,7 +11,7 @@ import { itemOrange } from '../panels/inventory.js';
 
 const CSS = `
 .u-shop .u-win-b { display: flex; flex-direction: column; gap: 8px; }
-.u-ssub { display: flex; justify-content: space-between; gap: 8px; font: 12px var(--font-body); color: var(--parch-dim); margin-top: -6px; flex-wrap: wrap; }
+.u-ssub { display: flex; justify-content: space-between; gap: 8px; font: 12px/1.3 var(--font-body); color: var(--parch-dim); margin: 0; flex-wrap: wrap; }
 .u-ssub b { font: 600 12px var(--font-mono); color: var(--chain); }
 .u-sgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); gap: 4px; padding: 6px; max-height: 330px; overflow-y: auto; align-content: start; }
 .u-sitem { position: relative; height: 62px; border-radius: 5px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center;

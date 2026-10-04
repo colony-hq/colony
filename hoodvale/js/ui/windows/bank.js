@@ -24,7 +24,7 @@ export function itemCategory(id) {
 
 const CSS = `
 .u-bank .u-win-b { display: flex; flex-direction: column; gap: 8px; }
-.u-bsub { font: 12px var(--font-body); color: var(--parch-dim); margin: -6px 0 0; }
+.u-bsub { font: 12px/1.3 var(--font-body); color: var(--parch-dim); margin: 0; }
 .u-bsub b { color: #ffe46a; font: 600 12px var(--font-mono); }
 .u-btop { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .u-bcats { display: flex; gap: 2px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }

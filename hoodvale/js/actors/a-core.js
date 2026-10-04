@@ -263,7 +263,12 @@ export class Builder {
       const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
       if (pre) _c.setRGB(pre.getX(i), pre.getY(i), pre.getZ(i));
       else if (o.colorFn) _c.copy(o.colorFn(x, y, z, base)); else _c.copy(base);
-      const s = shadeK * (ao ? A.min + (1 - A.min) * smooth01(A.bottom, A.top, y) : 1);
+      let s = shadeK * (ao ? A.min + (1 - A.min) * smooth01(A.bottom, A.top, y) : 1);
+      // Painterly per-vertex variation (deterministic from position).
+      if (ao && o.jitter !== 0) {
+        const h = Math.sin(x * 127.1 + y * 311.7 + z * 74.7) * 43758.5453;
+        s *= 1 + (o.jitter ?? 0.05) * ((h - Math.floor(h)) * 2 - 1);
+      }
       col[i * 3] = _c.r * s; col[i * 3 + 1] = _c.g * s; col[i * 3 + 2] = _c.b * s;
     }
     g.setAttribute('color', new THREE.BufferAttribute(col, 3));
@@ -422,11 +427,28 @@ export function spineTube(ctrl, { seg = 4, radial = 12, colorAt = null, square =
     const a = i * per + j, b = a + 1, d = a + per, e = d + 1;
     index.push(a, d, b, b, d, e);
   }
+  // End caps: a centre vertex per end (same colour / weights as its ring).
+  const total = rings * per;
+  const P2 = new Float32Array((total + 2) * 3); P2.set(pos);
+  const C2 = new Float32Array((total + 2) * 3); C2.set(colA);
+  const SI2 = new Uint16Array((total + 2) * 4); SI2.set(si);
+  const SW2 = new Float32Array((total + 2) * 4); SW2.set(sw);
+  for (const [ring, vi, u] of [[0, total, 0], [rings - 1, total + 1, 1]]) {
+    curve.getPoint(u, c);
+    P2[vi * 3] = c.x; P2[vi * 3 + 1] = c.y; P2[vi * 3 + 2] = c.z;
+    const r0 = ring * per;
+    for (let k = 0; k < 3; k++) C2[vi * 3 + k] = colA[r0 * 3 + k];
+    for (let k = 0; k < 4; k++) { SI2[vi * 4 + k] = si[r0 * 4 + k]; SW2[vi * 4 + k] = sw[r0 * 4 + k]; }
+    for (let j = 0; j < radial; j++) {
+      const a = r0 + j, b = a + 1;
+      if (ring === 0) index.push(vi, a, b); else index.push(vi, b, a);
+    }
+  }
   const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  g.setAttribute('color', new THREE.BufferAttribute(colA, 3));
-  g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(si, 4));
-  g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sw, 4));
+  g.setAttribute('position', new THREE.BufferAttribute(P2, 3));
+  g.setAttribute('color', new THREE.BufferAttribute(C2, 3));
+  g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(SI2, 4));
+  g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(SW2, 4));
   g.setIndex(index);
   // Make sure faces point outward (flip the winding if the first ring disagrees).
   g.computeVertexNormals();

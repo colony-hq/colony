@@ -40,6 +40,10 @@ export function createOverlay(U) {
   U.roots.overlay.append(root);
   const project = projector(ctx);
   const trackers = new Map(); // entity -> tracker
+  const remotes = new Set();
+  events.on('entity:add', ({ entity }) => { if (entity?.kind === 'remote') remotes.add(entity); });
+  events.on('entity:remove', ({ entity }) => remotes.delete(entity));
+  events.on('game:start', () => { remotes.clear(); for (const e of safe(() => ctx.entities.byKind('remote'), [])) remotes.add(e); });
 
   function tracker(e) {
     let t = trackers.get(e);
@@ -96,7 +100,7 @@ export function createOverlay(U) {
       const now = performance.now();
       // Nameplates for remote players.
       if (state.settings.showNames !== false) {
-        for (const e of safe(() => ctx.entities.byKind('remote'), [])) {
+        for (const e of remotes) {
           if (!e.alive || e.hidden) continue;
           const t = tracker(e);
           if (!t.nameEl) { t.nameEl = h('div.u-name'); t.el.append(t.nameEl); }

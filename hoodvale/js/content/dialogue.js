@@ -391,8 +391,8 @@ export function createDialogue(ctx) {
       if (session?.entity === e) continue;
       if (!e.state?.talkHold || n >= e.state.talkHold.until) release(e);
     }
-    if (n < nextChatter || state.mode !== 'play' || !ctx.player) return;
-    nextChatter = n + 7 + Math.floor(Math.random() * 6);
+    if (n < nextChatter || state.mode !== 'play' || !ctx.player || session) return;
+    nextChatter = n + 10 + Math.floor(Math.random() * 9);
     const px = ctx.player.x, pz = ctx.player.z;
     const near = (ctx.entities?.near?.(px, pz, 13) || []).filter((e) => e.kind === 'npc' && e.alive !== false && session?.entity !== e);
     const now = Date.now();

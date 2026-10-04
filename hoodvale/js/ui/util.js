@@ -52,7 +52,8 @@ export function nameColor(entity, ctx) {
 
 // "Name (level-12)" parts for a menu/hover line.
 export function entityLabelHTML(entity, ctx) {
-  const name = esc(entity.kind === 'item' && entity.qty > 1 ? `${entity.name} (${entity.qty})` : entity.name || '');
+  const nm = cap(entity.name || '');
+  const name = esc(entity.kind === 'item' && entity.qty > 1 ? `${nm} (${entity.qty})` : nm);
   let html = `<span style="color:${nameColor(entity, ctx)}">${name}</span>`;
   const lvl = entity.level ?? (entity.kind === 'remote' ? entity.combatLevel : null);
   if (lvl && (entity.kind === 'monster' || entity.kind === 'remote')) {

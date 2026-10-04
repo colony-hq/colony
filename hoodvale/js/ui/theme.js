@@ -89,6 +89,7 @@ export const THEME_CSS = `
 .u-win > .u-win-b { position: relative; padding: 0 12px 12px; overflow: auto; min-height: 0; flex: 1; scrollbar-width: thin; scrollbar-color: var(--brass-dim) transparent; }
 .u-win.drag > .u-win-h { cursor: move; }
 @keyframes u-winin { from { opacity: 0; transform: translateY(6px) scale(.985); } to { opacity: 1; transform: none; } }
+[data-layout=phone] .u-win > .u-win-h .u-title { white-space: normal; font-size: 15px; line-height: 1.15; }
 [data-layout=phone] .u-win.sheet { left: 0 !important; right: 0; bottom: 0; top: auto !important; width: auto !important; max-width: none; max-height: 84vh; border-radius: 12px 12px 0 0; animation: u-sheet .18s var(--ease); }
 @keyframes u-sheet { from { transform: translateY(30px); opacity: .4; } to { transform: none; opacity: 1; } }
 

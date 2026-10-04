@@ -16,7 +16,7 @@
 | `chat.js` | Chatbox (All / Game / Public / Oracle / Chain), filters, input + `::commands` |
 | `login.js` | Title screen, "Continue as", character creator with live 3D preview |
 | `panels/*.js` | side (tab registry/layout), combat, skills, quests (+ HUD quest tracker), inventory, equipment, spellbook, settings |
-| `windows/*.js` | dialogue, bank, shop, make-X, world map, guide (skill guides + quest journal), death |
+| `windows/*.js` | dialogue, bank, shop, make-X, world map, guide (skill guides, quest journal, quest-complete scroll), death |
 
 ## ctx.ui API (DESIGN §8 + additions)
 - `message(text, kind)`, `toast(text, {kind: ''|'chain'|'warn'|'quest', icon, ms})`
@@ -39,7 +39,7 @@
 - `icons.itemIcon(id) / skillIcon(id) / spellIcon(spell)` → data URLs (net already uses `icons.js`)
 
 ## Events
-Out: `ui:ready {ui}`, `ui:tab {id}`, `ui:window {id, open}`, `ui:sheet {open}` (phone), `ui:fanfare
+Out: `ui:ready {ui}`, `ui:fanfare {quest}` (quest-complete scroll), `ui:tab {id}`, `ui:window {id, open}`, `ui:sheet {open}` (phone), `ui:fanfare
 {skill, level, unlocks}` (audio: level-up jingle hook), `ui:dialogue`, `ui:dialogue-close`, `ui:spell-target {id}`,
 `chat:self {text}` (local player said something), `combat:style` / `magic:autocast` only when the game
 module is missing, `dialogue:dismiss`, `zone:enter` only when `ctx.lore` is absent.
@@ -57,6 +57,12 @@ own line), `npc:say`, `combat:hit`, `xp`, `level:up`, `zone:enter`, `item:select
   priceSell/canSell/buy/sell/lastError`, `zone:enter {zone, name, blurb, levels, first, minor}`.
 - net: wallet + players tabs via `registerTab` (on `game:ready`), `room.say(text)`.
 - world: `mapimage.paintRegion(regionId, 3)` for minimap + world map (cached once per region).
+
+## Layers
+Each UI root (`#overlay #hud #windows #menus #toasts`) gets `isolation: isolate` at startup, so window
+z-indexes stay inside `#windows`; context menus / tooltips / drag ghosts live in `#menus`; level-up popups,
+area banners and toasts in `#toasts` (always on top). Other builders' elements added to `#windows`
+(e.g. content's `.hv-oracle-ask`) stack with windows.
 
 ## Keyboard
 Esc closes (menu → targeting → dialogue → top window → phone sheet). Enter = chat. Tab / Shift+Tab cycle

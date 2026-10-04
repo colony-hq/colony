@@ -267,7 +267,7 @@ export function createCombat(ctx) {
     try { P().actor?.die?.(); } catch { /* ignore */ }
     for (const m of entities.all()) if (m.kind === 'monster' && m.ai?.target === 'player') retreat(m, true);
     state.setMode('dead');
-    say(ctx, 'Oh dear, you are dead!', 'warn');
+    say(ctx, 'You collapse. The Vale goes dark…', 'warn');
     events.emit('player:death', { killer: killer || null, x, z, region });
     respawnAt = now() + 5;
   }

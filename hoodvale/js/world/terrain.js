@@ -8,7 +8,9 @@
 // caustics under shallow water, drifting cloud shadows. Owner: world builder.
 //
 // API: meshes (all terrain meshes), regions { overworld: Group, warrens, vault, lair: Mesh },
-//      skirt (Mesh), material (overworld material), update(dt).
+//      skirt (Mesh), material (overworld material), chunks, update(dt).
+// The overworld is 5 x 5 chunks of 64 tiles with 3 LODs (1, 2, 4 m) picked by camera distance;
+// LOD0 sits exactly on the corner grid (heightAt), coarser LODs only ever appear far away.
 
 import * as THREE from 'three';
 import { getRegionGrid, heightAt, OVERWORLD, DUNGEONS } from './mapgen.js';
@@ -295,35 +297,53 @@ function makeMaterial(kind, skirt = false) {
 const u8 = (v) => Math.max(0, Math.min(255, Math.round(v * 255)));
 
 // Build one mesh for the corner sub-grid [cx0..cx1] x [cz0..cz1] of a region grid.
-function buildPatch(region, G, F, cx0, cz0, cx1, cz1, material) {
+function buildPatch(region, G, F, cx0, cz0, cx1, cz1, material, step = 1) {
   const N = G.N;
-  const nx = cx1 - cx0 + 1, nz = cz1 - cz0 + 1;
-  const count = nx * nz;
+  const nx = Math.floor((cx1 - cx0) / step) + 1, nz = Math.floor((cz1 - cz0) / step) + 1;
+  const skirtN = step > 1 ? 2 * (nx + nz) : 0;
+  const count = nx * nz + skirtN;
   const pos = new Float32Array(count * 3), nrm = new Float32Array(count * 3);
   const base = new Uint8Array(count * 3), rock = new Uint8Array(count * 3);
   const mA = new Uint8Array(count * 4), mB = new Uint8Array(count * 4), mC = new Uint8Array(count * 4);
   const H = G.heights;
   const hAt = (x, z) => H[Math.max(0, Math.min(N - 1, z)) * N + Math.max(0, Math.min(N - 1, x))];
   let i = 0;
-  for (let z = cz0; z <= cz1; z++) for (let x = cx0; x <= cx1; x++, i++) {
+  const put = (x, z, drop) => {
     const v = z * N + x;
-    pos[i * 3] = region.x0 + x; pos[i * 3 + 1] = H[v]; pos[i * 3 + 2] = region.z0 + z;
-    let ex = hAt(x - 1, z) - hAt(x + 1, z), ez = hAt(x, z - 1) - hAt(x, z + 1);
-    const l = Math.hypot(ex, 2, ez);
-    nrm[i * 3] = ex / l; nrm[i * 3 + 1] = 2 / l; nrm[i * 3 + 2] = ez / l;
+    pos[i * 3] = region.x0 + x; pos[i * 3 + 1] = H[v] - drop; pos[i * 3 + 2] = region.z0 + z;
+    let ex = hAt(x - step, z) - hAt(x + step, z), ez = hAt(x, z - step) - hAt(x, z + step);
+    const l = Math.hypot(ex, 2 * step, ez);
+    nrm[i * 3] = ex / l; nrm[i * 3 + 1] = (2 * step) / l; nrm[i * 3 + 2] = ez / l;
     for (let c = 0; c < 3; c++) { base[i * 3 + c] = u8(F.base[v * 3 + c]); rock[i * 3 + c] = u8(F.rock[v * 3 + c]); }
     mA[i * 4] = u8(F.road[v]); mA[i * 4 + 1] = u8(F.sand[v]); mA[i * 4 + 2] = u8(F.pebble[v]); mA[i * 4 + 3] = u8(F.mud[v]);
     mB[i * 4] = u8(F.floor[v]); mB[i * 4 + 1] = u8(F.floorType[v]); mB[i * 4 + 2] = u8(F.farm[v]); mB[i * 4 + 3] = u8(F.farmInfo[v]);
     mC[i * 4] = u8(F.cobble[v]); mC[i * 4 + 1] = u8(F.ash[v]); mC[i * 4 + 2] = u8(F.crystal[v]); mC[i * 4 + 3] = u8(F.ao[v]);
-  }
-  const idx = new (count > 65535 ? Uint32Array : Uint16Array)((nx - 1) * (nz - 1) * 6);
-  let k = 0;
+    i++;
+  };
+  for (let z = 0; z < nz; z++) for (let x = 0; x < nx; x++) put(cx0 + x * step, cz0 + z * step, 0);
+  const idxArr = [];
   for (let z = 0; z < nz - 1; z++) for (let x = 0; x < nx - 1; x++) {
     const a = z * nx + x, b = a + 1, c = a + nx, d = c + 1;
     // Same split as mapgen.heightAt: triangles (a, c, b) and (c, d, b) share the b-c diagonal.
-    idx[k++] = a; idx[k++] = c; idx[k++] = b;
-    idx[k++] = c; idx[k++] = d; idx[k++] = b;
+    idxArr.push(a, c, b, c, d, b);
   }
+  if (skirtN) {
+    // Low-detail chunks hang a 2 m curtain along their borders to hide seams with finer neighbours.
+    const ring = [];
+    for (let x = 0; x < nx; x++) ring.push([x, 0]);
+    for (let z = 1; z < nz; z++) ring.push([nx - 1, z]);
+    for (let x = nx - 2; x >= 0; x--) ring.push([x, nz - 1]);
+    for (let z = nz - 2; z >= 1; z--) ring.push([0, z]);
+    const base = i;
+    for (const [x, z] of ring) put(cx0 + x * step, cz0 + z * step, 2.0);
+    for (let r = 0; r < ring.length; r++) {
+      const r2 = (r + 1) % ring.length;
+      const top1 = ring[r][1] * nx + ring[r][0], top2 = ring[r2][1] * nx + ring[r2][0];
+      const bot1 = base + r, bot2 = base + r2;
+      idxArr.push(top1, bot1, top2, top2, bot1, bot2, top1, top2, bot1, top2, bot2, bot1);
+    }
+  }
+  const idx = new (count > 65535 ? Uint32Array : Uint16Array)(idxArr);
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   geo.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
@@ -423,12 +443,16 @@ export function createTerrain(ctx) {
   const ow = new THREE.Group();
   ow.name = 'terrain:overworld';
   for (let cz = 0; cz < G.H; cz += CHUNK) for (let cx = 0; cx < G.W; cx += CHUNK) {
-    const m = buildPatch(OVERWORLD, G, F, cx, cz, Math.min(G.W, cx + CHUNK), Math.min(G.H, cz + CHUNK), owMat);
-    m.name = `terrain:overworld:${cx / CHUNK},${cz / CHUNK}`;
-    ow.add(m);
-    meshes.push(m);
-    const bb = m.geometry.boundingBox;
-    chunks.push({ mesh: m, cx: (bb.min.x + bb.max.x) / 2, cz: (bb.min.z + bb.max.z) / 2, r: Math.hypot(bb.max.x - bb.min.x, bb.max.z - bb.min.z) / 2 });
+    const x1 = Math.min(G.W, cx + CHUNK), z1 = Math.min(G.H, cz + CHUNK);
+    const lods = [1, 2, 4].map((st) => {
+      const m = buildPatch(OVERWORLD, G, F, cx, cz, x1, z1, owMat, st);
+      m.name = `terrain:overworld:${cx / CHUNK},${cz / CHUNK}:lod${st}`;
+      m.visible = st === 1;
+      ow.add(m);
+      meshes.push(m);
+      return m;
+    });
+    chunks.push({ mesh: lods[0], lods, x0: cx, z0: cz, x1, z1, lod: 0 });
   }
   ctx.scene.add(ow);
   regions.overworld = ow;
@@ -444,7 +468,7 @@ export function createTerrain(ctx) {
     meshes.push(m);
     regions[id] = m;
     const bb = m.geometry.boundingBox;
-    chunks.push({ mesh: m, cx: (bb.min.x + bb.max.x) / 2, cz: (bb.min.z + bb.max.z) / 2, r: Math.hypot(bb.max.x - bb.min.x, bb.max.z - bb.min.z) / 2 });
+    chunks.push({ mesh: m, lods: [m], x0: bb.min.x, z0: bb.min.z, x1: bb.max.x, z1: bb.max.z, lod: 0 });
   }
 
   // Skirt.
@@ -457,14 +481,20 @@ export function createTerrain(ctx) {
 
   const cam = ctx.camera;
   return {
-    meshes, regions, skirt, material: owMat, chunkSize: CHUNK,
+    meshes, regions, skirt, material: owMat, chunkSize: CHUNK, chunks,
     update() {
       // Distance culling past the fog (frustum culling does the rest).
       const far = (ctx.scene.fog?.far || 400) + 24;
       const px = cam.position.x, pz = cam.position.z;
+      const lodK = ctx.engine.preset.name === 'high' ? 1.4 : ctx.engine.preset.name === 'low' ? 0.8 : 1;
       for (const c of chunks) {
-        const d = Math.hypot(c.cx - px, c.cz - pz) - c.r;
-        c.mesh.visible = d < far;
+        const dx = Math.max(c.x0 - px, 0, px - c.x1), dz = Math.max(c.z0 - pz, 0, pz - c.z1);
+        const d = Math.hypot(dx, dz, Math.max(0, cam.position.y - 30) * 0.5);
+        let lod = d < 70 * lodK ? 0 : d < 170 * lodK ? 1 : 2;
+        if (lod >= c.lods.length) lod = c.lods.length - 1;
+        const show = d < far;
+        for (let k = 0; k < c.lods.length; k++) c.lods[k].visible = show && k === lod;
+        c.lod = lod;
       }
       if (skirt) skirt.visible = px > -100 && px < 420;
     },

@@ -84,7 +84,9 @@ void main() {
 #else
   rip = texture2D(uNoise, p * 0.12 + uTime * vec2(0.01, 0.006) - fdir * speed * uTime * 0.06).rg;
 #endif
-  vec3 n = normalize(vec3((rip.x - 0.5) * 0.5, 1.0, (rip.y - 0.5) * 0.5));
+  float viewD = length(cameraPosition - vWPos);
+  float nearK = 1.0 - smoothstep(25.0, 110.0, viewD);
+  vec3 n = normalize(vec3((rip.x - 0.5) * (0.12 + 0.38 * nearK), 1.0, (rip.y - 0.5) * (0.12 + 0.38 * nearK)));
 
   float dk = 1.0 - exp(-depth * 0.55);
   vec3 col = mix(vec3(0.30, 0.74, 0.70), vec3(0.12, 0.47, 0.60), smoothstep(0.0, 0.55, dk));
@@ -104,9 +106,9 @@ void main() {
 
   vec3 Hh = normalize(uSunDir + V);
   float nh = max(dot(n, Hh), 0.0);
-  float spec = pow(nh, 160.0) * 2.2 + pow(nh, 22.0) * 0.06;
+  float spec = (pow(nh, 160.0) * 2.2 * (0.25 + 0.75 * nearK) + pow(nh, 22.0) * 0.06);
 #if WATER_DETAIL > 0
-  spec += step(0.88, texture2D(uNoise, p * 0.75 + uTime * vec2(0.05, 0.03)).a) * pow(nh, 16.0) * 1.4;
+  spec += step(0.88, texture2D(uNoise, p * 0.75 + uTime * vec2(0.05, 0.03)).a) * pow(nh, 16.0) * 1.4 * (1.0 - smoothstep(15.0, 45.0, viewD));
 #endif
   col += uSunColor * spec * (1.0 - murk * 0.75) * 0.45;
 
@@ -116,7 +118,7 @@ void main() {
   float post = (1.0 - smoothstep(0.1, 0.45 + 0.35 * fn, postD)) * step(0.5, depth);
   float lake = step(0.03, murk) * (1.0 - step(0.5, murk));
   float bandK = (1.0 - smoothstep(0.6, 4.5 + 2.0 * sea, landD)) * max(sea, lake * 0.6) * (1.0 - step(0.5, murk));
-  float bands = smoothstep(0.8, 0.97, sin(landD * 2.3 - uTime * (1.3 + sea * 0.6) + fn * 3.0)) * bandK * (0.45 + 0.55 * fn);
+  float bands = smoothstep(0.8, 0.97, sin(landD * 2.3 - uTime * (1.3 + sea * 0.6) + fn * 3.0)) * bandK * (0.45 + 0.55 * fn) * (1.0 - smoothstep(60.0, 140.0, viewD));
   float streak = 0.0;
 #if WATER_DETAIL > 0
   if (speed > 0.05) {

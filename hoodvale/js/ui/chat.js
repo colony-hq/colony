@@ -25,6 +25,7 @@ const CSS = `
 .u-chatlog .t-system { color: #9fc8ff; } .u-chatlog .t-dim { color: #a8977a; }
 .u-chatlog .who { color: #ffe08a; font-weight: 700; } .u-chatlog .pub { color: #a9d6ff; }
 .u-chatlog .hash { font: 11px var(--font-mono); color: #7fbfa8; }
+.u-chatlog .rep { font: 600 11px var(--font-mono); color: #ffd34d; opacity: .85; }
 .u-chatin { display: flex; align-items: center; gap: 6px; padding: 0 8px; height: 26px; font: 600 14px/1 var(--font-body); color: #ffe08a; cursor: text; border-top: 1px solid rgba(201,162,74,.18); }
 .u-chatin input { flex: 1; min-width: 0; background: transparent !important; border: 0 !important; box-shadow: none !important; padding: 2px 0 !important; color: #a9d6ff !important; font: 14px var(--font-body) !important; user-select: text; -webkit-user-select: text; }
 .u-chatin input::placeholder { color: rgba(239,226,196,.35); font-style: italic; }
@@ -115,7 +116,7 @@ export function createChat(U) {
     if (user) state.saveSettings();
   }
   const visible = (m) => (tab === 'all' ? m.inAll && cfg.inAll[m.tab] !== false : m.tab === tab);
-  function line(m) { return h('div', { class: 't-' + m.kind, html: m.html }); }
+  function line(m) { const d = h('div', { class: 't-' + m.kind, html: m.html + (m.n > 1 ? ` <span class="rep">×${m.n}</span>` : '') }); m.el = d; return d; }
   function render() {
     log.innerHTML = '';
     const frag = document.createDocumentFragment();
@@ -124,7 +125,13 @@ export function createChat(U) {
     log.scrollTop = log.scrollHeight;
   }
   function push(html, kind = 'game', { tabId = null, inAll = true } = {}) {
-    const m = { html, kind, tab: tabId || KIND_TAB[kind] || 'game', inAll, at: Date.now() };
+    const prev = msgs[msgs.length - 1];
+    if (prev && prev.html === html && prev.kind === kind && Date.now() - prev.at < 15000) {
+      prev.n = (prev.n || 1) + 1; prev.at = Date.now();
+      if (prev.el?.isConnected) prev.el.innerHTML = prev.html + ` <span class="rep">×${prev.n}</span>`;
+      return prev;
+    }
+    const m = { html, kind, tab: tabId || KIND_TAB[kind] || 'game', inAll, at: Date.now(), n: 1 };
     msgs.push(m);
     if (msgs.length > 250) msgs.splice(0, msgs.length - 200);
     const nearBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 40;

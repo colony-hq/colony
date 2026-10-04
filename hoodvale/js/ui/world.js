@@ -5,7 +5,7 @@
 import { injectStyle, h } from '../core/dom.js';
 import { ITEMS } from '../data/items.js';
 import { SPELLS } from '../data/economy.js';
-import { esc, entityLabelHTML, safe } from './util.js';
+import { cap, esc, entityLabelHTML, safe } from './util.js';
 
 const CSS = `
 .u-xmark { position: absolute; width: 20px; height: 20px; margin: -10px 0 0 -10px; pointer-events: none; animation: u-xm .5s steps(4) forwards; }
@@ -33,7 +33,7 @@ export function createWorld(U) {
 
   const selected = () => safe(() => ctx.game?.selected, null) || null;
   const selItemName = () => { const s = selected(); return s ? ITEMS[s.id]?.name || s.id : ''; };
-  const itemSpan = (name) => `<span style="color:#ff9f43">${esc(name)}</span>`;
+  const itemSpan = (name) => `<span style="color:#ff9f43">${esc(cap(String(name ?? '')))}</span>`;
 
   function pickAt(x, y) {
     const nx = (x / window.innerWidth) * 2 - 1, ny = -(y / window.innerHeight) * 2 + 1;

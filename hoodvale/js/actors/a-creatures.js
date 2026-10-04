@@ -37,7 +37,7 @@ function quadDefs(v) {
   const tl = q.tail[0];
   return [
     ['root', -1, 0, 0, 0], ['body', 0, 0, H + q.body[1] * 0.35, 0], ['rear', 1, 0, 0, L * 0.42], ['chest', 1, 0, 0.02, -L * 0.42],
-    ['neck', 3, 0, q.body[1] * 0.5, -q.body[2] * 0.25], ['head', 4, 0, q.neck[0], q.neck[1]], ['jaw', 5, 0, -q.headR * 0.45, -q.headR * 0.3],
+    ['neck', 3, 0, q.body[1] * 0.32, -q.body[2] * 0.45], ['head', 4, 0, q.neck[0], q.neck[1]], ['jaw', 5, 0, -q.headR * 0.45, -q.headR * 0.3],
     ['tail1', 2, 0, q.body[1] * 0.45, q.body[2] * 0.35], ['tail2', 7, 0, -tl * 0.25, tl], ['tail3', 8, 0, -tl * 0.25, tl],
     ['flU', 3, -q.w, -q.body[1] * 0.35, -0.02], ['flL', 10, 0, -q.upper, 0], ['flF', 11, 0, -q.lower, 0],
     ['frU', 3, q.w, -q.body[1] * 0.35, -0.02], ['frL', 13, 0, -q.upper, 0], ['frF', 14, 0, -q.lower, 0],
@@ -78,8 +78,8 @@ function buildQuad(spec, bones) {
     { p: pr.clone().add(new THREE.Vector3(0, 0, bz * 0.22)), rx: bx * shapes.rear[0], ry: by * shapes.rear[1], bone: QB.rear },
     { p: pb.clone(), rx: bx * shapes.mid[0], ry: by * shapes.mid[1], bone: QB.body, dy: v === 'wolf' ? -0.02 : 0 },
     { p: pc.clone(), rx: bx * shapes.chest[0], ry: by * shapes.chest[1], bone: QB.chest, dy: v === 'bear' ? 0.06 : v === 'wolf' ? -0.04 : 0 },
-    { p: pc.clone().add(new THREE.Vector3(0, by * 0.2, -bz * 0.3)), rx: bx * shapes.front[0], ry: by * shapes.front[1], bone: QB.chest },
-    { p: pn.clone(), rx: q.headR * 0.95, ry: q.headR * 1.05, bone: QB.neck },
+    { p: pc.clone().lerp(pn, 0.5).add(new THREE.Vector3(0, -by * 0.08, -0.02)), rx: lerp(bx * shapes.front[0], q.headR, 0.35), ry: lerp(by * shapes.front[1], q.headR, 0.35), bone: QB.chest },
+    { p: pn.clone().add(new THREE.Vector3(0, 0, -0.03)), rx: q.headR * 0.95, ry: q.headR * 1.05, bone: QB.neck },
     { p: ph.clone(), rx: q.headR * 0.72, ry: q.headR * 0.78, bone: QB.head },
   ];
   const tcol = new THREE.Color();

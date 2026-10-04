@@ -21,7 +21,7 @@ import * as THREE from 'three';
 import { ITEMS } from '../data/items.js';
 import {
   materials, fadeMaterial, acquireGeometry, releaseGeometry, geometryCacheStats, damp, clamp, smooth01, env, wrapAngle,
-  newPose, hexOf, shade, SHARED, makeBones,
+  newPose, hexOf, shade, SHARED, makeBones, glowTexture,
 } from './a-core.js';
 import { HB, HB_COUNT, HB_UPPER, normaliseLook, buildHumanoid, layoutFor, createHumanoidBones } from './a-humanoid.js';
 import * as AN from './a-anim.js';
@@ -149,6 +149,7 @@ class HumanDriver {
     const sc = (this.look.scale || 1) * (spec.b.scale || 1) * (spec.female && spec.variant === 'human' ? 0.96 : 1);
     a.body.scale.setScalar(sc);
     a.headHeight = layout.height * sc * a.scale;
+    a.blob = 0.36 * sc * Math.max(1, spec.b.width * 0.9);
     a.mesh = mesh;
     a._materialRestore = null;
     if (a.state.dead && a._fadeMat) { mesh.material = a._fadeMat; }
@@ -246,7 +247,8 @@ class HumanDriver {
       if (st.shotT >= st.shotDur) { st.shot = null; st.shotDef = null; }
     }
     // Talking gestures.
-    st.talkK = dt > 0 ? damp(st.talkK, st.talking ? 1 : 0, 4, dt) : 0;
+    const talkOn = st.talking || a.sys.time < (st.talkUntil || 0);
+    st.talkK = dt > 0 ? damp(st.talkK, talkOn ? 1 : 0, 4, dt) : 0;
     if (st.talkK > 0.01 && !st.shot && !keyedBase) AN.addTalk(P, c.t, st.talkK * (1 - st.moveK));
     // Death fall (absolute, wins over everything).
     if (st.dead) {
@@ -434,6 +436,7 @@ class CreatureDriver {
     this.mesh = mesh; this.bones = bones; this.skeleton = skeleton;
     actor.mesh = mesh;
     actor.headHeight = (bb.max.y + 0.15) * actor.scale;
+    actor.blob = Math.max(bb.max.x - bb.min.x, (bb.max.z - bb.min.z) * 0.6) * 0.42;
     this.n = this.rig.n;
     this.P = newPose(this.n); this.O = newPose(this.n); this.T = newPose(this.n);
     this.bind1 = bones[1].position.clone();
@@ -539,6 +542,7 @@ class RigidDriver {
     this.obj = kind === 'oracle' ? buildOracle() : buildWisp(model?.colors);
     actor.body.add(this.obj.root);
     actor.headHeight = this.obj.headHeight * actor.scale;
+    actor.blob = kind === 'oracle' ? 0 : 0.25;
     actor.mesh = null;
     this.shots = { attack: { dur: 0.9, release: 0.45 }, cast: { dur: 0.9, release: 0.45 }, consult: { dur: 2.2, release: 1.0 } };
   }
@@ -558,7 +562,7 @@ class RigidDriver {
   evaluate(dt) {
     const st = this.a.state;
     st.moveK = damp(st.moveK, st.base === 'walk' || st.base === 'run' ? 1 : 0, 6, Math.max(dt, 0.0001));
-    st.talkK = damp(st.talkK, st.talking ? 1 : 0, 4, Math.max(dt, 0.0001));
+    st.talkK = damp(st.talkK, st.talking || this.a.sys.time < (st.talkUntil || 0) ? 1 : 0, 4, Math.max(dt, 0.0001));
     if (st.shot) {
       st.shotT += dt;
       if (st.shotDef.release !== undefined && !st.released && st.shotT >= st.shotDef.release) { st.released = true; st.onRelease?.(); }
@@ -669,7 +673,7 @@ class Actor {
       }
       case 'hit': this.hit(); break;
       case 'die': this.die(); break;
-      case 'talk': st.talking = true; break;
+      case 'talk': st.talkUntil = this.sys.time + 0.35; break;
       default:
         if (st.base !== 'idle') st.base = 'idle';
         this.current = 'idle';
@@ -831,6 +835,20 @@ export function createActors(ctx) {
     return a;
   }
 
+  // Soft contact shadows: one instanced draw call for every visible actor near the camera.
+  const BLOBS = 256;
+  const blobMat = new THREE.MeshBasicMaterial({ color: 0x000000, map: glowTexture(), transparent: true, opacity: 0.42, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  const blobGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
+  const blobs = new THREE.InstancedMesh(blobGeo, blobMat, BLOBS);
+  blobs.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  blobs.frustumCulled = false;
+  blobs.renderOrder = 1;
+  blobs.name = 'actor-blobs';
+  blobs.count = 0;
+  root.add(blobs);
+  const _bm = new THREE.Matrix4(), _bq = new THREE.Quaternion(), _bs = new THREE.Vector3(), _bp = new THREE.Vector3(), _bn = new THREE.Vector3();
+  const UP = new THREE.Vector3(0, 1, 0);
+
   let frame = 0;
   const camPos = new THREE.Vector3();
   function update(dt) {
@@ -841,6 +859,8 @@ export function createActors(ctx) {
     const fogFar = ctx.scene.fog?.far ?? 220;
     const cull = Math.min(fogFar + 25, ctx.engine?.preset?.drawDistance ?? 400);
     const shadows = !!ctx.engine?.preset?.shadows;
+    let nb = 0;
+    blobMat.opacity = shadows ? 0.3 : 0.45;
     for (const a of list) {
       const p = a.root.position;
       const d = Math.hypot(p.x - camPos.x, p.y - camPos.y, p.z - camPos.z);
@@ -849,12 +869,34 @@ export function createActors(ctx) {
       const vis = d < cull + a.headHeight * 2;
       a.root.visible = vis;
       if (!vis) { a.acc += dt; continue; }
+      if (d < 70 && nb < BLOBS && a.blob > 0) {
+        const fade = a.state.dead ? 1 - a.state.faded : 1;
+        const r = a.blob * a.scale * fade;
+        if (r > 0.02) {
+          // Lie on the local terrain slope, lifted a little to clear the ground mesh.
+          const H = ctx.map?.heightAt;
+          let gy = p.y;
+          if (H) {
+            const e = Math.max(0.3, r);
+            const hx = H(p.x + e, p.z) - H(p.x - e, p.z), hz = H(p.x, p.z + e) - H(p.x, p.z - e);
+            _bn.set(-hx / (2 * e), 1, -hz / (2 * e)).normalize();
+            _bq.setFromUnitVectors(UP, _bn);
+            gy = Math.max(p.y, H(p.x, p.z));
+          } else _bq.identity();
+          _bs.set(r * 2.2, 1, r * 2.2);
+          _bp.set(p.x, gy + 0.09, p.z);
+          _bm.compose(_bp, _bq, _bs);
+          blobs.setMatrixAt(nb++, _bm);
+        }
+      }
       if (a.mesh) a.mesh.castShadow = shadows && (a.player || d < 42);
       // Full-rate animation near the camera, decimated further away.
       const every = a.player || d < 32 ? 1 : d < 64 ? 2 : d < 110 ? 4 : 8;
       const full = (frame + a.frame) % every === 0;
       a._frame(dt, d, full);
     }
+    blobs.count = nb;
+    blobs.instanceMatrix.needsUpdate = true;
     fx.update(dt);
   }
 

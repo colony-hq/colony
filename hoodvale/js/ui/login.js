@@ -241,8 +241,7 @@ export function createLogin(U) {
       if (a) {
         a.setPosition?.(preview.x, preview.y, preview.z);
         a.setYaw?.(preview.yaw);
-        a.play?.('idle');
-        a.update?.(dt);
+        a.play?.('idle'); // ctx.actors.update() animates every created actor
       }
       // Frame the actor: camera south of it, subject shifted right (desk) or up (phone).
       const cam = ctx.camera;

@@ -57,9 +57,9 @@ export function geoFlowers() {
   return B.build({ upNormals: true });
 }
 
-function blob(B, cx, cy, cz, rad, seed, colTop = 1.15, colBot = 0.62, keep = 0, sy = 0.78) {
+function blob(B, cx, cy, cz, rad, seed, colTop = 1.15, colBot = 0.62, keep = 0, sy = 0.78, detail = 0) {
   const r = mulberry32(seed);
-  const g = new THREE.IcosahedronGeometry(rad, 1);
+  const g = new THREE.IcosahedronGeometry(rad, detail);
   const p = g.attributes.position;
   for (let i = 0; i < p.count; i++) {
     const k = 0.9 + r() * 0.16;
@@ -223,7 +223,7 @@ export function geoDeadTree() {
 export function geoCrystals() {
   const r = mulberry32(71);
   const B = new GeoBuilder();
-  const n = 5;
+  const n = 4;
   for (let i = 0; i < n; i++) {
     const h = 0.35 + r() * 0.7, rad = 0.06 + r() * 0.07;
     const prism = new THREE.CylinderGeometry(rad, rad * 1.1, h, 6, 1, true);
@@ -242,7 +242,7 @@ export function geoCrystals() {
 export function geoBoulder(seed = 81) {
   const r = mulberry32(seed);
   const B = new GeoBuilder();
-  const g = new THREE.IcosahedronGeometry(1, 1);
+  const g = new THREE.IcosahedronGeometry(1, 0);
   const p = g.attributes.position;
   const cache = new Map();
   for (let i = 0; i < p.count; i++) {

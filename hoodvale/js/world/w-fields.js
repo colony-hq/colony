@@ -37,7 +37,7 @@ const PAL_HEX = {
   farms: { grass: 0x8fae4a, dry: 0xc7b65e, lush: 0x76a343, soil: 0x8b6842, rock: 0x8c8070, dryAmt: 0.95, soilAmt: 0.1 },
   docks: { grass: 0x8aa65a, dry: 0xb7b07c, lush: 0x709b4f, soil: 0x9a8a6a, rock: 0x86888b, dryAmt: 0.85, soilAmt: 0.2 },
   hoodwood: { grass: 0x4b7a38, dry: 0x6a8a3e, lush: 0x3b6c32, soil: 0x6b5638, rock: 0x6c705e, dryAmt: 0.45, soilAmt: 0.45 },
-  copperhollow: { grass: 0x949648, dry: 0xbc9b52, lush: 0x7b8d41, soil: 0xa7713d, rock: 0x9e6c4b, dryAmt: 0.95, soilAmt: 0.42 },
+  copperhollow: { grass: 0x9a9a55, dry: 0xc2a45e, lush: 0x82924a, soil: 0xb48450, rock: 0xa88a66, dryAmt: 0.95, soilAmt: 0.38 },
   mistfen: { grass: 0x638a6c, dry: 0x7d8e72, lush: 0x557f66, soil: 0x5f5b47, rock: 0x66726b, dryAmt: 0.55, soilAmt: 0.3 },
   gildmoor: { grass: 0x70a047, dry: 0x95ae57, lush: 0x5c8f40, soil: 0x876f53, rock: 0x908879, dryAmt: 0.6, soilAmt: 0.08 },
   oracle: { grass: 0x67907a, dry: 0x8a8ea6, lush: 0x56826f, soil: 0x6a6080, rock: 0x8c84b0, dryAmt: 0.7, soilAmt: 0.15 },

@@ -13,6 +13,16 @@ import { cap, esc, fmtInt, safe } from '../util.js';
 import { questStatus } from '../panels/quests.js';
 
 const CSS = `
+
+.u-qdone .u-win-b { padding: 0 20px 18px; text-align: center; }
+.u-qdone h3 { margin: 2px 0 2px; font: 700 26px/1.1 var(--font-display); color: #5a1a10; }
+.u-qdone .qn { font: italic 600 17px var(--font-body); color: #3a2410; margin-bottom: 10px; }
+.u-qdone .seal { width: 74px; height: 74px; margin: 0 auto 8px; border-radius: 50%; display: grid; place-items: center; font: 700 26px var(--font-display); color: #ffe7a8;
+  background: radial-gradient(circle at 40% 35%, #c0392b, #7a1a10 70%); box-shadow: 0 0 0 3px #c9a24a, 0 0 0 4px #3a2a0a, 0 6px 14px rgba(0,0,0,.35); animation: u-seal .6s cubic-bezier(.2,1.5,.4,1); }
+.u-qdone ul { list-style: none; margin: 8px auto 12px; padding: 0; text-align: left; display: inline-block; font: 15px/1.5 var(--font-body); color: #24180e; }
+.u-qdone li::before { content: '\\2726  '; color: #a8761a; }
+.u-qdone .qp { font: 600 13px var(--font-body); color: #6a5030; }
+@keyframes u-seal { from { transform: scale(.3) rotate(-40deg); opacity: 0; } to { transform: none; opacity: 1; } }
 .u-guide .u-win-b { padding: 0 14px 14px; }
 .u-gskills { display: flex; flex-wrap: wrap; gap: 3px; margin: 0 0 8px; }
 .u-gskills { flex-wrap: nowrap !important; justify-content: space-between; }
@@ -218,6 +228,30 @@ export function createGuides(U) {
       });
     },
   };
+  events.on('quest:start', ({ id, name } = {}) => {
+    const q = QUEST_BY_ID[id];
+    if (q) U.ui.toast(`New quest: ${name || q.name}`, { kind: 'quest' });
+  });
+  events.on('quest:complete', ({ id, name, points } = {}) => {
+    const q = QUEST_BY_ID[id];
+    if (!q) return;
+    events.emit('ui:fanfare', { quest: id });
+    const rewards = safe(() => ctx.quests.rewardLines?.(id), null) || [];
+    U.windows.openWindow('quest-complete', {
+      title: 'Quest complete', width: 400, parchment: true, className: 'u-qdone', anchor: 'game',
+      render(body) {
+        const total = points ?? safe(() => ctx.quests.points(), null);
+        body.append(
+          h('div.seal', { text: String(q.questPoints) }),
+          h('h3', { text: 'Well done!' }),
+          h('div.qn', { text: `You have completed ${name || q.name}.` }),
+          rewards.length ? h('ul', {}, rewards.map((r) => h('li', { text: r }))) : null,
+          total != null ? h('div.qp', { text: `Quest points: ${total}` }) : null,
+          h('div', { style: { marginTop: '12px' } }, [h('button.u-btn.primary', { text: 'Onward', onclick: () => U.windows.closeWindow('quest-complete') })]),
+        );
+      },
+    });
+  });
   events.on('quest:update', ({ id }) => { if (U.windows.isOpen('journal') && U.windows.get('journal').titleEl.textContent === QUEST_BY_ID[id]?.name) guides.openJournal(id); });
   return guides;
 }

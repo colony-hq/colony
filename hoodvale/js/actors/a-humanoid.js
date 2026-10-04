@@ -137,7 +137,7 @@ export function normaliseLook(look = {}, outfit = {}, variant = 'human') {
 // Geometry
 // ---------------------------------------------------------------------------------------------
 function headGeometry(r, k = {}) {
-  const g = new THREE.SphereGeometry(r, 16, 12);
+  const g = new THREE.SphereGeometry(r, 14, 11);
   const jaw = k.jaw ?? 1, chin = k.chin ?? 0.24;
   return deform(g, (x, y, z) => {
     const ny = y / r;
@@ -243,14 +243,14 @@ function addHead(ctx, o = {}) {
   B.add(headGeometry(hr, { jaw: o.jaw ?? (spec.female ? 0.9 : 1.08) }), HB.head, skin, { at: headC });
   // Ears.
   if (!o.noEars) {
-    for (const sx of [-1, 1]) B.add(sphere(0.034, 7, 5), HB.head, skin, { at: [sx * hr * 0.93, headC[1] - 0.008, headC[2] + 0.014], scale: [0.55, 1.25, 0.85] });
+    for (const sx of [-1, 1]) B.add(sphere(0.034, 6, 4), HB.head, skin, { at: [sx * hr * 0.93, headC[1] - 0.008, headC[2] + 0.014], scale: [0.55, 1.25, 0.85] });
   }
   // Nose (a touch large for readability).
   const nose = o.nose ?? 1;
-  B.add(sphere(0.024 * nose, 8, 6), HB.head, shade(skin, 0.95), { at: [0, headC[1] - 0.03, headC[2] + faceZ(hr, 0, -0.03) - 0.006 * nose], scale: [0.9, 0.9, 1.25] });
+  B.add(sphere(0.024 * nose, 6, 5), HB.head, shade(skin, 0.95), { at: [0, headC[1] - 0.03, headC[2] + faceZ(hr, 0, -0.03) - 0.006 * nose], scale: [0.9, 0.9, 1.25] });
   // Mouth.
   const lip = mix(skin, spec.female ? '#b0444a' : '#7a3a30', spec.female ? 0.5 : 0.35);
-  B.add(sphere(0.022, 8, 4), HB.head, lip, { at: [0, headC[1] - 0.085, headC[2] + faceZ(hr, 0, -0.085) + 0.004], scale: [1.25, 0.32, 0.45] });
+  B.add(sphere(0.022, 6, 3), HB.head, lip, { at: [0, headC[1] - 0.085, headC[2] + faceZ(hr, 0, -0.085) + 0.004], scale: [1.25, 0.32, 0.45] });
   // Brows (hair colour, slightly angled).
   const browY = 0.045;
   const browC = spec.hair === 'bald' && !spec.beard ? shade(skin, 0.6) : shade(spec.hairColor, 0.85);
@@ -280,10 +280,10 @@ function addEyes(ctx, o = {}) {
       continue;
     }
     const sclera = o.sclera || '#f2ede4';
-    B.add(sphere(0.026 * size, 10, 8), HB.eyes, sclera, { at: [ex, 0, ez + 0.004], scale: [1.1, 1.25, 0.5], ao: false, shade: 1.02 });
+    B.add(sphere(0.026 * size, 8, 6), HB.eyes, sclera, { at: [ex, 0, ez + 0.004], scale: [1.1, 1.25, 0.5], ao: false, shade: 1.02 });
     const iris = o.iris || spec.eyes || '#2a1c14';
-    B.add(sphere(0.0165 * size, 8, 6), HB.eyes, iris, { at: [ex + sx * 0.002, -0.002, ez - 0.004], scale: [1, 1.2, 0.55], ao: false });
-    B.add(sphere(0.0055, 5, 4), HB.eyes, '#ffffff', { at: [ex + 0.006, 0.008, ez - 0.01], ao: false, shine: 1 });
+    B.add(sphere(0.0165 * size, 6, 5), HB.eyes, iris, { at: [ex + sx * 0.002, -0.002, ez - 0.004], scale: [1, 1.2, 0.55], ao: false });
+    B.add(sphere(0.0055, 4, 3), HB.eyes, '#ffffff', { at: [ex + 0.006, 0.008, ez - 0.01], ao: false, shine: 1 });
     if (spec.female && spec.variant === 'human') {
       B.add(box(0.05, 0.008, 0.012), HB.eyes, '#1a1210', { at: [ex + sx * 0.004, 0.024 * size, ez - 0.004], rot: [0.2, 0, sx * -0.18] });
     }
@@ -300,9 +300,9 @@ function addArms(ctx, o = {}) {
   for (const side of [-1, 1]) {
     const sh = side < 0 ? HB.shL : HB.shR, el = side < 0 ? HB.elL : HB.elR, ha = side < 0 ? HB.haL : HB.haR;
     // Deltoid + upper arm.
-    B.add(sphere(0.064 * Lk, 9, 7), sh, sleeveC, { at: [-side * 0.006, -0.012, 0], scale: [1, 1.0, 0.92] });
+    B.add(sphere(0.062 * Lk, 8, 6), sh, long ? sleeveC : skin, { at: [-side * 0.01, -0.02, 0], scale: [1, 1.0, 0.92] });
     B.add(taper(0.062 * Lk, 0.052 * Lk, 0.26 * arm, 8, 2), sh, long ? sleeveC : skin);
-    if (!long) B.add(lathe([[0.068 * Lk, -0.13 * arm], [0.07 * Lk, -0.11], [0.07 * Lk, 0.02], [0.03, 0.07]], 8), sh, sleeveC);
+    if (!long) B.add(lathe([[0.068 * Lk, -0.11 * arm], [0.071 * Lk, -0.09], [0.07 * Lk, 0.0], [0.05 * Lk, 0.05], [0.02, 0.07]], 8), sh, sleeveC, { at: [-side * 0.01, 0, 0] });
     // Forearm.
     B.add(taper(0.054 * Lk, 0.042 * Lk, 0.24 * arm, 8, 2), el, long ? sleeveC : skin);
     if (long) {
@@ -311,8 +311,8 @@ function addArms(ctx, o = {}) {
     }
     // Hand: chunky mitten + thumb.
     const hs = o.handScale || 1;
-    B.add(sphere(0.055 * hs, 9, 7), ha, handC, { at: [0, -0.058 * hs, -0.004], scale: [0.85 * Math.min(1.3, Lk), 1.2, 0.72 * Math.min(1.3, Lk)] });
-    B.add(sphere(0.024 * hs, 6, 5), ha, handC, { at: [-side * 0.006, -0.032 * hs, -0.04 * hs], scale: [0.85, 1.5, 0.85], rot: [0.5, 0, 0] });
+    B.add(sphere(0.055 * hs, 8, 6), ha, handC, { at: [0, -0.058 * hs, -0.004], scale: [0.85 * Math.min(1.3, Lk), 1.2, 0.72 * Math.min(1.3, Lk)] });
+    B.add(sphere(0.024 * hs, 5, 4), ha, handC, { at: [-side * 0.006, -0.032 * hs, -0.04 * hs], scale: [0.85, 1.5, 0.85], rot: [0.5, 0, 0] });
     if (o.gloves) B.add(new THREE.TorusGeometry(0.05 * Lk, 0.018, 4, 9), el, o.gloves, { at: [0, -0.2 * arm, 0], rot: [Math.PI / 2, 0, 0] });
   }
 }
@@ -331,7 +331,7 @@ function addLegs(ctx, o = {}) {
       const top = L.shin * (o.bootTop ?? 0.52);
       B.add(lathe([[0.062 * Lk, -L.shin - 0.01], [0.066 * Lk, -L.shin * 0.7], [0.07 * Lk, -top + 0.02], [0.074 * Lk, -top + 0.03]], 9), kn, boots);
       B.add(new THREE.TorusGeometry(0.072 * Lk, 0.016, 4, 10), kn, shade(boots, 1.18), { at: [0, -top + 0.035, 0], rot: [Math.PI / 2, 0, 0] });
-      B.add(sphere(0.072, 9, 6), ft, boots, { at: [0, -0.03, -0.055], scale: [0.98 * Math.min(1.3, Lk), 0.64, 1.95] });
+      B.add(sphere(0.072, 8, 5), ft, boots, { at: [0, -0.03, -0.055], scale: [0.98 * Math.min(1.3, Lk), 0.64, 1.95] });
       B.add(box(0.12 * Math.min(1.3, Lk), 0.022, 0.27), ft, shade(boots, 0.45), { at: [0, -0.072, -0.06], flat: true });
     } else {
       const skin = o.skin || spec.skin;
@@ -354,13 +354,13 @@ function addSkirt(ctx, color, hemY, o = {}) {
   const rTop = 0.148 * W + bel * 0.5 + (o.extra || 0), rHem = (long ? 0.21 : 0.2) * W + 0.025 + (o.flare || 0);
   const H = topY - hemY;
   const prof = [[rHem - 0.014, -H]];
-  const steps = 6;
+  const steps = 4;
   for (let i = 0; i <= steps; i++) {
     const t = i / steps;
     prof.push([rHem + (rTop - rHem) * Math.pow(t, 1.3) + 0.012 * Math.sin(t * Math.PI), -H + t * H]);
   }
   prof.push([rTop - 0.03, 0.006]);
-  const g = lathe(prof, 16);
+  const g = lathe(prof, 13);
   if (o.jag) {
     deform(g, (x, y, z) => {
       if (y < -H + 0.03) { const a = Math.atan2(z, x); return [x, y - (Math.sin(a * 7) > 0 ? 0.05 : 0), z]; }
@@ -370,7 +370,7 @@ function addSkirt(ctx, color, hemY, o = {}) {
   B.add(g, HB.hips, color, { at: [0, topY - yHips, 0], scale: [1, 1, 0.84], weights: ctx.skirtW(topY, H, rHem, long ? 0.82 : 0.72), flat: !!o.jag, colorFn: o.colorFn, shine: o.shine });
   if (o.inner !== false) {
     // Inner lining so the skirt reads from below.
-    const gi = flipFaces(lathe(prof.map(([r, y]) => [r - 0.008, y]), 16));
+    const gi = flipFaces(lathe(prof.map(([r, y]) => [r - 0.008, y]), 13));
     B.add(gi, HB.hips, shade(color, 0.55), { at: [0, topY - yHips, 0], scale: [1, 1, 0.84], weights: ctx.skirtW(topY, H, rHem, long ? 0.82 : 0.72) });
   }
 }

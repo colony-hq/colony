@@ -104,7 +104,7 @@ export function createStructures(ctx) {
     const L = (u, yy, v) => new THREE.Vector3(u, yy, v).applyMatrix4(F);
     const pier = br.kind === 'pier';
     const rope = br.id === 'hood-ford';
-    const wood = pier ? '#8a8072' : '#8a6644';
+    const wood = pier ? '#8f7a62' : '#8a6644';
     // deck planks across
     for (let u = -len / 2 + 0.15; u < len / 2; u += 0.3) {
       const jit = (rnd() - 0.5) * 0.04;
@@ -185,28 +185,29 @@ export function createStructures(ctx) {
           P.cylinder(b, M(p.x, p.y + 0.35, p.z), 0.16, 0.12, 0.06, { tile: TILE.BARK, color: '#4a4034' }, 7);
         }
       }
-      const endU = len / 2 - 0.5;
+      const sea = H(...xz(L(len / 2, 0, 0))) < H(...xz(L(-len / 2, 0, 0))) ? 1 : -1; // which end is out at sea
+      const endU = sea * (len / 2 - 0.5);
       for (const v of [-wid / 2 + 0.15, wid / 2 - 0.15]) {
         const p = L(endU, y, v);
         P.lampPost(b, M(p.x, p.y, p.z, rnd() * 6), { h: 2.4, wood: true });
         fx.halo(p.x, p.y + 2.06, p.z, 1.8, [0.9, 0.55, 0.22], true);
       }
-      const cr = L(-len / 2 + 2.2, y, -wid / 2 + 0.45);
+      const cr = L(-sea * (len / 2 - 2.2), y, -wid / 2 + 0.45);
       P.crate(b, M(cr.x, y, cr.z, 0.3), { s: 0.55 });
       P.barrel(b, M(cr.x + (alongX ? 0.7 : 0.1), y, cr.z + (alongX ? 0.1 : 0.7)), { r: 0.28, h: 0.8 });
-      const pots = L(len / 2 - 2.6, y, wid / 2 - 0.45);
+      const pots = L(sea * (len / 2 - 2.6), y, wid / 2 - 0.45);
       for (let i = 0; i < 3; i++) P.cylinder(b, M(pots.x + i * 0.12, y + i * 0.35, pots.z + (i % 2) * 0.1), 0.2, 0.26, 0.35, { tile: TILE.HAY, color: '#a67c45' }, 9, true);
-      const net = L(len / 2 - 4.0, y, wid / 2 - 0.4);
+      const net = L(sea * (len / 2 - 4.0), y, wid / 2 - 0.4);
       P.sphere(b, M(net.x, y + 0.08, net.z, 0, 0, 0, 1.4, 0.35, 1), 0.4, { tile: TILE.NET, color: '#d8c8a0' }, 8, 5);
       // ladder down to the water
-      const ld = L(len / 2 - 1.2, 0, -wid / 2 - 0.05);
+      const ld = L(sea * (len / 2 - 1.2), 0, -wid / 2 - 0.05);
       for (const k of [-0.25, 0.25]) b.box(0.06, y + 0.4, 0.06, M(ld.x + (alongX ? k : 0), (y - 0.4) / 2 + 0.2, ld.z + (alongX ? 0 : k)), MAT.timber('#4a4034'));
       for (let yy = -0.3; yy < y; yy += 0.3) b.box(alongX ? 0.5 : 0.05, 0.04, alongX ? 0.05 : 0.5, M(ld.x, yy, ld.z), MAT.timber('#4a4034'));
       // moored rowboats
       const side = br.id === 'pier-west' ? -1 : 1;
-      addBoat(...xz(L(len / 2 - 3.5, 0, side * (wid / 2 + 1.0))), (alongX ? 0 : Math.PI / 2) + 0.08, 1);
-      addBoat(...xz(L(-len / 2 + 5.0, 0, -side * (wid / 2 + 1.0))), (alongX ? 0 : Math.PI / 2) - 0.1, 0.95);
-      if (br.id === 'pier-east') cogBoat(L(len / 2 + 2.5, 0, wid / 2 + 3.6), alongX ? Math.PI / 2 : 0.05);
+      addBoat(...xz(L(sea * (len / 2 - 3.5), 0, side * (wid / 2 + 1.0))), (alongX ? 0 : Math.PI / 2) + 0.08, 1);
+      addBoat(...xz(L(sea * (len / 2 - 7.0), 0, -side * (wid / 2 + 1.0))), (alongX ? 0 : Math.PI / 2) - 0.1, 0.95);
+      if (br.id === 'pier-east') cogBoat(L(sea * (len / 2 - 3.0), 0, wid / 2 + 2.6), alongX ? Math.PI / 2 : 0.05);
     }
   }
   function xz(v) { return [v.x, v.z]; }

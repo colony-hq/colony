@@ -5,7 +5,7 @@
 import { injectStyle, h } from '../../core/dom.js';
 import { ITEMS } from '../../data/items.js';
 import { skillIcon } from '../icons.js';
-import { esc, safe } from '../util.js';
+import { cap, esc, safe } from '../util.js';
 import { promptValue } from '../widgets.js';
 
 const CSS = `
@@ -54,7 +54,7 @@ export function createMakeWindow(U) {
           render(body) {
             const grid = h('div.u-mitems');
             items.forEach((it, i) => {
-              const name = it.label || ITEMS[it.id]?.name || it.id;
+              const name = cap(it.label || ITEMS[it.id]?.name || it.id);
               const b = h('button.u-mitem', { disabled: !!it.disabled, 'aria-label': name }, [
                 i < 9 ? h('span.k', { text: String(i + 1) }) : null,
                 h('img', { src: U.icons.itemIcon(it.id), alt: '' }),

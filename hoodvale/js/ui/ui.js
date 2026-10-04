@@ -54,6 +54,7 @@ export function createUI(ctx) {
   for (const id of ['overlay', 'hud', 'windows', 'menus', 'toasts']) {
     roots[id] = document.getElementById(id) || document.body.appendChild(h('div#' + id));
     roots[id].replaceChildren();
+    roots[id].style.isolation = 'isolate'; // keep window z-indexes inside their layer (toasts stay on top)
   }
   const U = { ctx, events, input, state, roots, layout: 'desk', invMode: null, icons: { itemIcon, skillIcon, spellIcon } };
   const ui = {};

@@ -167,13 +167,13 @@ for (const w of WOODS) {
   const key = w.id ? `${w.id}_` : '';
   const rng = [8, 14, 20, 29, 40, 52][w.tier];
   add(`${key}shortbow`, {
-    name: `${pre}shortbow`, examine: 'Quick to draw.', value: Math.round(LOG_VALUE[w.tier] * 4 + 10),
+    name: w.id ? `${pre}shortbow` : 'Shortbow', examine: 'Quick to draw.', value: Math.round(LOG_VALUE[w.tier] * 4 + 10),
     icon: { shape: 'shortbow', color: w.color, color2: '#e8e2d0' },
     equip: { slot: 'weapon', req: { archery: w.archery }, bonus: { rng }, speed: 4, style: 'bow', twoHanded: true, model: { kind: 'shortbow', tint: w.id || 'normal' } },
     fletch: { log: w.log, level: w.fletch, strung: true },
   });
   add(`${key}longbow`, {
-    name: `${pre}longbow`, examine: 'Slow, accurate, far-reaching.', value: Math.round(LOG_VALUE[w.tier] * 5 + 14),
+    name: w.id ? `${pre}longbow` : 'Longbow', examine: 'Slow, accurate, far-reaching.', value: Math.round(LOG_VALUE[w.tier] * 5 + 14),
     icon: { shape: 'longbow', color: w.color, color2: '#e8e2d0' },
     equip: { slot: 'weapon', req: { archery: w.archery }, bonus: { rng: rng + 4 }, speed: 5, style: 'bow', twoHanded: true, range: 9, model: { kind: 'longbow', tint: w.id || 'normal' } },
     fletch: { log: w.log, level: w.fletch + 5, strung: true },
