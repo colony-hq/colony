@@ -77,8 +77,10 @@ await page.route(/^https:\/\/(cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.g
   const file = path.join(CACHE, key);
   if (!fs.existsSync(file)) {
     try {
-      execFileSync('curl', ['-sSfL', '--max-time', '60', '-A', 'Mozilla/5.0 Chrome/120', '-o', file + '.tmp', '-D', file + '.hdr', url]);
-      fs.renameSync(file + '.tmp', file);
+      const tmp = `${file}.${process.pid}.tmp`;
+      execFileSync('curl', ['-sSfL', '--max-time', '60', '-A', 'Mozilla/5.0 Chrome/120', '-o', tmp, '-D', `${file}.${process.pid}.hdr`, url]);
+      fs.renameSync(`${file}.${process.pid}.hdr`, file + '.hdr');
+      fs.renameSync(tmp, file);
     } catch (err) {
       report.failedRequests.push(url + ' (curl failed)');
       return route.abort();
