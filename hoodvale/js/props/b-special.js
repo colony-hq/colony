@@ -257,7 +257,7 @@ export const SPECIAL = {
 
   // ------------------------------------------------------------------------------------ Orbio Spire
   'crystal-spire'(K) {
-    K.H = 4.2; K.cut = 2.2;
+    K.H = 5.2; K.cut = 2.2;
     const { x0, z0, x1, z1, fy, cx, cz } = K;
     const stone = '#d6d0e2', light = '#ece8f4';
     const crystalGlass = { tile: TILE.CRYSTAL, color: '#b8a8ff', glow: '#a0c8ff', glowMode: 'tinted', glowK: 0.42, jit: 0.05 };
@@ -266,6 +266,17 @@ export const SPECIAL = {
     K.quoins({ color: light });
     K.windowsDress({ frame: '#5a5070', sill: light, arch: true, glassOpts: crystalGlass });
     K.doorsDress({ leaf: '#4a3a6a', arch: true, stoneFrame: light, double: true });
+    // glowing rune band + clerestory crystal windows on the upper walls (fade with the roof)
+    for (const s2 of ['N', 'E', 'S', 'W']) {
+      const sd = K.side(s2);
+      K.sideBox(sd, sd.u0 - 0.06, sd.u1 + 0.06, 3.05, 3.25, { tile: TILE.CRYSTAL, color: '#9ad8ff', glow: '#7fc8ff', glowMode: 'tinted', glowK: 0.5, jit: 0 }, K.wt + 0.1, 0, K.R);
+      K.sideBox(sd, sd.u0 - 0.1, sd.u1 + 0.1, K.H - 0.25, K.H, MAT.stone(light), K.wt + 0.2, 0, K.R);
+      for (const w of K.windows[s2]) {
+        const p = K.pt(sd, w.u, 4.15, K.wt / 2 + 0.01);
+        K.R.box(0.5, 0.75, 0.04, M(p.x, p.y, p.z, YAW_OUT[s2]), crystalGlass);
+        K.R.geo(new THREE.TorusGeometry(0.27, 0.06, 4, 10, Math.PI), M(p.x, p.y + 0.37, p.z, YAW_OUT[s2]), MAT.stone(light));
+      }
+    }
     K.floor({ tile: TILE.MARBLE, color: '#e8e4f0', found: '#a8a2b8', foundH: 1.2 });
     // platform steps around the temple
     K.S.boxAt(x0 - 0.6, fy - 1.2, z0 - 0.6, x1 + 0.6, fy - 0.12, z1 + 0.6, MAT.stone('#b8b2c8'));
@@ -306,7 +317,7 @@ export const SPECIAL = {
     }
     K.anims = (K.anims || []).concat([{ builder: rings, pos: new THREE.Vector3(cx, sy + 9, cz), yaw: 0, spin: 0.25, axis: 'y', fade: true, bob: 0.4 }]);
     for (const [h, s, c] of [[3, 7, [0.22, 0.3, 0.6]], [9, 9, [0.18, 0.35, 0.6]], [16, 8, [0.25, 0.2, 0.55]], [20.5, 5, [0.5, 0.6, 0.9]]]) K.fx.push({ t: 'halo', p: [cx, sy + h, cz], size: s, color: c, fade: true });
-    K.sign('The Orbio Spire', { icon: 'eye', y: 2.95, w: 2.3, h: 0.5, board: '#2a2240', ink: '#c8e8ff' });
+    K.sign('The Orbio Spire', { icon: 'eye', y: 2.65, w: 2.6, h: 0.6, board: '#2a2240', ink: '#c8e8ff' });
     // interior: archivist shelves, lecterns, floating shards
     for (let i = 0; i < 2; i++) K.wallItem(1.5, (B, m) => P.shelf(B, m, { w: 1.4, goods: 'books', color: '#3a2a40' }), { sides: ['W', 'N'] });
     K.wallItem(0.9, (B, m) => { B.box(0.5, 1.0, 0.4, at2(m, 0, 0.5, 0), MAT.timber('#3a2a40')); B.box(0.6, 0.05, 0.45, at2(m, 0, 1.08, 0, 0, 0.35), { color: '#efe2c4' }); P.cylinder(B, at2(m, 0.25, 1.05, 0.1), 0.03, 0.03, 0.15, { color: '#f4ecd8', glow: '#ffb860', glowMode: 'always', glowK: 0.6 }, 5); }, { tall: false });

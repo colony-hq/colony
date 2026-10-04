@@ -160,7 +160,7 @@ export const STYLES = {
   'timber-shop'(K) {
     K.H = 3.1;
     timberBuilding(K, { plaster: '#ecd6a8', timber: '#4e3524', shutters: '#3a5f8a', boxes: true });
-    K.gableRoof({ pitch: 48, mat: { tile: TILE.THATCH, color: '#c8a45c' }, thatch: true, gable: MAT.plaster('#ecd6a8'), gableTimber: '#4e3524' });
+    K.gableRoof({ pitch: 48, mat: { tile: TILE.THATCH, color: '#b89a58' }, thatch: true, gable: MAT.plaster('#ecd6a8'), gableTimber: '#4e3524' });
     const d = K.doors[0];
     const sd = K.side(d.side);
     // striped awning across the shop front
@@ -212,6 +212,7 @@ export const STYLES = {
 
   'open-forge'(K) {
     K.H = 3.2;
+    K.shrinkFromWalls();
     const { x0, z0, x1, z1, fy } = K;
     // dirt/flagstone floor + low stone plinth around
     K.S.boxAt(x0 + 0.05, fy - 0.6, z0 + 0.05, x1 - 0.05, fy + 0.03, z1 - 0.05, { tile: TILE.FLAGSTONE, color: '#8a8070', world: true });
@@ -262,7 +263,7 @@ export const STYLES = {
     const timber = '#42291a';
     timberBuilding(K, { plaster, timber, shutters: gm ? '#7a2a24' : '#3f6a3a', boxes: true, winSpacing: 1.9, floor: '#9a6e46' });
     upperStorey(K, { y0: 2.9, y1: 5.2, jetty: 0.28, plaster, timber });
-    const r = K.gableRoof({ H: 5.2, pitch: 46, mat: gm ? { tile: TILE.CLAY, color: '#b0563a' } : { tile: TILE.THATCH, color: '#c4a258' }, thatch: !gm, gable: MAT.plaster(plaster), gableTimber: timber, hsOverride: K.dims(K.b.w >= K.b.d ? 'x' : 'z').hs + 0.28, lenOverride: K.dims(K.b.w >= K.b.d ? 'x' : 'z').L + 0.56 });
+    const r = K.gableRoof({ H: 5.2, pitch: 46, mat: gm ? { tile: TILE.CLAY, color: '#b0563a' } : { tile: TILE.THATCH, color: '#b4965a' }, thatch: !gm, gable: MAT.plaster(plaster), gableTimber: timber, hsOverride: K.dims(K.b.w >= K.b.d ? 'x' : 'z').hs + 0.28, lenOverride: K.dims(K.b.w >= K.b.d ? 'x' : 'z').L + 0.56 });
     // chimneys
     const axisX = K.b.w >= K.b.d;
     const c1 = V(r.F, -r.L * 0.28, 0, 0);
@@ -297,7 +298,7 @@ export const STYLES = {
     const shutters = pick(K, ['#3f6a3a', '#3a5f8a', '#8a3a2e', '#6a4a7a', '#2f6a6a']);
     timberBuilding(K, { plaster, timber: '#4a3222', shutters, boxes: true, winSpacing: 2.0 });
     const farm = K.b.zone === 'farms';
-    const r = K.gableRoof({ pitch: 47, mat: { tile: TILE.THATCH, color: farm ? '#c8a65e' : pick(K, ['#c4a258', '#b8964e', '#cfae64']) }, thatch: true, gable: MAT.plaster(plaster), gableTimber: '#4a3222' });
+    const r = K.gableRoof({ pitch: 47, mat: { tile: TILE.THATCH, color: farm ? '#bc9c5a' : pick(K, ['#b89a58', '#a88c52', '#c2a462']) }, thatch: true, gable: MAT.plaster(plaster), gableTimber: '#4a3222' });
     // exterior chimney on a gable end
     const axisX = K.b.w >= K.b.d;
     const gs = axisX ? (K.rnd() < 0.5 ? 'W' : 'E') : (K.rnd() < 0.5 ? 'N' : 'S');
@@ -693,6 +694,7 @@ export const STYLES = {
 
   stables(K) {
     K.H = 3.0;
+    K.shrinkFromWalls();
     const { x0, z0, x1, z1, fy } = K;
     K.S.boxAt(x0 + 0.05, fy - 0.5, z0 + 0.05, x1 - 0.05, fy + 0.03, z1 - 0.05, { tile: TILE.HAY, color: '#a89060', world: true });
     const posts = [];

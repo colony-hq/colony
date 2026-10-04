@@ -23,7 +23,7 @@ import {
   geoCrystals, geoBoulder, geoPebbles, geoWheat, geoCabbage, geoPumpkin, geoPine, populateOverworld,
 } from './w-flora.js';
 import { buildDungeons, geoStalagmites, geoBones, CUT } from './w-dungeon.js';
-import { createFlames, createPoints, createMist, createShafts, createBirds } from './w-fx.js';
+import { createFlames, createPoints, createMist, createShafts, createBirds, createButterflies } from './w-fx.js';
 import { getFocus } from './w-common.js';
 import { heightAt, DUNGEONS, getRegionGrid } from './mapgen.js';
 import { BUILDINGS } from '../data/buildings.js';
@@ -190,6 +190,26 @@ export function createDecor(ctx) {
     { x: 186, z: 248, r: 34, y: 26, count: 4, color: 0x5a4a3a, size: 0.42 },
     { x: 96, z: 70, r: 42, y: 42, count: 2, color: 0x3a2e24, size: 1.0 },
   ]);
+  const bfAnchors = [];
+  const bfSpots = [
+    [ZONES.brightwater.x, ZONES.brightwater.z, 26, 18, [0xffd84a, 0xf6f2ea, 0xff9a3a, 0x7a9cff]],
+    [ZONES.farms.x, ZONES.farms.z, 24, 14, [0xf6f2ea, 0xffd84a, 0xff8a3a]],
+    [ZONES.hoodwood.x + 10, ZONES.hoodwood.z + 18, 30, 10, [0x8a8aff, 0xf6f2ea, 0xffd84a]],
+    [ZONES.gildmoor.x + 34, ZONES.gildmoor.z + 24, 16, 6, [0xffd84a, 0xd85a3a]],
+    [ZONES.oracle.x, ZONES.oracle.z, 18, 8, [0x8ff0ff, 0xc8a0ff]],
+    [ZONES.highlands.x + 20, ZONES.highlands.z + 20, 30, 6, [0xb07ad8, 0xf6f2ea]],
+  ];
+  for (const [cx, cz, r, n, cols] of bfSpots) {
+    for (let i = 0, tries = 0; i < Math.round(n * Math.max(0.4, P)) && tries < 200; tries++) {
+      const a = rand() * Math.PI * 2, rr = Math.sqrt(rand()) * r;
+      const x = cx + Math.cos(a) * rr, z = cz + Math.sin(a) * rr;
+      const h = heightAt(x, z);
+      if (h < 0.3) continue;
+      bfAnchors.push({ x, y: h, z, color: cols[Math.floor(rand() * cols.length)] });
+      i++;
+    }
+  }
+  const butterflies = createButterflies(scene, bfAnchors);
   const flameMesh = createFlames(scene, flames, 'lights');
   fxObjs.push(fireflies, embers, ash, mist, shafts);
 
@@ -199,7 +219,7 @@ export function createDecor(ctx) {
   let shadowsOn = null;
   const decor = {
     scatters: S, dungeons, lights, focus,
-    fx: { fireflies, embers, ash, lairEmbers, mist, shafts, birds, flames: flameMesh },
+    fx: { fireflies, embers, ash, lairEmbers, mist, shafts, birds, butterflies, flames: flameMesh },
     // Debug: per-type instance counts and triangles currently drawn.
     stats() {
       const out = {};
@@ -231,6 +251,7 @@ export function createDecor(ctx) {
       if (lairEmbers) lairEmbers.visible = region === 'lair';
       if (mist) mist.visible = !inDungeon;
       if (shafts) shafts.visible = !inDungeon && night < 0.6;
+      if (butterflies) butterflies.visible = !inDungeon && night < 0.7;
       if (birds) { birds.mesh.visible = !inDungeon; if (!inDungeon) birds.update(t ?? ctx.time?.t ?? 0); }
       // point sizes follow the drawing buffer height
       const px = (engine.size?.h || 720) * (engine.size?.pixelRatio || 1) / 720 * 60;

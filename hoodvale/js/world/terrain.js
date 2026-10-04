@@ -75,8 +75,10 @@ vec3 col = vBase;
   col = mix(col, col * vec3(0.9, 1.0, 1.08), smoothstep(0.55, 0.9, 1.0 - nM.g) * 0.35);
   col *= 0.95 + 0.1 * nD.g;
   col *= 0.95 + 0.08 * nF.g;
+#ifndef HV_LQ
   float streak = texture2D(uNoise, vec2(wp.x * 0.05 + wp.y * 0.02, wp.y * 0.28)).g;
   col *= 0.96 + 0.07 * streak;
+#endif
   // ---- swamp mud ----
   float mudW = smoothstep(0.35, 0.6, vMA.w + (nD.g - 0.5) * 0.35);
   vec3 mudC = mix(vec3(0.34, 0.33, 0.25), vec3(0.44, 0.43, 0.33), nF.r);
@@ -123,8 +125,10 @@ vec3 col = vBase;
   col = mix(col, col * vec3(1.06, 1.0, 0.82), rimW * 0.5);
   vec3 dirt = mix(vec3(0.58, 0.48, 0.35), vec3(0.70, 0.60, 0.45), nD.r);
   dirt = mix(dirt, dirt * 1.1, smoothstep(0.55, 0.95, vMA.x));
+#ifndef HV_LQ
   vec4 nG = texture2D(uNoise, wp * 0.33);
   dirt *= 0.9 + 0.16 * smoothstep(0.1, 0.3, nG.b) * nG.a;
+#endif
   dirt = mix(dirt, dirt * 0.8, smoothstep(0.6, 0.85, nF.g) * 0.5);
   if (vMC.x > 0.01) {
     vec4 nC = texture2D(uNoise, wp * 0.16);
@@ -136,14 +140,24 @@ vec3 col = vBase;
   }
   col = mix(col, dirt, roadW);
   // ---- slope rock: side-projected pattern (no streaks), soft strata, cracks only on bare rock ----
-  float rockN = slope + (nD.b - 0.5) * 0.16 + (nF.r - 0.5) * 0.08;
+  float rockN = slope + (nD.r - 0.5) * 0.16 + (nF.r - 0.5) * 0.06;
   float rockW = smoothstep(0.24, 0.34, rockN) * (1.0 - step(0.48, vMB.x));
   if (rockW > 0.001) {
     // Blend a top-down and a side projection by slope (sample both, never mix coordinates).
-    vec2 sp = abs(vWNrm.x) > abs(vWNrm.z) ? vec2(wp.y, vWPos.y) : vec2(wp.x, vWPos.y);
+    vec2 sx = vec2(wp.y, vWPos.y), sz = vec2(wp.x, vWPos.y);
+    float ax = abs(vWNrm.x), az = abs(vWNrm.z);
+    float aw = smoothstep(0.3, 0.7, ax / max(ax + az, 1e-4));
+#ifdef HV_LQ
+    vec2 sp = mix(sz, sx, step(0.5, aw));
+    vec4 r1 = texture2D(uNoise, mix(wp, sp, step(0.45, slope)) * 0.045);
+    vec4 r2 = texture2D(uNoise, mix(wp, sp, step(0.45, slope)) * 0.16);
+#else
     float sideK = smoothstep(0.3, 0.6, slope);
-    vec4 r1 = mix(texture2D(uNoise, wp * 0.045), texture2D(uNoise, sp * 0.045 + 0.37), sideK);
-    vec4 r2 = mix(texture2D(uNoise, wp * 0.16), texture2D(uNoise, sp * vec2(0.16, 0.24) + 0.61), sideK);
+    vec4 r1s = mix(texture2D(uNoise, sz * 0.045 + 0.37), texture2D(uNoise, sx * 0.045 + 0.37), aw);
+    vec4 r2s = mix(texture2D(uNoise, sz * vec2(0.16, 0.24) + 0.61), texture2D(uNoise, sx * vec2(0.16, 0.24) + 0.61), aw);
+    vec4 r1 = mix(texture2D(uNoise, wp * 0.045), r1s, sideK);
+    vec4 r2 = mix(texture2D(uNoise, wp * 0.16), r2s, sideK);
+#endif
     vec3 rc = vRock * (0.8 + 0.32 * r1.r) * (0.92 + 0.12 * r2.g);
     rc *= 0.93 + 0.07 * sin(vWPos.y * 1.3 + r1.g * 6.0);
     float crk = (1.0 - smoothstep(0.02, 0.09, r2.b)) * smoothstep(0.45, 0.7, r1.b);
@@ -207,6 +221,7 @@ vec3 col = vBase;
   // ---- wet line + caustics under shallow water ----
   float wet = 1.0 - smoothstep(0.02, 0.45, vWPos.y);
   col *= 1.0 - 0.22 * wet;
+#ifndef HV_LQ
   if (vWPos.y < 0.05) {
     float c1 = texture2D(uNoise, wp * 0.11 + vec2(uTime * 0.021, uTime * 0.013)).b;
     float c2 = texture2D(uNoise, wp * 0.13 - vec2(uTime * 0.017, -uTime * 0.019)).b;
@@ -214,6 +229,7 @@ vec3 col = vBase;
     float shallow = 1.0 - smoothstep(0.0, 2.2, -vWPos.y);
     col += vec3(0.9, 1.0, 0.95) * caus * shallow * 0.16 * uDay;
   }
+#endif
   // ---- contact AO + drifting cloud shadows ----
   col *= mix(0.32, 1.0, vMC.w);
   float cl = texture2D(uNoise, wp * 0.0022 + uTime * vec2(0.0011, 0.0006)).r;
@@ -226,7 +242,7 @@ vec3 col = vBase;
   float stone = smoothstep(0.12, 0.3, nP.b) * smoothstep(0.72, 0.8, nP.a);
   vec3 pebC = mix(vec3(0.45, 0.40, 0.33), vec3(0.62, 0.56, 0.47), nP.a);
   col = mix(col, pebC, stone * smoothstep(0.3, 0.6, vMA.z));
-  col = mix(col, vec3(0.21, 0.18, 0.13), smoothstep(0.4, 0.65, vMA.w) * 0.75);
+  col = mix(col, col * vec3(0.72, 0.7, 0.66), smoothstep(0.4, 0.65, vMA.w) * 0.8);
   float root = (1.0 - smoothstep(0.0, 0.012, abs(texture2D(uNoise, wp * 0.05).g - 0.5))) * smoothstep(0.5, 0.7, nM.r);
   col *= 1.0 - 0.3 * root;
   col *= mix(0.3, 1.0, vMC.w);
@@ -272,9 +288,10 @@ vec3 col = vBase;
 #endif
 `;
 
-function makeMaterial(kind, skirt = false) {
+function makeMaterial(kind, skirt = false, low = false) {
   const mat = new THREE.MeshLambertMaterial({ color: 0xffffff });
   mat.defines = { TERRAIN_KIND: kind };
+  if (low) mat.defines.HV_LQ = 1;
   if (skirt) mat.defines.HV_SKIRT = 1;
   mat.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, {
@@ -286,7 +303,7 @@ function makeMaterial(kind, skirt = false) {
     fs = fs.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += hvEmis;\n');
     shader.fragmentShader = fs;
   };
-  mat.customProgramCacheKey = () => 'hv-terrain-' + kind + (skirt ? '-skirt' : '');
+  mat.customProgramCacheKey = () => 'hv-terrain-' + kind + (skirt ? '-skirt' : '') + (mat.defines.HV_LQ ? '-lq' : '');
   return mat;
 }
 
@@ -436,7 +453,11 @@ export function createTerrain(ctx) {
   const chunks = [];
 
   // Overworld (chunked).
-  const owMat = makeMaterial(0);
+  const isLow = () => ctx.engine.preset.name === 'low';
+  let lowNow = isLow();
+  const mats = [];
+  const owMat = makeMaterial(0, false, lowNow);
+  mats.push(owMat);
   const G = getRegionGrid('overworld');
   const F = getOverworldFields();
   const ow = new THREE.Group();
@@ -473,7 +494,9 @@ export function createTerrain(ctx) {
   // Skirt.
   let skirt = null;
   try {
-    skirt = buildSkirt(makeMaterial(0, true));
+    const skMat = makeMaterial(0, true, lowNow);
+    mats.push(skMat);
+    skirt = buildSkirt(skMat);
     ctx.scene.add(skirt);
     meshes.push(skirt);
   } catch (err) { console.warn('[world] terrain skirt skipped', err); }
@@ -482,6 +505,10 @@ export function createTerrain(ctx) {
   return {
     meshes, regions, skirt, material: owMat, chunkSize: CHUNK, chunks,
     update() {
+      if (isLow() !== lowNow) {
+        lowNow = isLow();
+        for (const m of mats) { if (lowNow) m.defines.HV_LQ = 1; else delete m.defines.HV_LQ; m.needsUpdate = true; }
+      }
       // Distance culling past the fog (frustum culling does the rest).
       const far = (ctx.scene.fog?.far || 400) + 24;
       const px = cam.position.x, pz = cam.position.z;

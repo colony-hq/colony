@@ -48,6 +48,19 @@ Files: `js/world/terrain.js, water.js, sky.js, decor.js, mapimage.js` + helpers 
 - `mapLabels(regionId)` -> zone / road / dungeon names with world positions (road labels carry `angle`).
 - `worldToMap(x, z, regionId, s)`, `regionBounds(regionId)`.
 
+## Perf (world-only, harness at 960x540; draw calls include the shadow pass)
+- low: ~46 draws / 90-105k tris; medium: ~65 / 140-200k; high: ~64 / 215-295k (village spawn, Hoodwood).
+- Terrain: 25 chunks x 3 LODs (exact grid near, 2 m / 4 m far, curtain skirts hide seams), fog-distance culling.
+- Decor: one InstancedMesh per type, repacked around the player (radius per type, rim fade, density rank
+  filter = `preset.vegetationDensity`; grass only when `preset.grass`). Shadow casters are split into a near
+  mesh (casts) + far mesh (doesn't), so the shadow pass never re-draws the far field.
+- Low preset: cheaper terrain shader path (fewer noise taps), water detail 0, no grass / mist.
+
+## World-only test harness
+`.qa/world/test.html?q=low|medium|high[&props]` loads core + map + my modules (+ props with `&props`) with a fake
+player; `__hv.teleport/follow(yaw,pitch,dist)/lookFrom/stats/tris()/map(region,s)` (tris() = per-object triangle
+breakdown). Handy when the full game doesn't boot.
+
 ## Requests / notes to others
 - props: lamp posts / lanterns / forge glows -> register with `ctx.sky.addLight(...)` (see above). I already register
   door lanterns of every building, Gildmoor gate lanterns, pier + bridge lanterns, furnaces, the Hood camp fire,

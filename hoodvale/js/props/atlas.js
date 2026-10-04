@@ -49,8 +49,14 @@ function tint(hex, k, a = 1) {
 }
 
 // Draw fn(dx, dy) at the 9 wrapped offsets so shapes crossing the border tile seamlessly.
-function wrap(S, fn) {
-  for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) fn(ox * S, oy * S);
+function wrap(S, fn, x, y, r) {
+  for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) {
+    if (x !== undefined) {
+      const px = x + ox * S, py = y + oy * S;
+      if (px + r < 0 || px - r > S || py + r < 0 || py - r > S) continue;
+    }
+    fn(ox * S, oy * S);
+  }
 }
 
 // Soft painterly mottling over the whole pattern.
@@ -65,7 +71,7 @@ function mottle(g, S, r, n, amp, minR = 10, maxR = 40) {
       grd.addColorStop(1, light ? 'rgba(255,250,240,0)' : 'rgba(30,22,14,0)');
       g.fillStyle = grd;
       g.fillRect(x + dx - rad, y + dy - rad, rad * 2, rad * 2);
-    });
+    }, x, y, rad);
   }
 }
 function speckle(g, S, r, n, amp, size = 1.5) {
@@ -160,7 +166,8 @@ P[TILE.PLASTER] = (g, S, r) => {
     const x = r() * S, y = r() * S, w = 20 + r() * 40;
     g.strokeStyle = r() < 0.5 ? 'rgba(255,255,250,0.1)' : 'rgba(80,60,40,0.06)';
     g.lineWidth = 3 + r() * 5;
-    wrap(S, (dx, dy) => { g.beginPath(); g.moveTo(x + dx, y + dy); g.quadraticCurveTo(x + dx + w / 2, y + dy - 4 + r() * 8, x + dx + w, y + dy + r() * 6); g.stroke(); });
+    const q1 = -4 + r() * 8, q2 = r() * 6;
+    wrap(S, (dx, dy) => { g.beginPath(); g.moveTo(x + dx, y + dy); g.quadraticCurveTo(x + dx + w / 2, y + dy + q1, x + dx + w, y + dy + q2); g.stroke(); }, x + w / 2, y, w);
   }
   // hairline cracks
   for (let i = 0; i < 4; i++) {
@@ -240,7 +247,7 @@ P[TILE.THATCH] = (g, S, r) => {
       const v = 0.62 + r() * 0.38;
       g.strokeStyle = wn(v, 0.9, 2.2); g.lineWidth = 1 + r() * 1.6;
       const sl = (r() - 0.5) * 6;
-      wrap(S, (dx, dy) => { g.beginPath(); g.moveTo(x + dx, yy + dy); g.quadraticCurveTo(x + dx + sl, yy + dy + len * 0.5, x + dx + sl * 1.6, yy + dy + len); g.stroke(); });
+      wrap(S, (dx, dy) => { g.beginPath(); g.moveTo(x + dx, yy + dy); g.quadraticCurveTo(x + dx + sl, yy + dy + len * 0.5, x + dx + sl * 1.6, yy + dy + len); g.stroke(); }, x, yy + len / 2, len);
     }
     const grd = g.createLinearGradient(0, y + h * 0.65, 0, y + h);
     grd.addColorStop(0, 'rgba(40,25,10,0)'); grd.addColorStop(1, 'rgba(40,25,10,0.45)');
@@ -328,7 +335,7 @@ P[TILE.LEAVES] = (g, S, r) => {
       g.beginPath(); g.ellipse(x + dx, y + dy, rx, ry, rot, 0, Math.PI * 2); g.fill();
       g.strokeStyle = 'rgba(20,30,10,0.25)'; g.lineWidth = 0.6;
       g.beginPath(); g.moveTo(x + dx - Math.cos(rot) * rx, y + dy - Math.sin(rot) * rx); g.lineTo(x + dx + Math.cos(rot) * rx, y + dy + Math.sin(rot) * rx); g.stroke();
-    });
+    }, x, y, rx + 1);
   }
   mottle(g, S, r, 30, 0.12, 15, 45);
 };
@@ -522,7 +529,7 @@ P[TILE.HAY] = (g, S, r) => {
   for (let i = 0; i < 900; i++) {
     const x = r() * S, y = r() * S, a = r() * Math.PI, l = 8 + r() * 18;
     g.strokeStyle = wn(0.6 + r() * 0.45, 0.9, 2.5); g.lineWidth = 0.8 + r();
-    wrap(S, (dx, dy) => { g.beginPath(); g.moveTo(x + dx, y + dy); g.lineTo(x + dx + Math.cos(a) * l, y + dy + Math.sin(a) * l); g.stroke(); });
+    wrap(S, (dx, dy) => { g.beginPath(); g.moveTo(x + dx, y + dy); g.lineTo(x + dx + Math.cos(a) * l, y + dy + Math.sin(a) * l); g.stroke(); }, x, y, l + 1);
   }
 };
 
@@ -532,7 +539,8 @@ P[TILE.TURF] = (g, S, r) => {
   for (let i = 0; i < 900; i++) {
     const x = r() * S, y = r() * S, l = 4 + r() * 8;
     g.strokeStyle = wn(0.5 + r() * 0.5, 0.8, -1); g.lineWidth = 1;
-    wrap(S, (dx, dy) => { g.beginPath(); g.moveTo(x + dx, y + dy); g.lineTo(x + dx + (r() - 0.5) * 3, y + dy - l); g.stroke(); });
+    const ox = (r() - 0.5) * 3;
+    wrap(S, (dx, dy) => { g.beginPath(); g.moveTo(x + dx, y + dy); g.lineTo(x + dx + ox, y + dy - l); g.stroke(); }, x, y, l + 2);
   }
 };
 

@@ -5,9 +5,22 @@
 // both orthogonal neighbours are walkable (no corner cutting).
 
 import {
-  bakeWorld, bakeDungeon, regionAt, tileFlags, heightAt, zoneAt, DUNGEONS, OVERWORLD,
+  bakeWorld, bakeDungeon, regionAt, tileFlags, heightAt as terrainHeightAt, zoneAt, DUNGEONS, OVERWORLD,
   T_BLOCK, T_WATER, T_INDOOR, T_ROAD, T_BRIDGE,
 } from './mapgen.js';
+import { BRIDGES } from '../data/zones.js';
+
+// Walkable surface height: terrain, or the plank deck on bridges and piers (decks span tiles
+// x0..x1 and z0..z1 inclusive, so the rectangle is [x0, x1 + 1) x [z0, z1 + 1)).
+export function deckAt(x, z) {
+  for (const b of BRIDGES) if (x >= b.x0 && x < b.x1 + 1 && z >= b.z0 && z < b.z1 + 1) return b.deckY;
+  return null;
+}
+export function heightAt(x, z) {
+  const h = terrainHeightAt(x, z);
+  const d = deckAt(x, z);
+  return d != null && d > h ? d : h;
+}
 
 export function createMap() {
   bakeWorld();
@@ -17,7 +30,9 @@ export function createMap() {
   const key = (x, z) => x + ',' + z;
 
   const map = {
-    heightAt,
+    heightAt, // walkable surface (decks included); terrain only: terrainHeightAt
+    terrainHeightAt,
+    deckAt,
     regionAt,
     zoneAt,
     tileFlags,

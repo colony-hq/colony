@@ -590,11 +590,9 @@ export function mapIcons(regionId = 'overworld') {
   if (!ICONS) {
     const spawns = buildSpawns();
     const out = [];
-    const seen = new Set();
     const add = (kind, x, z, label, region) => {
-      const k = kind + ':' + Math.round(x / 3) + ':' + Math.round(z / 3);
-      if (seen.has(k)) return;
-      seen.add(k);
+      const r = kind === 'mining' || kind === 'fishing' ? 14 : 2.5;
+      if (out.some((o) => o.kind === kind && Math.hypot(o.x - x, o.z - z) < r)) return;
       out.push({ kind, x, z, label, region });
     };
     const regionOf = (x) => (x >= 1200 ? 'lair' : x >= 1100 ? 'vault' : x >= 1000 ? 'warrens' : 'overworld');

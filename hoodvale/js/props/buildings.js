@@ -17,6 +17,7 @@ import { buildStyle } from './b-styles.js';
 const CELL = 32;
 
 export function createBuildings(ctx) {
+  const t0 = performance.now();
   const kit = getKit(ctx);
   const fx = getFx(ctx, kit);
   const group = new THREE.Group();
@@ -102,6 +103,7 @@ export function createBuildings(ctx) {
     return reg.id === 'overworld';
   }
 
+  kit.timings = { ...(kit.timings || {}), buildings: Math.round(performance.now() - t0) };
   return {
     group,
     entries,

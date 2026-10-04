@@ -14,10 +14,11 @@ import { itemGeometry, itemShadowTexture } from './m-items.js';
 import { T_WALL, T_BLOCK, T_ROAD, T_WATER } from '../world/mapgen.js';
 import { BUILDINGS } from '../data/buildings.js';
 
-const CHUNK = 80;
+const CHUNK = 107; // 3 x 3 chunks over the overworld
 const ROCK_TONE = { copperhollow: '#c2a684', highlands: '#9a958e', mistfen: '#8f9488', oracle: '#9a90a8' };
 
 export function createObjectViews(ctx) {
+  const t0 = performance.now();
   const kit = getKit(ctx);
   const fx = getFx(ctx, kit);
   const { map } = ctx;
@@ -95,10 +96,10 @@ export function createObjectViews(ctx) {
     }
     return null;
   }
-  function towardRoad(e) {
+  function towardRoad(e, R = 6) {
     let best = null, bd = 1e9;
     const cx = e.x + (e.w || 1) / 2, cz = e.z + (e.d || 1) / 2;
-    for (let dz = -6; dz <= 6; dz++) for (let dx = -6; dx <= 6; dx++) {
+    for (let dz = -R; dz <= R; dz++) for (let dx = -R; dx <= R; dx++) {
       const tx = Math.floor(cx) + dx, tz = Math.floor(cz) + dz;
       if (!(map.tileFlags(tx, tz) & T_ROAD)) continue;
       const d = Math.hypot(tx + 0.5 - cx, tz + 0.5 - cz);
@@ -129,7 +130,8 @@ export function createObjectViews(ctx) {
       case 'furnace': case 'range': case 'spinning-wheel': case 'hopper': case 'flour-bin': case 'tanning-rack': case 'anvil':
         y = awayFromWall(e) ?? towardBuildingCentre(e) ?? towardRoad(e); break;
       case 'stall': y = towardRoad(e); break;
-      case 'cave-mouth': case 'lair-gate': case 'cave-exit': case 'stairs-down': case 'stairs-up': case 'chest': case 'chest-hoard': y = towardOpen(e); break;
+      case 'lair-gate': y = towardRoad(e, 14) ?? towardOpen(e); break;
+      case 'cave-mouth': case 'cave-exit': case 'stairs-down': case 'stairs-up': case 'chest': case 'chest-hoard': y = towardOpen(e); break;
       case 'signpost': y = 0; break;
       case 'target': y = e.yaw ?? 0; break;
       default: y = null;
@@ -163,7 +165,8 @@ export function createObjectViews(ctx) {
     const cx = e.x + (e.w || 1) / 2, cz = e.z + (e.d || 1) / 2;
     const y = footprintMinY(e) - 0.08;
     const m = M(cx + (rnd() - 0.5) * 0.2, y, cz + (rnd() - 0.5) * 0.2, yaw, 0, 0, s, sy, s);
-    const tp = pool('tree:' + kind + ':0', cx, cz, () => treeGeometry(kind, 0), { capacity: 48 });
+    // far trees: simple model, no shadows when detailed near trees exist (they cast the shadows)
+    const tp = pool('tree:' + kind + ':0', cx, cz, () => treeGeometry(kind, 0), { capacity: 48, castShadow: shadows && !lod });
     const hp = lod ? pool('tree:' + kind + ':1', cx, cz, () => treeGeometry(kind, 1), { capacity: 16, dist: LOD_R + 30 }) : null;
     const tint = 0.9 + rnd() * 0.16;
     const tc = [tint, tint * (0.97 + rnd() * 0.06), tint];
@@ -206,7 +209,7 @@ export function createObjectViews(ctx) {
     const rnd = mulberry32(hashStr(e.uid));
     const cx = e.x + 0.5, cz = e.z + 0.5;
     const y = footprintMinY(e) - 0.05;
-    const s = 0.88 + rnd() * 0.22;
+    const s = 1.0 + rnd() * 0.25;
     const m = M(cx, y, cz, rnd() * Math.PI * 2, 0, 0, s, s * (0.85 + rnd() * 0.25), s);
     const zone = map.zoneAt(cx, cz);
     const tone = new THREE.Color(ROCK_TONE[zone] || '#a8a096');
@@ -509,9 +512,11 @@ export function createObjectViews(ctx) {
 
   return {
     root,
+    kit,
     create,
     createItem,
     update(dt) {
+      if (!started) kit.timings = { ...(kit.timings || {}), objects: Math.round(performance.now() - t0) };
       started = true;
       batchRebuild();
       // per-tree level of detail around the camera

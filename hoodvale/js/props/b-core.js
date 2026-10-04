@@ -52,6 +52,20 @@ export class BKit {
     }
   }
 
+  // Open buildings that overlap a town-wall tile shrink their visual footprint away from it.
+  shrinkFromWalls() {
+    const wallAt = (x, z) => !!(this.ctx.map.tileFlags(x, z) & 32);
+    const rowHas = (z) => { for (let x = this.x0; x < this.x1; x++) if (wallAt(x, z)) return true; return false; };
+    const colHas = (x) => { for (let z = this.z0; z < this.z1; z++) if (wallAt(x, z)) return true; return false; };
+    for (let i = 0; i < 4; i++) {
+      if (this.z1 - this.z0 > 3 && rowHas(this.z1 - 1)) this.z1--;
+      if (this.z1 - this.z0 > 3 && rowHas(this.z0)) this.z0++;
+      if (this.x1 - this.x0 > 3 && colHas(this.x1 - 1)) this.x1--;
+      if (this.x1 - this.x0 > 3 && colHas(this.x0)) this.x0++;
+    }
+    this.cx = (this.x0 + this.x1) / 2; this.cz = (this.z0 + this.z1) / 2;
+  }
+
   sideOfTile(x, z) {
     if (z === this.z0) return 'N';
     if (z === this.z1 - 1) return 'S';
@@ -281,7 +295,7 @@ export class BKit {
     return axis === 'x' ? { L: ow, hs: od / 2 } : { L: od, hs: ow / 2 };
   }
   // Gable roof; returns { Hr, F, hs, L, theta }
-  gableRoof({ axis = this.b.w >= this.b.d ? 'x' : 'z', H = this.H, pitch = 42, over = 0.42, overG = 0.32, t = 0.12, mat, ridge = '#4a3a30', gable = null, gableTimber = null, barge = '#4e3524', thatch = false, hsOverride = null, lenOverride = null, B = this.R, ends = true } = {}) {
+  gableRoof({ axis = (this.x1 - this.x0) >= (this.z1 - this.z0) ? 'x' : 'z', H = this.H, pitch = 42, over = 0.42, overG = 0.32, t = 0.12, mat, ridge = '#4a3a30', gable = null, gableTimber = null, barge = '#4e3524', thatch = false, hsOverride = null, lenOverride = null, B = this.R, ends = true } = {}) {
     const F = this.roofFrame(axis);
     let { L, hs } = this.dims(axis);
     if (hsOverride) hs = hsOverride;
@@ -349,7 +363,7 @@ export class BKit {
   }
 
   // Hipped roof (or pyramid when square). Faces with own plane UVs.
-  hipRoof({ H = this.H, pitch = 35, over = 0.45, mat, under = '#5a4636', fascia = '#4e3524', B = this.R, axis = this.b.w >= this.b.d ? 'x' : 'z', lift = 0.16 } = {}) {
+  hipRoof({ H = this.H, pitch = 35, over = 0.45, mat, under = '#5a4636', fascia = '#4e3524', B = this.R, axis = (this.x1 - this.x0) >= (this.z1 - this.z0) ? 'x' : 'z', lift = 0.16 } = {}) {
     const F = this.roofFrame(axis);
     const { L, hs } = this.dims(axis);
     const th = (pitch * Math.PI) / 180;

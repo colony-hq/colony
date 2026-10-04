@@ -22,6 +22,7 @@ const at2 = (m, x, y, z, ry = 0, rx = 0, rz = 0) => m.clone().multiply(M(x, y, z
 const angDiff = (a, b) => { let d = a - b; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return d; };
 
 export function createStructures(ctx) {
+  const t0 = performance.now();
   const kit = getKit(ctx);
   const fx = getFx(ctx, kit);
   const { map } = ctx;
@@ -604,6 +605,7 @@ export function createStructures(ctx) {
   kit.cull(boats, 120);
 
   const tmp = new THREE.Matrix4();
+  kit.timings = { ...(kit.timings || {}), structures: Math.round(performance.now() - t0) };
   return {
     group,
     blocked: blockedHere,

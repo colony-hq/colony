@@ -17,7 +17,7 @@ import { getOverworldFields, W_SEA, W_LAKE, W_SWAMP, W_RIVER } from './w-fields.
 import { U, GLSL_COMMON } from './w-common.js';
 
 const CELL = 2;
-const CHUNK = 64;
+const CHUNK = 160;
 
 const VERT = /* glsl */`
 uniform float uTime;
@@ -115,7 +115,8 @@ void main() {
   float fn = texture2D(uNoise, p * 0.33 + uTime * vec2(0.02, -0.015)).g;
   float edge = (1.0 - smoothstep(0.0, 0.16 + 0.22 * fn, depth)) * (1.0 - murk * 0.85);
   float postD = fl.a * 4.0;
-  float post = (1.0 - smoothstep(0.1, 0.45 + 0.35 * fn, postD)) * step(0.5, depth);
+  float lap = texture2D(uNoise, p * 0.6 + vec2(uTime * 0.05, -uTime * 0.04)).g;
+  float post = (1.0 - smoothstep(0.04, 0.22 + 0.3 * lap, postD)) * smoothstep(0.35, 0.65, lap + fn * 0.3) * step(0.5, depth) * 0.85;
   float lake = step(0.03, murk) * (1.0 - step(0.5, murk));
   float bandK = (1.0 - smoothstep(0.6, 4.5 + 2.0 * sea, landD)) * max(sea, lake * 0.6) * (1.0 - step(0.5, murk));
   float bands = smoothstep(0.8, 0.97, sin(landD * 2.3 - uTime * (1.3 + sea * 0.6) + fn * 3.0)) * bandK * (0.45 + 0.55 * fn) * (1.0 - smoothstep(60.0, 140.0, viewD));

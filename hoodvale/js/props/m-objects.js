@@ -443,7 +443,7 @@ MAKERS['cave-mouth'] = () => {
   // dark tunnel recess
   b.box(2.3, 2.5, 1.6, M(0, 1.2, 0.7), { color: '#0c0907', vnoise: 0, jit: 0 });
   const rocks = [[-1.6, 0.8, 0.2, 1.0], [1.6, 0.9, 0.3, 1.05], [-1.4, 2.2, 0.4, 0.9], [1.3, 2.3, 0.4, 0.95], [0, 3.0, 0.5, 1.15], [-2.3, 0.6, 0.9, 1.1], [2.3, 0.7, 1.0, 1.1], [0, 2.7, 1.4, 1.3], [-0.9, 3.1, 1.2, 0.9], [1.0, 3.2, 1.0, 0.95]];
-  rocks.forEach(([x, y, z, r], i) => rockBlob(b, M(x, y, z, i), r, i % 2 ? '#9a8a74' : '#8a7c68', 60 + i, 0.85));
+  rocks.forEach(([x, y, z, r], i) => rockBlob(b, M(x, y, z, i), r, i % 2 ? '#b8a68a' : '#a8987e', 60 + i, 0.85));
   // timber frame
   const t = wood('#5e4129');
   for (const x of [-0.95, 0.95]) b.box(0.2, 2.3, 0.2, M(x, 1.15, -0.05), t);
@@ -498,8 +498,8 @@ MAKERS['lair-gate'] = () => {
   const b = new Builder(39);
   // basalt frame of fused stone
   const rocks = [[-1.7, 1.0, 0.3, 1.0], [1.7, 1.0, 0.3, 1.0], [-1.5, 2.5, 0.35, 0.9], [1.5, 2.5, 0.35, 0.9], [0, 3.4, 0.4, 1.2], [-0.9, 3.3, 0.45, 0.8], [0.9, 3.3, 0.45, 0.8]];
-  rocks.forEach(([x, y, z, r], i) => rockBlob(b, M(x, y, z, i), r, '#3e3a3a', 90 + i, 0.9));
-  const door = { tile: TILE.ROCK, color: '#2c2828', uvScale: 1.5 };
+  rocks.forEach(([x, y, z, r], i) => rockBlob(b, M(x, y, z, i), r, i % 2 ? '#6a625c' : '#5a5450', 90 + i, 0.9));
+  const door = { tile: TILE.ROCK, color: '#4a4442', uvScale: 1.5 };
   b.box(1.25, 3.0, 0.35, M(-0.63, 1.5, 0.1), door);
   b.box(1.25, 3.0, 0.35, M(0.63, 1.5, 0.1), door);
   const glowC = { color: '#ff8a3a', glow: '#ff5a10', glowMode: 'always', glowK: 1 };

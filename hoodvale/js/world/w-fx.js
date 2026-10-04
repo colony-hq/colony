@@ -328,9 +328,9 @@ varying float vSeed;
 void main() {
   float edge = smoothstep(0.0, 0.35, vUv.x) * smoothstep(1.0, 0.65, vUv.x);
   float along = smoothstep(0.0, 0.12, vUv.y) * smoothstep(1.0, 0.45, vUv.y);
-  float a = edge * along * (0.07 + 0.04 * sin(uTime * 0.4 + vSeed * 6.0)) * uDay;
+  float a = edge * along * (0.13 + 0.06 * sin(uTime * 0.4 + vSeed * 6.0)) * uDay;
   if (a < 0.002) discard;
-  vec3 c = uSunColor * vec3(1.0, 0.95, 0.75) * 0.5;
+  vec3 c = uSunColor * vec3(1.0, 0.93, 0.7) * 0.6;
   gl_FragColor = vec4(c * a, 0.0);
   #include <fog_fragment>
 }`;
@@ -420,4 +420,91 @@ transformed.y += aWing * abs(transformed.x) * fl * 0.9;`);
       mesh.instanceMatrix.needsUpdate = true;
     },
   };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Butterflies (daytime): flight path + wing flap in the vertex shader, one draw call.
+// ---------------------------------------------------------------------------------------------
+const BF_VERT = /* glsl */`
+attribute vec3 aAnchor;
+attribute float aSeed;
+attribute vec3 aColor;
+attribute float aSide;
+uniform float uTime;
+uniform float uDay;
+varying vec3 vCol;
+varying float vEdge;
+#include <common>
+#include <fog_pars_vertex>
+void main() {
+  float s = aSeed * 17.0;
+  float t = uTime * (0.8 + 0.4 * fract(aSeed * 7.1));
+  vec3 off = vec3(sin(t * 0.47 + s) * 2.6 + sin(t * 1.3 + s * 2.0) * 0.6, 0.55 + 0.35 * sin(t * 1.7 + s * 3.0) + 0.25 * sin(t * 4.1 + s), cos(t * 0.39 + s * 1.3) * 2.6);
+  vec3 vel = vec3(cos(t * 0.47 + s) * 0.47 * 2.6, 0.0, -sin(t * 0.39 + s * 1.3) * 0.39 * 2.6);
+  float yaw = atan(vel.x, vel.z);
+  float flap = sin(uTime * 15.0 + s * 10.0) * 1.05 + 0.25;
+  vec3 p = position;
+  float ax = abs(p.x);
+  p = vec3(sign(p.x) * cos(flap) * ax, sin(flap) * ax, p.z);
+  float c = cos(yaw), sn = sin(yaw);
+  p = vec3(p.x * c + p.z * sn, p.y, -p.x * sn + p.z * c) * 0.13;
+  vec3 wpos = aAnchor + off + p;
+  vCol = aColor;
+  vEdge = ax;
+  vec4 mvPosition = viewMatrix * vec4(wpos, 1.0);
+  gl_Position = projectionMatrix * mvPosition;
+  if (uDay < 0.3) gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+  #include <fog_vertex>
+}`;
+const BF_FRAG = /* glsl */`
+uniform vec3 uAmbient;
+uniform vec3 uSunColor;
+varying vec3 vCol;
+varying float vEdge;
+#include <common>
+#include <fog_pars_fragment>
+void main() {
+  vec3 c = mix(vCol, vCol * 0.35, smoothstep(0.75, 0.95, vEdge));
+  vec3 light = (uAmbient + uSunColor * 0.7) * (1.0 / PI) * 1.1;
+  gl_FragColor = vec4(c * light, 1.0);
+  #include <fog_fragment>
+}`;
+export function createButterflies(scene, anchors) {
+  // anchors: [{x, y, z, color}]
+  if (!anchors.length) return null;
+  const base = new THREE.BufferGeometry();
+  const pos = [
+    0, 0, -0.35, -1, 0, -0.65, -0.9, 0, 0.25, 0, 0, -0.35, -0.9, 0, 0.25, 0, 0, 0.3, // left wing
+    0, 0, -0.35, 0.9, 0, 0.25, 1, 0, -0.65, 0, 0, -0.35, 0, 0, 0.3, 0.9, 0, 0.25, // right wing
+  ];
+  base.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  const geo = new THREE.InstancedBufferGeometry();
+  geo.setAttribute('position', base.attributes.position);
+  const n = anchors.length;
+  const anc = new Float32Array(n * 3), seed = new Float32Array(n), col = new Float32Array(n * 3);
+  const c = new THREE.Color();
+  const r = mulberry32(4321);
+  const box = new THREE.Box3();
+  anchors.forEach((a, i) => {
+    anc.set([a.x, a.y, a.z], i * 3);
+    seed[i] = r();
+    c.set(a.color);
+    col.set([c.r, c.g, c.b], i * 3);
+    box.expandByPoint(new THREE.Vector3(a.x, a.y, a.z));
+  });
+  geo.setAttribute('aAnchor', new THREE.InstancedBufferAttribute(anc, 3));
+  geo.setAttribute('aSeed', new THREE.InstancedBufferAttribute(seed, 1));
+  geo.setAttribute('aColor', new THREE.InstancedBufferAttribute(col, 3));
+  geo.instanceCount = n;
+  geo.boundingSphere = box.getBoundingSphere(new THREE.Sphere());
+  geo.boundingSphere.radius += 6;
+  const mat = new THREE.ShaderMaterial({
+    uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {}]),
+    vertexShader: BF_VERT, fragmentShader: BF_FRAG, side: THREE.DoubleSide, fog: true,
+  });
+  Object.assign(mat.uniforms, { uTime: U.uTime, uDay: U.uDay, uAmbient: U.uAmbient, uSunColor: U.uSunColor });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.name = 'fx:butterflies';
+  scene.add(mesh);
+  return mesh;
 }

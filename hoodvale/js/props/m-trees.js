@@ -197,7 +197,10 @@ export function stumpGeometry() {
 export function rockGeometry(lod = 1) {
   const b = new Builder(501);
   const D = lod >= 1 ? 1 : 0;
-  b.geo(blobGeo(0.72, D, 3, 0.2, 0.25), M(0, 0.32, 0, 0, 0, 0, 1.15, 0.8, 1.0), { tile: TILE.ROCK, color: '#ffffff', flat: true, uvScale: 1.6, grad: [-0.7, 0.7, 0.7, 1.1] });
+  b.geo(blobGeo(0.72, D, 3, 0.2, 0.25), M(0, 0.32, 0, 0, 0, 0, 1.15, 0.8, 1.0), { tile: TILE.ROCK, color: '#ffffff', flat: true, uvScale: 1.6, grad: [-0.7, 0.7, 0.62, 1.12] });
+  // mossy cap and lichen on the big boulder
+  b.geo(blobGeo(0.36, 0, 13, 0.25, 0.5), M(-0.18, 0.74, -0.1, 0.4, 0, 0, 1.2, 0.22, 1.0), { tile: TILE.TURF, color: '#9ab868', flat: true, uvScale: 0.8, jit: 0.1 });
+  for (let i = 0; i < 4; i++) b.geo(new THREE.CircleGeometry(0.09 + i * 0.02, 6), M(0.5 - i * 0.3, 0.3 + (i % 2) * 0.2, 0.55 - (i % 3) * 0.2, i, -0.5), { color: '#c8c890', jit: 0.15 });
   b.geo(blobGeo(0.42, 0, 5, 0.22, 0.2), M(0.72, 0.18, 0.35, 0.6, 0, 0, 1, 0.8, 1), { tile: TILE.ROCK, color: '#f2f2f2', flat: true, uvScale: 1.6 });
   b.geo(blobGeo(0.34, 0, 7, 0.22, 0.2), M(-0.6, 0.14, -0.45, 1.2, 0, 0, 1, 0.8, 1), { tile: TILE.ROCK, color: '#ececec', flat: true, uvScale: 1.6 });
   b.geo(blobGeo(0.2, 0, 9, 0.22, 0.2), M(-0.2, 0.07, 0.75, 0.3), { tile: TILE.ROCK, color: '#e0e0e0', flat: true });

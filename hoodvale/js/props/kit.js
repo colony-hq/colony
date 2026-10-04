@@ -524,6 +524,7 @@ export function nightFactor(hour) {
 
 export function getKit(ctx) {
   if (KIT) return KIT;
+  const tk = performance.now();
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = ATLAS_SIZE;
   paintAtlas(canvas);
@@ -618,6 +619,7 @@ export function getKit(ctx) {
       }
     },
   };
+  KIT.timings = { atlas: Math.round(performance.now() - tk) };
   // Repaint signs once the display fonts are available.
   try {
     document.fonts?.ready?.then(() => {
