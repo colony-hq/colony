@@ -1,0 +1,12 @@
+[
+ {"eval":"__hv.play()"},
+ {"eval":"fetch('/.qa/game-harness.js').then(r=>r.text()).then(t=>{(0,eval)(t);return 'ok'})"},
+ {"eval":"T.clearInv(); __hv.ctx.skills.setLevel('hitpoints',40); __hv.ctx.state.save.hp=40; __hv.ctx.state.settings.autoRetaliate=false; const w=T.near('wolf'); T.tp(w.x+3,w.z); T.run(3); const a=w.ai?.mode; ({wolf:[w.x,w.z,w.home.x,w.home.z], mode:a, hp:__hv.ctx.state.save.hp, cb:__hv.ctx.skills.combatLevel()})"},
+ {"eval":"(()=>{const w=T.near('wolf',__hv.ctx.player,e=>e.ai?.mode==='combat'); __hv.ctx.player.walkTo(__hv.ctx.player.x, __hv.ctx.player.z+25); T.run(12); return {w: w?[w.x,w.z,w.home.x,w.home.z,w.ai.mode]:null, p:T.state()}})()"},
+ {"eval":"for(const s of ['attack','strength','defence']) __hv.ctx.skills.setLevel(s,40); const w=T.near('wolf'); T.tp(w.x+2,w.z); T.run(4); ({cb:__hv.ctx.skills.combatLevel(), modes:__hv.ctx.entities.near(__hv.ctx.player.x,__hv.ctx.player.z,8).filter(e=>e.kind==='monster').map(e=>e.ai?.mode||'idle')})"},
+ {"eval":"T.clearInv(); T.give([['small_net',1]]); const s=T.near('fish_net_bait'); s.state.moveAt=__hv.ctx.ticks.count+12; __hv.ctx.actions.perform(s,'Net'); T.run(14); ({moved:T.evs['fishing:move'], msgs:T.msgs(3), st:T.state(), spot:[s.x,s.z]})"},
+ {"eval":"__hv.ctx.skills.setLevel('archery',5); T.give([['shortbow',1],['bronze_arrow',20]]); __hv.ctx.game.useInventory(__hv.ctx.inventory.indexOf('shortbow'),'Wield'); __hv.ctx.game.useInventory(__hv.ctx.inventory.indexOf('bronze_arrow'),'Wield'); const t=T.near('archery_target'); T.tp(141,166); __hv.ctx.actions.perform(t,'Shoot'); T.run(12); ({hits:__hv.ctx.state.save.stats.targetHits, ev:T.evs['archery:target'], msgs:T.msgs(4), st:T.state(), ammo:__hv.ctx.equipment.slots.ammo})"},
+ {"eval":"(()=>{const bad=[]; for(const e of __hv.ctx.entities.all()){ if(e.kind!=='npc') continue; if(__hv.ctx.map.isIndoor(e.x,e.z)!==e.homeIndoor) bad.push(e.defId);} return {bad, run:__hv.ctx.state.save.run}})()"},
+ {"eval":"T.tp(186,251); __hv.ctx.state.save.run.energy=3; __hv.ctx.player.toggleRun(true); __hv.ctx.player.walkTo(186,280); T.run(5); ({run:__hv.ctx.state.save.run, msgs:T.msgs(2)})"},
+ {"eval":"({evs:T.evs, errs:T.errors})"}
+]

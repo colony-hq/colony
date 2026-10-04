@@ -1,0 +1,11 @@
+[
+ {"eval":"__hv.play()"},
+ {"eval":"fetch('/.qa/game-harness.js').then(r=>r.text()).then(t=>{(0,eval)(t);return 'ok'})"},
+ {"eval":"T.clearInv(); T.give([['bronze_pickaxe',1],['hammer',1]]); T.tp(206,252)"},
+ {"eval":"(()=>{for(let i=0;i<8;i++){const def=i%2?'rock_tin':'rock_copper'; const t=T.near(def,__hv.ctx.player,e=>!e.state.depleted); __hv.ctx.actions.perform(t,'Mine'); T.run(6);} return {inv:T.inv(), msgs:T.msgs(6)}})()"},
+ {"eval":"(()=>{T.autoMake(); const f=T.near('furnace'); __hv.ctx.actions.perform(f,'Smelt'); T.run(25); return {inv:T.inv(), msgs:T.msgs(4), st:T.state(), make:T.lastMake}})()"},
+ {"eval":"(()=>{T.autoMake('bronze_dagger',1); const a=T.near('anvil'); __hv.ctx.actions.perform(a,'Smith'); T.run(10); return {inv:T.inv(), msgs:T.msgs(3), make:T.lastMake, xp:T.xp()}})()"},
+ {"shot":"smith"},
+ {"eval":"(()=>{const i=__hv.ctx.inventory.indexOf('bronze_dagger'); const o=__hv.ctx.game.itemOptions(i); __hv.ctx.game.useInventory(i,o[0]); return {o, eq:__hv.ctx.equipment.slots, inv:T.inv()}})()"},
+ {"eval":"({evs:T.evs, errs:T.errors})"}
+]

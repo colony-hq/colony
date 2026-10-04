@@ -1,5 +1,9 @@
-// Inventory (28 slots), bank and equipment. Owner: game builder (baseline by integration).
+// Inventory (28 slots), bank and equipment. Owner: game builder.
 // Items are plain { id, qty } entries stored in state.save. Stackable items share one slot.
+// inventory: slots, count, has, freeSlots, canAdd, add -> leftover, remove -> removed, removeAt,
+//   swap, indexOf (+ options(i) / act(i, option) aliases of ctx.game, see itemops.js).
+// bank: items, count, deposit, depositAll, depositEquipment, withdraw.
+// equipment: SLOTS, slots, item, weapon, canEquip, equipFromInventory, unequip, useAmmo, bonuses.
 
 import { ITEMS } from '../data/items.js';
 
@@ -94,6 +98,21 @@ export function createBank(ctx) {
     depositAll() {
       for (const e of [...ctx.inventory.slots]) if (e) bank.deposit(e.id, ctx.inventory.count(e.id));
     },
+    // Deposit every worn item straight into the bank.
+    depositEquipment() {
+      const eqs = state.save.equipment;
+      let n = 0;
+      for (const slot of Object.keys(eqs)) {
+        const e = eqs[slot];
+        if (!e) continue;
+        delete eqs[slot];
+        const b = items().find((x) => x.id === e.id);
+        if (b) b.qty += e.qty; else items().push({ id: e.id, qty: e.qty });
+        n++;
+      }
+      if (n) { changed(); state.markDirty(); events.emit('equipment:change', {}); }
+      return n;
+    },
     withdraw(id, qty) {
       const e = items().find((x) => x.id === id);
       if (!e) return 0;
@@ -137,14 +156,19 @@ export function createEquipment(ctx) {
       const check = equipment.canEquip(e.id);
       if (!check.ok) { events.emit('chat:game', { text: check.reason, kind: 'warn' }); return false; }
       const slot = def.equip.slot;
+      // Work out what comes off first so nothing is lost to a full inventory.
+      const off = [];
+      const cur = eq()[slot];
+      const merge = cur && cur.id === e.id && def.stack;
+      if (cur && !merge) off.push(slot);
+      if (def.equip.twoHanded && eq().shield) off.push('shield');
+      if (slot === 'shield' && eq().weapon && ITEMS[eq().weapon.id]?.equip?.twoHanded) off.push('weapon');
+      const freed = 1; // the slot the new item leaves
+      const need = off.filter((s) => !(ITEMS[eq()[s].id]?.stack && ctx.inventory.has(eq()[s].id))).length;
+      if (need > ctx.inventory.freeSlots() + freed) { events.emit('chat:game', { text: "You don't have enough inventory space to do that.", kind: 'warn' }); return false; }
       const taken = ctx.inventory.removeAt(index, def.stack ? Infinity : 1);
-      const toReturn = [];
-      if (eq()[slot]) {
-        if (eq()[slot].id === taken.id && def.stack) { eq()[slot].qty += taken.qty; changed(); return true; }
-        toReturn.push(eq()[slot]);
-      }
-      if (def.equip.twoHanded && eq().shield) { toReturn.push(eq().shield); delete eq().shield; }
-      if (slot === 'shield' && eq().weapon && ITEMS[eq().weapon.id]?.equip?.twoHanded) { toReturn.push(eq().weapon); delete eq().weapon; }
+      if (merge) { cur.qty += taken.qty; changed(); return true; }
+      const toReturn = off.map((s) => { const r = eq()[s]; delete eq()[s]; return r; });
       eq()[slot] = taken;
       for (const r of toReturn) ctx.inventory.add(r.id, r.qty);
       changed();

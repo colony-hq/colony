@@ -1,0 +1,13 @@
+[
+ {"eval":"__hv.play()"},
+ {"eval":"fetch('/.qa/game-harness.js').then(r=>r.text()).then(t=>{(0,eval)(t);return 'ok'})"},
+ {"eval":"T.clearInv(); __hv.ctx.skills.setLevel('hitpoints',30); __hv.ctx.state.save.hp=30; __hv.ctx.skills.setLevel('archery',10); T.give([['oak_shortbow',1],['bronze_arrow',60]]); __hv.ctx.game.useInventory(0,'Wield'); __hv.ctx.game.useInventory(1,'Wield'); T.tp(124,270); ({eq:__hv.ctx.equipment.slots, styles:__hv.ctx.combat.styles(), mode:__hv.ctx.combat.mode().kind})"},
+ {"eval":"(()=>{const out=[]; for(let i=0;i<3;i++){const g=T.near('goblin',__hv.ctx.player,e=>e.alive&&!e.hidden); out.push([g.x,g.z]); __hv.ctx.combat.attack(g); T.run(15); out.push(T.state());} return {out, ammo:__hv.ctx.equipment.slots.ammo, kills:__hv.ctx.state.save.stats.kills, xp:T.xp(), proj:T.evs['combat:projectile'], arrowsOnGround:[...__hv.ctx.entities.all()].filter(e=>e.kind==='item'&&e.defId==='bronze_arrow').reduce((s,e)=>s+e.qty,0), credit:__hv.ctx.wallet.balance}})()"},
+ {"shot":"ranged"},
+ {"eval":"__hv.ctx.state.flag('unlock:arcana',true); __hv.ctx.equipment.unequip('weapon'); T.clearInv(); T.give([['spark_staff',1],['tide_sigil',20],['spark_sigil',20]]); __hv.ctx.game.useInventory(0,'Wield'); __hv.ctx.skills.setLevel('arcana',10); ({auto:__hv.ctx.magic.setAutocast('spark_bolt'), book:__hv.ctx.magic.book().map(b=>[b.spell.id,b.ok])})"},
+ {"eval":"(()=>{const out=[]; for(let i=0;i<2;i++){const g=T.near('goblin',__hv.ctx.player,e=>e.alive&&!e.hidden); __hv.ctx.combat.attack(g); T.run(15); out.push(T.state());} const g=T.near('goblin',__hv.ctx.player,e=>e.alive&&!e.hidden); const c=__hv.ctx.magic.cast('tide_bolt', g); T.run(6); return {out, c, inv:T.inv(), xp:T.xp(), casts:T.evs['spell:cast'], msgs:T.msgs(5)}})()"},
+ {"eval":"T.give([['path_sigil',2]]); __hv.ctx.skills.setLevel('arcana',12); (()=>{const ok=__hv.ctx.magic.cast('brightwater_path'); T.run(4); return {ok, st:T.state(), msgs:T.msgs(2), inv:T.inv()}})()"},
+ {"eval":"__hv.ctx.wallet.credit(500,'test'); (()=>{const g=T.near('goblin'); __hv.ctx.combat.damagePlayer(500,g); const a=T.state(); T.run(1); const b=T.state(); T.run(4); return {a,b,c:T.state(), msgs:T.msgs(4), deaths:__hv.ctx.state.save.stats.deaths}})()"},
+ {"shot":"respawn"},
+ {"eval":"({evs:T.evs, errs:T.errors})"}
+]

@@ -1,0 +1,233 @@
+[
+ {
+  "eval": "window.__c = {\n  D() { return __hv.ctx.ui._U.dialogue; },\n  waiting() { return !!this.D().waiting; },\n  text() { return (document.querySelector('.u-dlg .tx')?.textContent || '').slice(0, 160); },\n  opts() { return [...document.querySelectorAll('.u-dlg .opts button')].map((b) => b.textContent.replace(/^\\d+\\./, '')); },\n  next() { const d = this.D(); if (!d.waiting) return 'idle'; if (this.opts().length) return 'opts:' + this.opts().join('|'); d.key('Space'); d.key('Space'); return 'next'; },\n  pick(t) { const o = this.opts(); const i = o.findIndex((x) => x.includes(t)); if (i < 0) return 'missing ' + t + ' in ' + o.join('|'); this.D().choose(i); return 'picked ' + o[i]; },\n  async until(t, max = 12) { const log = []; for (let k = 0; k < max; k++) { await new Promise((r) => setTimeout(r, 120)); if (!this.waiting()) { log.push('wait'); continue; } const o = this.opts(); if (o.length) { if (t && o.some((x) => x.includes(t))) { log.push(this.pick(t)); return log.join(','); } return log.join(',') + ' STOP opts:' + o.join('|'); } log.push(this.text().slice(0, 40)); this.next(); } return log.join(',') + ' (max)'; },\n  async drain(max = 12) { const log = []; for (let k = 0; k < max; k++) { await new Promise((r) => setTimeout(r, 150)); if (!this.waiting()) { if (!__hv.ctx.dialogue.active) return log.join(' / ') + ' [closed]'; continue; } if (this.opts().length) return log.join(' / ') + ' [opts: ' + this.opts().join('|') + ']'; log.push(this.text().slice(0, 50)); this.next(); } return log.join(' / '); },\n}; 1"
+ },
+ {
+  "eval": "__hv.play('Tester')"
+ },
+ {
+  "wait": 2000
+ },
+ {
+  "eval": "__hv.teleport(177, 243); 1"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "eval": "__hv.ctx.actions.perform(__hv.ctx.entities.get('n:guide_elowen'), 'Talk-to'); 1"
+ },
+ {
+  "waitFor": "window.__c && __c.waiting()",
+  "timeout": 20000
+ },
+ {
+  "shot": "c01-elowen-intro"
+ },
+ {
+  "eval": "__c.until('Teach me')"
+ },
+ {
+  "wait": 300
+ },
+ {
+  "waitFor": "window.__c && __c.waiting()",
+  "timeout": 20000
+ },
+ {
+  "shot": "c02-elowen-player-echo"
+ },
+ {
+  "eval": "__c.drain(10)"
+ },
+ {
+  "log": "[__hv.ctx.quests.stage('into_the_vale'), __hv.ctx.inventory.slots.filter(Boolean).map((e) => e.id).join(',')]"
+ },
+ {
+  "log": "__hv.ctx.quests.journal('into_the_vale')"
+ },
+ {
+  "eval": "(() => { const p = __hv.ctx.player; const trees = __hv.ctx.entities.byKind('object').filter((e) => e.defId === 'tree' && !e.state.depleted).sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z)); __hv.ctx.actions.perform(trees[0], 'Chop down'); return [trees[0].x, trees[0].z]; })()"
+ },
+ {
+  "eval": "__hv.fastForward(40); 1"
+ },
+ {
+  "log": "[__hv.ctx.quests.stage('into_the_vale'), __hv.ctx.inventory.count('logs'), __hv.ctx.skills.xp('woodcutting')]"
+ },
+ {
+  "eval": "(() => { const i = __hv.ctx.inventory.indexOf('logs'); if (i < 0) return 'no logs'; const o = __hv.ctx.game?.itemOptions?.(i); __hv.ctx.game?.useInventory?.(i, 'Light'); return o; })()"
+ },
+ {
+  "eval": "__hv.fastForward(20); 1"
+ },
+ {
+  "log": "[__hv.ctx.quests.stage('into_the_vale'), __hv.ctx.skills.xp('firemaking')]"
+ },
+ {
+  "wait": 600
+ },
+ {
+  "shot": "c03-fire"
+ },
+ {
+  "eval": "__hv.ctx.actions.perform(__hv.ctx.entities.get('n:guide_elowen'), 'Talk-to'); 1"
+ },
+ {
+  "waitFor": "window.__c && __c.waiting()",
+  "timeout": 20000
+ },
+ {
+  "shot": "c04-elowen-progress"
+ },
+ {
+  "log": "[__c.text(), __c.opts()]"
+ },
+ {
+  "eval": "__c.pick(\"I'll get on\")"
+ },
+ {
+  "eval": "__hv.credit(2000); __hv.teleport(258, 57); 1"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "eval": "__hv.ctx.actions.perform(__hv.ctx.entities.get('n:oracle'), 'Consult'); 1"
+ },
+ {
+  "waitFor": "window.__c && __c.waiting()",
+  "timeout": 20000
+ },
+ {
+  "shot": "c05-oracle-intro"
+ },
+ {
+  "eval": "__c.until('Not now')"
+ },
+ {
+  "waitFor": "window.__c && __c.waiting()",
+  "timeout": 20000
+ },
+ {
+  "eval": "__c.until('consult')"
+ },
+ {
+  "waitFor": "window.__c && __c.waiting() && __c.opts().length > 2",
+  "timeout": 20000
+ },
+ {
+  "shot": "c06-oracle-topics"
+ },
+ {
+  "log": "__c.opts()"
+ },
+ {
+  "eval": "__c.pick('train')"
+ },
+ {
+  "waitFor": "window.__c && __c.opts().some((o) => o.includes('Mining'))",
+  "timeout": 15000
+ },
+ {
+  "eval": "__c.pick('Mining')"
+ },
+ {
+  "waitFor": "window.__c && __c.opts().some((o) => o.includes('Beacon'))",
+  "timeout": 15000
+ },
+ {
+  "shot": "c07-oracle-tiers"
+ },
+ {
+  "log": "__c.opts()"
+ },
+ {
+  "eval": "__c.pick('Beacon')"
+ },
+ {
+  "waitFor": "window.__c && __c.waiting() && !__c.opts().length",
+  "timeout": 15000
+ },
+ {
+  "wait": 1500
+ },
+ {
+  "shot": "c08-oracle-beacon"
+ },
+ {
+  "log": "[__c.text(), __hv.ctx.wallet.balance, __hv.ctx.state.save.stats.thoughts, __hv.ctx.oracle.liveState]"
+ },
+ {
+  "eval": "__hv.ctx.dialogue.close(); __hv.teleport(194, 242); 1"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "eval": "__hv.ctx.actions.perform(__hv.ctx.entities.get('n:shop_pell'), 'Trade'); 1"
+ },
+ {
+  "waitFor": "!!document.querySelector('.u-shop, [data-window=shop], .u-win')",
+  "timeout": 15000
+ },
+ {
+  "wait": 800
+ },
+ {
+  "shot": "c09-shop"
+ },
+ {
+  "eval": "(() => { const r = __hv.ctx.shops.buy('general', 'bucket', 2); return [r, __hv.ctx.shops.lastError, __hv.ctx.inventory.count('bucket')]; })()"
+ },
+ {
+  "eval": "__hv.ctx.ui.closeWindow?.('shop'); __hv.teleport(183, 252); 1"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "eval": "__hv.ctx.actions.perform(__hv.ctx.entities.at(183, 250).find((e) => e.defId === 'signpost'), 'Read'); 1"
+ },
+ {
+  "waitFor": "window.__c && __c.waiting()",
+  "timeout": 20000
+ },
+ {
+  "shot": "c10-signpost"
+ },
+ {
+  "eval": "__c.drain(3)"
+ },
+ {
+  "eval": "(() => { const e = __hv.ctx.travellers.get('bertie'); __hv.teleport(e.x + 2, e.z + 1); return [e.x, e.z, e.name]; })()"
+ },
+ {
+  "wait": 1500
+ },
+ {
+  "eval": "(() => { const e = __hv.ctx.travellers.get('bertie'); __hv.ctx.actions.perform(e, 'Talk-to'); return 1; })()"
+ },
+ {
+  "waitFor": "window.__c && __c.waiting()",
+  "timeout": 20000
+ },
+ {
+  "shot": "c11-traveller-talk"
+ },
+ {
+  "log": "[__c.text(), __c.opts()]"
+ },
+ {
+  "eval": "__c.until('headed')"
+ },
+ {
+  "eval": "__c.drain(4)"
+ },
+ {
+  "log": "__hv.ctx.travellers.list.map((e) => e.name.split(' ')[0] + '@' + e.x + ',' + e.z + (e.state.anim ? ':' + e.state.anim : '')).join('; ')"
+ },
+ {
+  "log": "__hv.ctx.lore.visited()"
+ }
+]

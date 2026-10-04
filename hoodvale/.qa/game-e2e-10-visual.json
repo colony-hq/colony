@@ -1,0 +1,11 @@
+[
+ {"eval":"__hv.play()"},
+ {"eval":"fetch('/.qa/game-harness.js').then(r=>r.text()).then(t=>{(0,eval)(t);return 'ok'})"},
+ {"eval":"T.clearInv(); __hv.ctx.skills.setLevel('hitpoints',30); __hv.ctx.state.save.hp=30; __hv.ctx.skills.setLevel('archery',20); T.give([['willow_shortbow',1],['iron_arrow',60],['leather_body',1],['leather_cowl',1]]); for(const id of ['willow_shortbow','iron_arrow','leather_body','leather_cowl']){const i=__hv.ctx.inventory.indexOf(id); __hv.ctx.game.useInventory(i, __hv.ctx.game.itemOptions(i)[0]);} T.tp(124,270); const g=T.near('goblin',__hv.ctx.player,e=>e.alive); __hv.ctx.combat.attack(g); T.run(2.4); 'ok'"},
+ {"wait":250},
+ {"shot":"v-ranged"},
+ {"eval":"T.run(6); __hv.ctx.state.flag('unlock:arcana',true); __hv.ctx.equipment.unequip('weapon'); T.give([['ember_staff',1],['spark_sigil',200]]); __hv.ctx.game.useInventory(__hv.ctx.inventory.indexOf('ember_staff'),'Wield'); __hv.ctx.skills.setLevel('arcana',20); __hv.ctx.magic.setAutocast('ember_bolt'); const g=T.near('goblin',__hv.ctx.player,e=>e.alive&&!e.hidden); __hv.ctx.combat.attack(g); T.run(3.3); 'ok'"},
+ {"wait":200},
+ {"shot":"v-magic"},
+ {"eval":"T.run(6); ({st:T.state(), kills:__hv.ctx.state.save.stats.kills, msgs:T.msgs(5), stats:__hv.ctx.actors.stats?.()})"}
+]

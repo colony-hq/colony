@@ -1,0 +1,18 @@
+[
+ {"eval":"__hv.play()"},
+ {"eval":"fetch('/.qa/game-harness.js').then(r=>r.text()).then(t=>{(0,eval)(t);return 'ok'})"},
+ {"eval":"T.clearInv(); __hv.ctx.skills.setLevel('fletching',10); T.give([['knife',1],['logs',3],['bowstring',1],['feather',40],['bronze_arrowheads',30]]); T.autoMake('arrow_shaft',2); __hv.ctx.game.useItemOn(0,{kind:'item',index:1}); 'started'"},
+ {"eval":"T.run(4); ({inv:T.inv(), make:T.lastMake, msgs:T.msgs(3)})"},
+ {"eval":"T.autoMake('shortbow',1); __hv.ctx.game.useItemOn(0,{kind:'item',index:__hv.ctx.inventory.indexOf('logs')}); 'go'"},
+ {"eval":"T.run(3); const a=__hv.ctx.inventory.indexOf('feather'), b=__hv.ctx.inventory.indexOf('arrow_shaft'); __hv.ctx.game.useItemOn(a,{kind:'item',index:b}); T.run(5); const c=__hv.ctx.inventory.indexOf('bronze_arrowheads'), d=__hv.ctx.inventory.indexOf('headless_arrow'); __hv.ctx.game.useItemOn(c,{kind:'item',index:d}); T.run(5); ({inv:T.inv(), msgs:T.msgs(4), xp:T.xp()})"},
+ {"eval":"T.clearInv(); __hv.ctx.skills.setLevel('crafting',30); T.give([['needle',1],['thread',10],['leather',5],['chisel',1],['uncut_sapphire',2],['bowstring',1]]); T.autoMake('leather_body',1); __hv.ctx.game.useItemOn(0,{kind:'item',index:2}); 'go'"},
+ {"eval":"T.run(3); __hv.ctx.game.useItemOn(__hv.ctx.inventory.indexOf('chisel'),{kind:'item',index:__hv.ctx.inventory.indexOf('uncut_sapphire')}); T.run(4); __hv.ctx.game.useItemOn(__hv.ctx.inventory.indexOf('sapphire'),{kind:'item',index:__hv.ctx.inventory.indexOf('bowstring')}); T.run(3); ({inv:T.inv(), msgs:T.msgs(5), make:T.lastMake})"},
+ {"eval":"T.clearInv(); T.give([['flax',3],['cowhide',3],['bucket',2],['pot',2]]); __hv.ctx.wallet.credit(50,'test'); T.tp(244,245); const w=T.near('spinning_wheel'); __hv.ctx.actions.perform(w,'Spin'); T.run(12); const r=T.near('tanning_rack'); __hv.ctx.actions.perform(r,'Tan'); T.run(8); ({inv:T.inv(), msgs:T.msgs(4), credit:__hv.ctx.wallet.balance})"},
+ {"eval":"(()=>{const cw=T.near('cow',__hv.ctx.player,e=>e.alive); __hv.ctx.game.useItemOn(__hv.ctx.inventory.indexOf('bucket'),cw); T.run(12); const well=T.near('well'); __hv.ctx.actions.perform(well,'Draw-water'); T.run(10); return {inv:T.inv(), msgs:T.msgs(4)}})()"},
+ {"eval":"(()=>{T.tp(226,213); for(let i=0;i<3;i++){const w=T.near('wheat',__hv.ctx.player,e=>!e.state.depleted); __hv.ctx.actions.perform(w,'Pick'); T.run(3);} const h=T.near('hopper'); __hv.ctx.actions.perform(h,'Fill'); T.run(10); const b=T.near('flour_bin'); __hv.ctx.actions.perform(b,'Collect'); T.run(6); return {inv:T.inv(), flour:__hv.ctx.artisan.flour(), msgs:T.msgs(5)}})()"},
+ {"eval":"__hv.ctx.inventory.add('pot_of_flour',1); __hv.ctx.inventory.add('bucket_of_water',0); __hv.ctx.game.useItemOn(__hv.ctx.inventory.indexOf('pot_of_flour'),{kind:'item',index:__hv.ctx.inventory.indexOf('bucket_of_water')}); T.run(3); ({inv:T.inv(), msgs:T.msgs(2)})"},
+ {"eval":"T.tp(167,262); (()=>{const r=T.near('range'); __hv.ctx.actions.perform(r,'Cook'); T.run(10); return {inv:T.inv(), msgs:T.msgs(3), r:[r.x,r.z]}})()"},
+ {"eval":"T.clearInv(); __hv.ctx.state.flag('unlock:arcana',true); T.give([['orbium_shard',12]]); T.tp(258,59); T.autoMake('spark_sigil',28); __hv.ctx.actions.perform(T.near('crystal_altar'),'Inscribe'); 'go'"},
+ {"eval":"T.run(8); ({inv:T.inv(), msgs:T.msgs(4), st:T.state()})"},
+ {"eval":"({evs:T.evs, errs:T.errors, xp:T.xp()})"}
+]

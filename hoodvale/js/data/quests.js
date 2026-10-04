@@ -32,7 +32,7 @@ export const QUESTS = [
     rewards: { xp: { cooking: 300 }, items: [['honey_cake', 5], ['recipe_card', 1]], credit: 100, questPoints: 1, unlocks: ['honey_cake_recipe'] },
   },
   {
-    id: 'goblin_bell', name: 'The Goblin Bell', giver: 'elder_rowan', difficulty: 'Easy', questPoints: 2, requires: { combat: 8 },
+    id: 'goblin_bell', name: 'The Goblin Bell', giver: 'elder_rowan', difficulty: 'Easy', questPoints: 2, requires: { combat: 12 },
     summary: 'Goblins stole the Brightwater bell. Their Warchief wears it as a hat in the Warrens under Copperhollow.',
     steps: [
       'Talk to Elder Rowan in the village square.',

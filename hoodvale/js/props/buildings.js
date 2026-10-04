@@ -1,36 +1,128 @@
-// BASELINE — owner: props builder. Every building in data/buildings.js (walls, roofs that hide
-// when the player is inside, interiors, doors).
+// Every building in data/buildings.js: walls on the footprint perimeter with door openings at the
+// door tiles, interiors and furniture, roofs and upper walls that fade out while the player stands
+// inside the footprint (RuneScape roof hiding), windows that glow warm at night, signboards,
+// chimney smoke, the windmill's turning sails and the Orbio Spire's floating rings.
+// Owner: props builder. API: createBuildings(ctx) -> { group, entries, update(dt) }.
+//
+// Static geometry of all buildings in a 32-tile cell is merged into one mesh (one draw call);
+// each building's roof/upper part is its own mesh with a fading (alpha-hashed) material.
+
 import * as THREE from 'three';
 import { BUILDINGS } from '../data/buildings.js';
+import { getKit, Builder } from './kit.js';
+import { getFx } from './fx.js';
+import { BKit } from './b-core.js';
+import { buildStyle } from './b-styles.js';
+
+const CELL = 32;
 
 export function createBuildings(ctx) {
+  const kit = getKit(ctx);
+  const fx = getFx(ctx, kit);
   const group = new THREE.Group();
   group.name = 'buildings';
-  const wallMat = new THREE.MeshLambertMaterial({ color: 0xd8cbb0 });
-  const roofMat = new THREE.MeshLambertMaterial({ color: 0x7a3a2a });
-  const roofs = [];
-  for (const b of BUILDINGS) {
-    const y = b.floorY ?? ctx.map.heightAt(b.x + b.w / 2, b.z + b.d / 2);
-    const h = b.solid ? 4 : 3;
-    const box = new THREE.Mesh(new THREE.BoxGeometry(b.w, h, b.d), wallMat);
-    box.position.set(b.x + b.w / 2, y + h / 2, b.z + b.d / 2);
-    if (!b.solid) box.material = new THREE.MeshLambertMaterial({ color: 0xd8cbb0, transparent: true, opacity: 0.35 });
-    group.add(box);
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(Math.max(b.w, b.d) * 0.75, 2.5, 4), roofMat);
-    roof.rotation.y = Math.PI / 4;
-    roof.position.set(b.x + b.w / 2, y + h + 1.25, b.z + b.d / 2);
-    roof.userData.b = b;
-    roofs.push(roof);
-    group.add(roof);
-  }
   ctx.scene.add(group);
+  const shadows = !!ctx.engine?.preset?.shadows;
+
+  const cells = new Map();
+  const entries = [];
+  const anims = [];
+
+  for (const b of BUILDINGS) {
+    let K;
+    try {
+      K = new BKit(b, kit, ctx);
+      buildStyle(K);
+    } catch (err) {
+      console.error('[buildings] failed to build', b.id, err);
+      continue;
+    }
+    const key = `${Math.floor(K.cx / CELL)},${Math.floor(K.cz / CELL)}`;
+    let cell = cells.get(key);
+    if (!cell) cells.set(key, (cell = new Builder(1)));
+    cell.merge(K.S);
+
+    const entry = { b, mesh: null, mat: null, op: 1, fxFade: [], anims: [] };
+    if (!K.R.isEmpty()) {
+      entry.mat = kit.fadeMaterial('roof:' + b.id);
+      entry.mesh = new THREE.Mesh(K.R.build(), entry.mat);
+      entry.mesh.name = 'roof:' + b.id;
+      entry.mesh.castShadow = shadows;
+      entry.mesh.receiveShadow = true;
+      group.add(entry.mesh);
+    }
+    // effects
+    for (const f of K.fx) {
+      let h = null;
+      if (f.t === 'flame') h = fx.flame(f.p[0], f.p[1], f.p[2], f.w, f.h, f.heat ?? 1);
+      else if (f.t === 'halo') h = fx.halo(f.p[0], f.p[1], f.p[2], f.size, f.color, !!f.night);
+      else if (f.t === 'smoke') { const hs = fx.smoke(f.p[0], f.p[1], f.p[2], f.n, f.size); if (hs.length) entry.fxFade.push(...hs); continue; }
+      if (h && (f.fade || f.p[1] > K.fy + K.cut + 0.2)) entry.fxFade.push(h);
+    }
+    // animated parts (windmill sails, spire rings)
+    for (const a of K.anims || []) {
+      const holder = new THREE.Group();
+      holder.position.copy(a.pos);
+      holder.rotation.y = a.yaw || 0;
+      const mesh = new THREE.Mesh(a.builder.build(), a.fade && entry.mat ? entry.mat : kit.mat);
+      mesh.castShadow = shadows;
+      holder.add(mesh);
+      group.add(holder);
+      const an = { holder, mesh, spin: a.spin || 0, axis: a.axis || 'z', bob: a.bob || 0, y0: a.pos.y, fade: !!a.fade };
+      anims.push(an);
+      entry.anims.push(an);
+    }
+    // furniture tiles block movement
+    for (const k of K.blocked) {
+      const [x, z] = k.split(',').map(Number);
+      ctx.map.block(x, z);
+    }
+    entries.push(entry);
+  }
+
+  for (const [key, cell] of cells) {
+    if (cell.isEmpty()) continue;
+    const mesh = new THREE.Mesh(cell.build(), kit.mat);
+    mesh.name = 'buildings:' + key;
+    mesh.castShadow = shadows;
+    mesh.receiveShadow = true;
+    group.add(mesh);
+  }
+
+  function insideOf(b) {
+    const p = ctx.player;
+    if (!p) return false;
+    const x = p.pos?.x ?? p.x + 0.5, z = p.pos?.z ?? p.z + 0.5;
+    if (Math.abs(x - (b.x + b.w / 2)) > b.w / 2 + 0.05 || Math.abs(z - (b.z + b.d / 2)) > b.d / 2 + 0.05) return false;
+    const reg = ctx.map.regionAt(x, z);
+    return reg.id === 'overworld';
+  }
+
   return {
     group,
-    update() {
-      const p = ctx.player;
-      for (const r of roofs) {
-        const b = r.userData.b;
-        r.visible = !(p && p.x >= b.x && p.x < b.x + b.w && p.z >= b.z && p.z < b.z + b.d);
+    entries,
+    // building the player is inside (or null)
+    get inside() { return entries.find((e) => e.op < 0.5)?.b || null; },
+    update(dt) {
+      kit.tick(ctx);
+      const t = ctx.time.t;
+      for (const e of entries) {
+        const target = insideOf(e.b) ? 0 : 1;
+        if (e.op === target) continue;
+        e.op = target > e.op ? Math.min(1, e.op + dt * 3.5) : Math.max(0, e.op - dt * 3.5);
+        const vis = e.op > 0.02;
+        if (e.mat) {
+          e.mat.opacity = e.op;
+          e.mesh.visible = vis;
+        }
+        for (const h of e.fxFade) fx.show(h, vis);
+        for (const a of e.anims) if (a.fade) a.holder.visible = vis;
+      }
+      for (const a of anims) {
+        if (!a.holder.visible) continue;
+        if (a.axis === 'z') a.mesh.rotation.z = t * a.spin;
+        else a.mesh.rotation.y = t * a.spin;
+        if (a.bob) a.holder.position.y = a.y0 + Math.sin(t * 0.8) * a.bob;
       }
     },
   };

@@ -28,7 +28,7 @@ mon('goblin', { name: 'Goblin', level: 2, hp: 5, att: 1, str: 1, def: 1, maxHit:
 mon('goblin_brute', { name: 'Goblin brute', level: 12, hp: 22, att: 10, str: 12, def: 8, maxHit: 3, wander: 4, aggressive: true, respawnTicks: 35, examine: 'A goblin that ate its vegetables. And its friends.',
   drops: { always: [bones], table: [{ item: 'iron_dagger', qty: [1, 1], w: 3 }, { item: 'bronze_arrow', qty: [5, 15], w: 6 }, { item: 'iron_ore', qty: [1, 2], w: 6 }, { item: null, w: 20 }], credit: [3, 12] },
   model: { rig: 'biped', scale: 0.95, colors: { skin: '#5a8a2a', cloth: '#4a3a2a' }, gear: { weapon: 'axe' }, body: 'goblin' } });
-mon('goblin_warchief', { name: 'Goblin Warchief', level: 20, hp: 60, att: 18, str: 18, def: 14, maxHit: 5, wander: 2, aggressive: true, respawnTicks: 100, boss: true, size: 2, examine: 'The biggest goblin in the Warrens. Wears the village bell as a hat.',
+mon('goblin_warchief', { name: 'Goblin Warchief', level: 16, hp: 40, att: 14, str: 14, def: 8, maxHit: 4, wander: 2, aggressive: true, respawnTicks: 100, boss: true, size: 2, examine: 'The biggest goblin in the Warrens. Wears the village bell as a hat.',
   drops: { always: [bigBones], table: [{ item: 'iron_sword', qty: [1, 1], w: 3 }, { item: 'iron_kiteshield', qty: [1, 1], w: 2 }, { item: 'uncut_sapphire', qty: [1, 1], w: 2 }], credit: [30, 80] },
   model: { rig: 'biped', scale: 1.3, colors: { skin: '#4a7a2a', cloth: '#7a2a2a' }, gear: { weapon: 'greatclub', hat: 'bell' }, body: 'goblin' } });
 mon('boar', { name: 'Wild boar', level: 9, hp: 16, att: 8, str: 8, def: 6, maxHit: 2, wander: 6, respawnTicks: 30, examine: 'Tusks first, questions later.',

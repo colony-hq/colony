@@ -1,0 +1,90 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>world test</title>
+<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}#gl{width:100%;height:100%;display:block}</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+</head><body><canvas id="gl"></canvas>
+<script type="module">
+// World-builder test harness: core engine + map + my world modules (+ props if they load).
+import * as THREE from 'three';
+import { createEngine } from '../../js/core/engine.js';
+import { createEvents } from '../../js/core/events.js';
+import { createMap } from '../../js/world/map.js';
+import { buildSpawns } from '../../js/data/spawns.js';
+import { createSky } from '../../js/world/sky.js';
+import { createTerrain } from '../../js/world/terrain.js';
+import { createWater } from '../../js/world/water.js';
+import { createDecor } from '../../js/world/decor.js';
+const q = new URLSearchParams(location.search);
+const engine = createEngine({ canvas: document.getElementById('gl'), quality: q.get('q') || 'low' });
+const events = createEvents();
+const map = createMap();
+const spawns = buildSpawns();
+const pos = new THREE.Vector3(188.5, 0, 255.5);
+pos.y = map.heightAt(pos.x, pos.z);
+const ctx = { THREE, engine, scene: engine.scene, camera: engine.camera, renderer: engine.renderer, events, map, spawns, debug: true,
+  time: { t: 0, dt: 0, frame: 0 }, failed: [], state: { mode: 'play', settings: {}, save: {} },
+  player: { pos, x: 188, z: 255 }, cameraRig: { mode: 'follow', yaw: Math.PI * 0.15, pitch: 0.72, distance: 14, setMode(m) { this.mode = m; } } };
+const t0 = performance.now();
+const timings = {};
+const make = (name, fn) => { const t = performance.now(); try { ctx[name] = fn(); } catch (e) { console.error('[world-test] ' + name + ' failed', e); ctx.failed.push(name); } timings[name] = Math.round(performance.now() - t); };
+make('sky', () => createSky(ctx));
+make('terrain', () => createTerrain(ctx));
+make('water', () => createWater(ctx));
+make('decor', () => createDecor(ctx));
+if (q.has('props')) {
+  for (const [name, path, fn] of [['structures', '../../js/props/structures.js', 'createStructures'], ['buildings', '../../js/props/buildings.js', 'createBuildings']]) {
+    try { const m = await import(path); make(name, () => m[fn](ctx)); } catch (e) { console.warn('props skipped', name, e.message); }
+  }
+  try {
+    const m = await import('../../js/props/objects.js');
+    make('objectViews', () => m.createObjectViews(ctx));
+    const { OBJECTS } = await import('../../js/data/objects.js');
+    for (const o of spawns.objects) {
+      const e = { uid: o.uid, kind: 'object', def: OBJECTS[o.def], x: o.x, z: o.z, w: o.w, d: o.d, yaw: o.yaw, pos: new THREE.Vector3(o.x + o.w / 2, map.heightAt(o.x + o.w / 2, o.z + o.d / 2), o.z + o.d / 2), state: 'active', alive: true, data: o };
+      try { const v = ctx.objectViews.create?.(e); if (v?.object3d && !v.object3d.parent) { v.object3d.position.copy(e.pos); v.object3d.rotation.y = o.yaw || 0; ctx.scene.add(v.object3d); } } catch (err) { }
+    }
+  } catch (e) { console.warn('objects skipped', e.message); }
+}
+timings.total = Math.round(performance.now() - t0);
+const order = ['sky', 'terrain', 'water', 'decor', 'structures', 'buildings', 'objectViews'];
+function placeCam() {
+  const r = ctx.cameraRig; if (r.mode !== 'follow') return;
+  const hz = Math.cos(r.pitch) * r.distance;
+  engine.camera.position.set(pos.x + Math.sin(r.yaw) * hz, pos.y + 1.2 + Math.sin(r.pitch) * r.distance, pos.z + Math.cos(r.yaw) * hz);
+  engine.camera.lookAt(pos.x, pos.y + 1.2, pos.z);
+}
+let last = performance.now(), frames = 0, acc = 0;
+function step(dt) {
+  ctx.time.dt = dt; ctx.time.t += dt; ctx.time.frame++;
+  placeCam();
+  for (const k of order) { const m = ctx[k]; if (m?.update) { try { m.update(dt, ctx.time.t); } catch (e) { console.error('[world-test] update ' + k, e); ctx[k] = null; } } }
+}
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  step(dt); engine.render();
+  frames++; acc += dt; if (acc > 1) { engine.stats.fps = frames / acc; frames = 0; acc = 0; }
+}
+window.__hv = {
+  ctx, timings, ready: true,
+  teleport(x, z) { pos.set(x + 0.5, 0, z + 0.5); pos.y = map.heightAt(pos.x, pos.z); ctx.player.x = x; ctx.player.z = z; ctx.cameraRig.mode = 'follow'; },
+  follow(yaw, pitch, dist) { const r = ctx.cameraRig; r.mode = 'follow'; if (yaw != null) r.yaw = yaw; if (pitch != null) r.pitch = pitch; if (dist != null) r.distance = dist; },
+  lookFrom(p, t) { ctx.cameraRig.mode = 'debug'; engine.camera.position.set(...p); engine.camera.lookAt(...t); },
+  quality(qq) { engine.setQuality(qq); },
+  stats() { const s = engine.stats; return { fps: +(s.fps || 0).toFixed(1), drawCalls: s.drawCalls, triangles: s.triangles, quality: engine.quality, failed: ctx.failed }; },
+  async map(region = 'overworld', s = 3) {
+    const m = await import('../../js/world/mapimage.js');
+    const t = performance.now();
+    const cv = m.paintRegion(region, s);
+    const ms = performance.now() - t;
+    cv.style.cssText = 'position:fixed;left:0;top:0;height:100vh;z-index:10;image-rendering:pixelated;background:#000';
+    cv.id = 'mapimg';
+    document.getElementById('mapimg')?.remove();
+    document.body.appendChild(cv);
+    return { ms: Math.round(ms), w: cv.width, icons: m.mapIcons(region).length };
+  },
+  unmap() { document.getElementById('mapimg')?.remove(); },
+  ff(sec) { for (let t = 0; t < sec; t += 1 / 30) step(1 / 30); },
+};
+requestAnimationFrame((t) => { last = t; frame(t); });
+</script></body></html>

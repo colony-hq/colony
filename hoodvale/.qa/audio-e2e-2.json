@@ -1,0 +1,17 @@
+[
+ {"eval":"__hv.play()"},
+ {"eval":"__hv.ctx.audio.unlock()"},
+ {"eval":"fetch('/.qa/game-harness.js').then(r=>r.text()).then(t=>{(0,eval)(t);return 'ok'})"},
+ {"wait":1000},
+ {"eval":"window.ZT = (x,z,h)=>{ if(h!=null) __hv.ctx.sky.setHour?.(h); T.tp(x,z); T.run(1.5); const s=__hv.ctx.audio.stats(); return {at:[x,z], music:s.music.key, sec:s.music.section, zone:s.zone, amb:s.amb}; }; 1"},
+ {"eval":"ZT(238,238,8)"}, {"wait":700}, {"eval":"ZT(196,290,12)"}, {"wait":700}, {"eval":"ZT(150,165,22)"}, {"wait":700},
+ {"eval":"ZT(82,262,12)"}, {"wait":700}, {"eval":"ZT(58,168,23)"}, {"wait":700}, {"eval":"ZT(250,160,12)"}, {"wait":700},
+ {"eval":"ZT(258,58,12)"}, {"wait":700}, {"eval":"ZT(92,66,14)"}, {"wait":700}, {"eval":"ZT(200,200,12)"}, {"wait":700},
+ {"eval":"(()=>{const c=T.near('cave_entrance'); T.tp(c.x, c.z+2); __hv.ctx.actions.perform(c,'Enter'); T.run(4); const s=__hv.ctx.audio.stats(); return {region:__hv.ctx.player.region, music:s.music.key, amb:s.amb, rec:s.recent.slice(-6)}})()"},
+ {"wait":800},
+ {"eval":"T.clearInv(); T.give([['bronze_sword',1],['bread',3]]); __hv.ctx.game.useInventory(0,'Wield'); T.tp(226,233); (()=>{const c=T.near('chicken',__hv.ctx.player,e=>e.alive&&!e.hidden); __hv.ctx.combat.attack(c); T.run(6); const s=__hv.ctx.audio.stats(); return {music:s.music, combat:s.combat, rec:s.recent.slice(-14)}})()"},
+ {"wait":800},
+ {"eval":"(()=>{for(const [s,l] of [['attack',70],['strength',70],['defence',70],['hitpoints',90]]) __hv.ctx.skills.setLevel(s,l); __hv.ctx.state.save.hp=90; T.give([['starmetal_greatsword',1],['swordfish',20]]); __hv.ctx.game.useInventory(__hv.ctx.inventory.indexOf('starmetal_greatsword'),'Wield'); const w=T.near('ashen_wyrm'); w.hp=80; T.tp(w.home.x+1, w.home.z+5); __hv.ctx.combat.attack(w); T.run(9); const s=__hv.ctx.audio.stats(); return {music:s.music, rec:s.recent.slice(-20)}})()"},
+ {"wait":1500},
+ {"log":"__hv.ctx.audio.stats()"}
+]

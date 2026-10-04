@@ -11,6 +11,8 @@ export function createPicking(ctx) {
   const ndc = new THREE.Vector2();
   const picking = {
     hover: { hits: [], tile: null, point: null },
+    // Top entity under the pointer (for hover text / outlines), or null.
+    get hoverEntity() { return picking.hover.hits[0]?.entity || null; },
     pick(nx, ny) {
       ndc.set(nx, ny);
       ray.setFromCamera(ndc, camera);
@@ -33,7 +35,7 @@ export function createPicking(ctx) {
       const hits = [];
       const groundDist = point ? point.distanceTo(o) : maxT;
       for (const e of entities.all()) {
-        if (!e.pick || e.kind === 'player' || !e.alive || e.hidden) continue;
+        if (!e.pick || e.kind === 'player' || !e.alive || e.hidden || e.dying) continue;
         const p = e.pos;
         // Ray vs vertical cylinder (centre p, radius r, from p.y to p.y + h), in xz first.
         const r = e.pick.r, h = e.pick.h;

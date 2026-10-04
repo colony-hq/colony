@@ -1,0 +1,12 @@
+[
+ {"eval":"__hv.play()"},
+ {"eval":"fetch('/.qa/game-harness.js').then(r=>r.text()).then(t=>{(0,eval)(t);return 'ok'})"},
+ {"eval":"T.clearInv(); T.give([['bronze_axe',1],['tinderbox',1],['small_net',1]]); T.tp(178,236)"},
+ {"eval":"(()=>{for(let i=0;i<5;i++){const t=T.near('tree',__hv.ctx.player,e=>!e.state.depleted); __hv.ctx.actions.perform(t,'Chop down'); T.run(7);} return T.inv()})()"},
+ {"shot":"g-chop"},
+ {"eval":"(()=>{const i=__hv.ctx.inventory.indexOf('logs'); __hv.ctx.game.useInventory(i,'Light'); T.run(6); return {inv:T.inv(), fires:__hv.ctx.artisan.fires.length, msgs:T.msgs(3)}})()"},
+ {"eval":"(()=>{const s=T.near('fish_net_bait'); __hv.ctx.actions.perform(s,'Net'); T.run(25); return {inv:T.inv(), msgs:T.msgs(3)}})()"},
+ {"eval":"(()=>{const f=__hv.ctx.artisan.fires[0]?.e; if(!f) return 'no fire'; __hv.ctx.actions.perform(f,'Cook'); T.run(20); return {inv:T.inv(), msgs:T.msgs(4), xp:T.xp()}})()"},
+ {"shot":"g-cook"},
+ {"eval":"({evs:T.evs, errs:T.errors, st:T.state()})"}
+]
