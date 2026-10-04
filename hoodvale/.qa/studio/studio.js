@@ -70,3 +70,26 @@ export function liveInfo(i = 0) {
   for (let k = 0; k < uv.count; k++) { const s = uv.getX(k) + uv.getY(k); if (s > 0) { n++; mx = Math.max(mx, s); } }
   return { names: Object.keys(g.attributes), n, mx, count: uv.count, mat: a.mesh.material.customProgramCacheKey(), prog: !!a.mesh.material.userData };
 }
+
+// Monsters by id (creature actors with their model).
+export async function monsters(ids, { x = 214, z = 244, gap = 2.0, view = 'full' } = {}) {
+  const { MONSTERS } = await import('../../js/data/monsters.js');
+  const c = ctx();
+  clear();
+  const n = ids.length;
+  const x0 = x - ((n - 1) * gap) / 2;
+  ids.forEach((id, i) => {
+    const def = MONSTERS[id];
+    const a = c.actors.create({ kind: 'creature', model: def.model, monster: id });
+    const ax = x0 + i * gap;
+    a.setPosition(ax, c.map.heightAt(ax, z), z);
+    a.setYaw(Math.PI);
+    live.push(a);
+  });
+  c.player?.actor?.setVisible?.(false);
+  for (const id of ['hud', 'windows', 'menus', 'toasts', 'overlay']) { const el = document.getElementById(id); if (el) el.style.display = 'none'; }
+  const gy = c.map.heightAt(x, z);
+  if (view === 'full') window.__hv.lookFrom([x, gy + 1.8, z + n * 0.9 + 1.5], [x, gy + 1.0, z]);
+  else window.__hv.lookFrom([x, gy + 1.4, z + n * 0.5 + 0.6], [x, gy + 1.1, z]);
+  return live.length;
+}

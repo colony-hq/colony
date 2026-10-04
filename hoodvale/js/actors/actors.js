@@ -24,6 +24,7 @@ import {
   newPose, hexOf, shade, SHARED, makeBones, shadowTexture,
 } from './a-core.js';
 import { HB, HB_COUNT, HB_UPPER, normaliseLook, buildHumanoid, layoutFor, createHumanoidBones } from './a-humanoid.js';
+import { setFaceRenderer } from './a-face.js';
 import * as AN from './a-anim.js';
 import { CREATURE_RIGS, creatureSpec, buildWisp, buildOracle } from './a-creatures.js';
 import { toolGeometry } from './a-gear.js';
@@ -865,6 +866,7 @@ export function createActors(ctx) {
   const _bm = new THREE.Matrix4(), _bq = new THREE.Quaternion(), _bs = new THREE.Vector3(), _bp = new THREE.Vector3(), _bn = new THREE.Vector3();
   const UP = new THREE.Vector3(0, 1, 0);
 
+  setFaceRenderer(ctx.renderer);
   let frame = 0;
   const camPos = new THREE.Vector3();
   function update(dt) {

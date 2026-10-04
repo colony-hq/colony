@@ -79,7 +79,7 @@ export function makeActorMaterial({ key = 'base', emissive = 0x000000, emissiveI
       .replace('#include <color_fragment>', `#include <color_fragment>
       {
         vec4 dcl = texture2D(uActorDecal, vActorUv);
-        diffuseColor.rgb = diffuseColor.rgb * (1.0 - dcl.a) + dcl.rgb;${globalThis.__hvDecalDebug ? '\n        diffuseColor.rgb = vec3(fract(vActorUv * 8.0), dcl.a);' : ''}
+        diffuseColor.rgb = diffuseColor.rgb * (1.0 - dcl.a) + dcl.rgb;
       }`)
       .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, 0.3, vActorMat.x);')
       .replace('#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\nmetalnessFactor = mix(metalnessFactor, 0.45, vActorMat.x);')
@@ -93,7 +93,7 @@ export function makeActorMaterial({ key = 'base', emissive = 0x000000, emissiveI
         totalEmissiveRadiance += uActorRim * pow(rimF, 2.6) + diffuseColor.rgb * vActorMat.y * uActorGlow;
       }`);
   };
-  m.customProgramCacheKey = () => 'hvActor_' + key + (globalThis.__hvDecalDebug ? '_dbg' : '');
+  m.customProgramCacheKey = () => 'hvActor_' + key;
   return m;
 }
 

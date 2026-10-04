@@ -6,7 +6,7 @@
 // boots). Used by a-humanoid.js for the 'human' variant. Owner: actors builder.
 
 import * as THREE from 'three';
-import { C, shade, mix, smooth01, clamp, lerp, TAU, loft, sphere, hashStr } from './a-core.js';
+import { C, shade, mix, smooth01, clamp, lerp, TAU, loft, hashStr } from './a-core.js';
 import { HB } from './a-humanoid.js';
 import { faceCell, faceUV } from './a-face.js';
 
@@ -416,6 +416,9 @@ function faceZ(k, x, y) {
 
 export function faceRecipe(spec) {
   const look = spec.lookRaw || {};
+  if (spec.variant === 'goblin' || spec.variant === 'troll') {
+    return { style: spec.variant, skin: spec.skin, brow: '#' + C(spec.skin).multiplyScalar(0.4).getHexString(), old: false, female: false };
+  }
   const h = hashStr(spec.key);
   const hair = spec.hairColor;
   const lumH = (() => { const c = C(hair); return 0.3 * c.r + 0.59 * c.g + 0.11 * c.b; })();
@@ -505,8 +508,8 @@ export function addHeadH(ctx, o = {}) {
   B.add(patch(back), HB.head, skin, { at, keepNormals: true, colorFn: skinFn, jitter: 0 });
   // Nose: a short bridge and a small rounded tip with wings, mostly sunk into the face.
   const nk = (o.nose ?? 1) * (spec.female ? 0.85 : 1);
-  B.add(new THREE.SphereGeometry(1, 12, 10), HB.head, skin, { at: [headC[0], headC[1] - 0.17 * R, headC[2] + faceZ(k, 0, -0.17) * R + 0.045 * R], scale: [0.055 * R * nk, 0.13 * R * nk, 0.05 * R * nk], rot: [-0.35, 0, 0], jitter: 0 });
-  B.add(new THREE.SphereGeometry(1, 12, 10), HB.head, mix(skin, '#d07a6a', 0.05), { at: [headC[0], headC[1] - 0.265 * R, headC[2] + faceZ(k, 0, -0.265) * R + 0.012 * R], scale: [0.068 * R * nk, 0.055 * R * nk, 0.05 * R * nk], jitter: 0 });
+  if (nk > 0) B.add(new THREE.SphereGeometry(1, 12, 10), HB.head, skin, { at: [headC[0], headC[1] - 0.17 * R, headC[2] + faceZ(k, 0, -0.17) * R + 0.045 * R], scale: [0.055 * R * nk, 0.13 * R * nk, 0.05 * R * nk], rot: [-0.35, 0, 0], jitter: 0 });
+  if (nk > 0) B.add(new THREE.SphereGeometry(1, 12, 10), HB.head, mix(skin, '#d07a6a', 0.05), { at: [headC[0], headC[1] - 0.265 * R, headC[2] + faceZ(k, 0, -0.265) * R + 0.012 * R], scale: [0.068 * R * nk, 0.055 * R * nk, 0.05 * R * nk], jitter: 0 });
   // Ears.
   if (!o.noEars) {
     for (const s of [-1, 1]) {
@@ -524,13 +527,15 @@ export function addHeadH(ctx, o = {}) {
   for (const s of [-1, 1]) {
     const lid = new THREE.BufferGeometry();
     const P = [], Cc = [], I = [];
-    const xs = [0.17, 0.23, 0.29, 0.35, 0.41, 0.47], ys = [0.115, 0.07, 0.03, -0.005, -0.03, -0.055, -0.085];
+    const brute = spec.variant === 'goblin';
+    const xs = brute ? [0.16, 0.24, 0.32, 0.4, 0.48, 0.52] : [0.17, 0.23, 0.29, 0.35, 0.41, 0.47];
+    const ys = brute ? [0.16, 0.1, 0.05, 0.0, -0.04, -0.08, -0.12] : [0.115, 0.07, 0.03, -0.005, -0.03, -0.055, -0.085];
     const lash = shade(skin, 0.42), lidC = shade(skin, 0.93);
     for (let i = 0; i < ys.length; i++) for (let j = 0; j < xs.length; j++) {
       const x = s * xs[j], y = ys[i];
       const z = faceZ(k, x, y) - 0.02;
       P.push(x * R, y * R, (z * R + ez) - eyesZ);
-      const cc = Math.abs(y + 0.03) < 0.012 ? lash : lidC;
+      const cc = Math.abs(y - (brute ? -0.04 : -0.03)) < 0.012 ? lash : lidC;
       Cc.push(cc.r, cc.g, cc.b);
     }
     for (let i = 0; i < ys.length - 1; i++) for (let j = 0; j < xs.length - 1; j++) {
@@ -630,10 +635,31 @@ export function addHairH(ctx, covered) {
   orientOutward(g);
   B.add(g, HB.head, base, { at: headC, keepColor: true, shine, jitter: 0.02 });
   if (covered) return;
+  if (style === 'short') addTufts(ctx, base, thick + vol);
   if (style === 'long') addCurtain(ctx, base, nL);
   if (style === 'ponytail') addPonytail(ctx, base);
   if (style === 'bun') addBun(ctx, base);
   if (style === 'braid') addBraid(ctx, base);
+}
+
+// A few tapered locks lifting off the crown and nape so short hair isn't a smooth cap.
+function addTufts(ctx, base, lift) {
+  const { B, hr: R } = ctx;
+  const k = ctx.headK;
+  const tufts = [[0.3, Math.PI, 0.24], [0.5, 2.6, 0.2], [0.5, -2.6, 0.2]];
+  for (const [th, ph, len] of tufts) {
+    const p = headPoint(th, ph, k);
+    const n = V(p[0], p[1], p[2]).normalize();
+    // Sweep back and down from the crown, forward over the brow for front tufts.
+    const front = Math.cos(ph) > 0.3;
+    const sweep = front ? V(Math.sin(ph) * 0.4, -0.5, -0.8) : V(Math.sin(ph) * 0.3, -0.35, 0.9);
+    const pts = [0, 0.5, 1].map((t) => {
+      const r = 1 + lift * 0.7 + t * len * 0.55;
+      return V(p[0] * r, p[1] * r, p[2] * r).addScaledVector(sweep.clone().normalize(), t * len * 0.75).addScaledVector(n, -0.02);
+    });
+    const rings = pts.map((q, i) => ({ p: headLocalToModel(ctx, q.x * R, q.y * R, q.z * R), rx: [0.1, 0.07, 0.012][i] * R, rf: [0.06, 0.04, 0.01][i] * R, rb: [0.06, 0.04, 0.01][i] * R, w: [[HB.head, 1]], ref: n }));
+    B.add(loft(rings, { radial: 6, caps: [false, true], color: (u, a, i, out) => out.copy(base).multiplyScalar(0.8 + 0.3 * u) }), null, base, { keepColor: true, keepSkin: true, jitter: 0.03 });
+  }
 }
 
 function headLocalToModel(ctx, x, y, z) {

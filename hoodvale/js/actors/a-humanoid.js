@@ -39,7 +39,7 @@ const BUILDS = {
 };
 const VARIANTS = {
   human: {},
-  goblin: { width: 0.86, limb: 0.82, leg: 0.6, head: 1.5, torso: 0.78, arm: 0.95, shoulder: 0.9, hunch: 0.5 },
+  goblin: { width: 0.86, limb: 0.82, leg: 0.6, head: 1.5, torso: 0.78, arm: 0.95, shoulder: 0.9, hunch: 0.5, belly: 0.04 },
   troll: { width: 1.5, limb: 1.65, leg: 0.72, head: 0.82, torso: 1.05, arm: 1.32, shoulder: 1.45, hunch: 1.3, belly: 0.06 },
   imp: { width: 0.72, limb: 0.66, leg: 0.72, head: 1.3, torso: 0.78, arm: 0.95, shoulder: 0.85 },
   skeleton: { width: 0.9, limb: 0.55, leg: 1, head: 1.02, torso: 1, arm: 1, shoulder: 1 },
@@ -125,7 +125,7 @@ export function normaliseLook(look = {}, outfit = {}, variant = 'human', opts = 
     bow: null,
     lookRaw: look,
     npc: !!opts.npc,
-    lids: v === 'human',
+    lids: v === 'human' || v === 'goblin' || v === 'troll',
   };
   // NPC conveniences: look.staff (walking staff), look.weapon (kind).
   if (look.staff && !spec.outfit.weapon) spec.outfit.weapon = { kind: 'walking-staff', tint: null };
@@ -922,36 +922,44 @@ function buildHuman(ctx) {
 }
 
 function buildGoblin(ctx) {
-  const { spec, B, b, hr, headC, o } = ctx;
+  const { spec, B, b, hr, headC, o, yHips } = ctx;
   const skin = spec.skin, cloth = spec.top;
   const [cx, cy, cz] = headC;
-  addPelvis(ctx, shade(cloth, 0.8));
-  if (o.body?.kind === 'goblin_mail') addGoblinMail(ctx);
-  else {
-    addTorso(ctx, cloth, { colorFn: patchy(cloth) });
-    addSkirt(ctx, shade(cloth, 0.9), ctx.yHips - 0.12, { jag: true, inner: false });
-    addBelt(ctx, '#3a2616', '#8a8f95', 0.07);
+  const skinC = C(skin), clothC = C(cloth), t = new THREE.Color();
+  // Rag shirt over a pot belly (patchy cloth), bare neck.
+  if (o.body?.kind === 'goblin_mail') {
+    addTorsoH(ctx, skin, { colorAt: (row) => (row[5] === 'neck' ? skinC : clothC) });
+    const c = '#6b7f3a', rust = C('#7a5a2a'), R = rng(7);
+    addTorsoH(ctx, c, { extra: 0.016, noNeck: true, flat: true, shine: 0.4, colorFn: (x, y, z) => t.copy(Math.sin(x * 40 + y * 33) * Math.sin(z * 37 - y * 21) > 0.35 ? rust : C(c)).multiplyScalar(0.85 + R() * 0.3) });
+  } else {
+    addTorsoH(ctx, cloth, { colorAt: (row, a) => (row[5] === 'neck' ? skinC : t.copy(clothC).multiplyScalar(0.85 + 0.25 * (Math.sin(a * 5 + row[0] * 31) > 0.3 ? 1 : 0))) });
   }
-  B.add(sphere(0.13 * b.width, 10, 8), HB.spine, skin, { at: [0, 0.0, -0.06], scale: [1, 0.85, 0.8] }); // pot belly peeking out
-  addArms(ctx, { sleeves: 'short', sleeve: cloth, handScale: 1.2 });
-  addLegs(ctx, { pants: shade(cloth, 0.8), shinColor: skin, barefoot: true });
-  addHead(ctx, { noEars: true, nose: 0, jaw: 1.2, eyes: { sclera: '#e8d860', iris: '#1a1208', size: 1.15, sep: 0.07 } });
-  // Long ears.
+  addHemH(ctx, shade(cloth, 0.85), yHips - 0.12, { jag: true, trim: shade(cloth, 0.65) });
+  addBeltH(ctx, '#3a2616', '#8a8f95', null, { pouchColor: '#5a3a1a' });
+  addArmsH(ctx, { sleeves: 'short', sleeve: shade(cloth, 0.9), skin, handScale: 1.2 });
+  addLegsH(ctx, { pants: shade(cloth, 0.8), shorts: true, skin });
+  addBareFeet(ctx, skin, '#e8e0c8');
+  addHeadH(ctx, { noEars: true, nose: 0 });
+  // Long ears with a pink inner.
   for (const sx of [-1, 1]) {
-    B.add(cone(0.05, 0.26, 6), HB.head, skin, { at: [cx + sx * hr * 1.05, cy + 0.03, cz + 0.02], rot: [0.1, 0, sx * -1.25], scale: [1, 1, 0.45] });
-    B.add(cone(0.032, 0.18, 5), HB.head, mix(skin, '#c06060', 0.35), { at: [cx + sx * hr * 1.06, cy + 0.03, cz + 0.0], rot: [0.1, 0, sx * -1.25], scale: [1, 1, 0.3] });
+    B.add(cone(0.05, 0.26, 7), HB.head, skin, { at: [cx + sx * hr * 0.98, cy + 0.03, cz + 0.02], rot: [0.15, 0, sx * -1.2], scale: [1, 1, 0.45] });
+    B.add(cone(0.032, 0.18, 6), HB.head, mix(skin, '#c06060', 0.35), { at: [cx + sx * hr * 0.99, cy + 0.03, cz + 0.0], rot: [0.15, 0, sx * -1.2], scale: [1, 1, 0.3] });
   }
-  // Hooked nose, toothy grin.
-  B.add(cone(0.035, 0.14, 6), HB.head, shade(skin, 0.92), { at: [0, cy - 0.04, cz - hr * 1.0], rot: [-Math.PI / 2 - 0.5, 0, 0] });
-  B.add(box(0.13, 0.025, 0.03), HB.head, '#2a1010', { at: [0, cy - 0.1, cz - hr * 0.84] });
-  for (const sx of [-1, 1]) B.add(cone(0.012, 0.035, 4), HB.head, '#f0ead8', { at: [sx * 0.04, cy - 0.092, cz - hr * 0.86], rot: [Math.PI, 0, 0] });
-  // Heavy brow.
-  B.add(box(0.2, 0.03, 0.04), HB.head, shade(skin, 0.75), { at: [0, cy + 0.04, cz - hr * 0.86], rot: [0.3, 0, 0] });
-  // Scraggly hair tuft.
-  B.add(cone(0.05, 0.12, 5), HB.head, '#2a2a1a', { at: [0, cy + hr * 0.95, cz + 0.02], rot: [0.4, 0, 0] });
+  // Hooked nose and a scraggly tuft.
+  B.add(cone(0.04, 0.15, 8), HB.head, shade(skin, 0.95), { at: [0, cy - 0.04, cz - hr * 0.98], rot: [-Math.PI / 2 - 0.55, 0, 0] });
+  B.add(cone(0.05, 0.12, 5), HB.head, '#2a2a1a', { at: [0, cy + hr * 0.98, cz + 0.02], rot: [0.4, 0, 0] });
+  B.add(cone(0.035, 0.1, 5), HB.head, '#2a2a1a', { at: [0.05, cy + hr * 0.95, cz + 0.06], rot: [0.7, 0, -0.4] });
   const headK = o.head?.kind;
   if (headK === 'bell' || headK === 'crown' || headK === 'feathered-hat') addHat(ctx, headK);
   else if (headK === 'helm') addHelm(ctx, tint(o.head.tint));
+}
+function addBareFeet(ctx, skin, claw) {
+  const { B, spec } = ctx;
+  for (const side of [-1, 1]) {
+    const ft = side < 0 ? HB.ftL : HB.ftR;
+    B.add(sphere(0.072, 10, 8), ft, skin, { at: [0, -0.035, -0.06], scale: [1.05 * Math.min(1.3, spec.b.limb), 0.55, 2.1] });
+    for (let i = -1; i <= 1; i++) B.add(cone(0.016, 0.05, 4), ft, claw, { at: [i * 0.035, -0.05, -0.2], rot: [-Math.PI / 2, 0, 0] });
+  }
 }
 
 function patchy(c) {
@@ -960,26 +968,24 @@ function patchy(c) {
 }
 
 function buildTroll(ctx) {
-  const { spec, B, b, hr, headC } = ctx;
+  const { spec, B, b, hr, headC, yHips } = ctx;
   const skin = spec.skin, cloth = spec.top;
   const [cx, cy, cz] = headC;
-  const rough = (c) => { const a = C(c), t = new THREE.Color(); return (x, y, z) => t.copy(a).multiplyScalar(0.88 + 0.2 * Math.sin(x * 23 + z * 19) * Math.sin(y * 29)); };
-  addPelvis(ctx, skin);
-  addTorso(ctx, skin, { colorFn: rough(skin), extra: 0.02 });
-  // Hunched shoulder mass and belly.
-  B.add(sphere(0.2 * b.width * 0.8, 10, 8), HB.chest, skin, { at: [0, 0.12, 0.06], scale: [1.35, 0.8, 1], colorFn: rough(skin) });
-  B.add(sphere(0.15 * b.width * 0.85, 10, 8), HB.spine, shade(skin, 1.05), { at: [0, 0.0, -0.08], scale: [1, 0.9, 0.85] });
-  // Loincloth.
-  addSkirt(ctx, cloth, ctx.yHips - 0.24, { jag: true, extra: 0.02 });
-  addBelt(ctx, '#3a2a1a', '#8a8f80', 0.06);
-  addArms(ctx, { sleeves: 'short', sleeve: skin, skin, handScale: 1.4 });
-  addLegs(ctx, { pants: skin, shinColor: skin, barefoot: true, claw: '#d8d0b8' });
-  addHead(ctx, { noEars: false, nose: 2.2, jaw: 1.35, eyes: { sclera: '#e8d8a0', iris: '#3a1a10', size: 0.75, sep: 0.06 } });
-  // Underbite tusks, heavy brow, tuft.
-  for (const sx of [-1, 1]) B.add(cone(0.024, 0.11, 5), HB.head, '#efe8d8', { at: [sx * 0.06, cy - 0.08, cz - hr * 0.8], rot: [-0.25, 0, sx * -0.2] });
-  B.add(box(0.24, 0.045, 0.06), HB.head, shade(skin, 0.8), { at: [0, cy + 0.045, cz - hr * 0.84], rot: [0.35, 0, 0] });
-  B.add(cone(0.06, 0.12, 5), HB.head, '#3a3a30', { at: [0, cy + hr * 0.95, cz], rot: [0.2, 0, 0] });
-  // Shoulder warts / stones.
+  const skinC = C(skin), t = new THREE.Color();
+  const rough = (c) => { const a = C(c), tt = new THREE.Color(); return (x, y, z) => tt.copy(a).multiplyScalar(0.88 + 0.2 * Math.sin(x * 23 + z * 19) * Math.sin(y * 29)); };
+  addTorsoH(ctx, skin, { colorAt: (row, a) => t.copy(skinC).multiplyScalar(0.86 + 0.18 * Math.sin(a * 4 + row[0] * 23)) });
+  // Hunched shoulder mass.
+  B.add(sphere(0.2 * b.width * 0.8, 12, 10), HB.chest, skin, { at: [0, 0.12, 0.06], scale: [1.35, 0.8, 1], colorFn: rough(skin) });
+  addHemH(ctx, cloth, yHips - 0.24, { jag: true, extra: 0.02, trim: shade(cloth, 0.7) });
+  addBeltH(ctx, '#3a2a1a', '#8a8f80', null, { pouch: false });
+  addArmsH(ctx, { sleeves: 'none', skin, handScale: 1.4 });
+  addLegsH(ctx, { pants: skin });
+  addBareFeet(ctx, skin, '#d8d0b8');
+  addHeadH(ctx, { nose: 2.4 });
+  // Underbite tusks, a heavy brow ridge, a tuft.
+  for (const sx of [-1, 1]) B.add(cone(0.024, 0.11, 6), HB.head, '#efe8d8', { at: [sx * 0.07, cy - 0.09, cz - hr * 0.84], rot: [-0.25, 0, sx * -0.2] });
+  B.add(sphere(1, 12, 8), HB.head, shade(skin, 0.86), { at: [0, cy + 0.045, cz - hr * 0.78], scale: [hr * 0.78, hr * 0.17, hr * 0.28], rot: [0.25, 0, 0] });
+  B.add(cone(0.06, 0.12, 5), HB.head, '#3a3a30', { at: [0, cy + hr * 0.98, cz], rot: [0.2, 0, 0] });
   for (const sx of [-1, 1]) B.add(rock(0.05, 3 + sx), sx < 0 ? HB.shL : HB.shR, shade(skin, 0.85), { at: [sx * 0.03, 0.06, 0.03], flat: true });
 }
 

@@ -1,4 +1,4 @@
-// Painted faces: one premultiplied RGBA atlas (2048 x 1024, 32 cells of 256 px) shared by every
+// Painted faces: one premultiplied RGBA atlas (2048 x 2048, 100 cells of 204 px) shared by every
 // humanoid. A cell is painted on demand per face recipe (eyes, iris colour, brows, mouth,
 // expression, age lines, blush, stubble, freckles) and mapped onto the front of the head with a
 // planar projection (see FACE). Cell 0 stays transparent: geometry without a decal samples it.
@@ -6,11 +6,12 @@
 
 import * as THREE from 'three';
 
-const AW = 2048, AH = 1024, CELL = 256, COLS = AW / CELL, ROWS = AH / CELL;
+const AW = 2048, AH = 2048, CELL = 204, COLS = 10, ROWS = 10;
 // Face rectangle in head-radius units (head-local, y up, +x = the character's right).
 export const FACE = { x0: -0.8, x1: 0.8, y0: -0.95, y1: 0.65 };
 
-let canvas = null, g = null, tex = null;
+let canvas = null, big = null, g = null, tex = null;
+let cellCanvas = null, cellTex = null, uploaded = false, renderer = null;
 const slots = new Map(); // recipe key -> cell index
 let next = 1;
 
@@ -18,16 +19,36 @@ function ensure() {
   if (tex) return;
   canvas = document.createElement('canvas');
   canvas.width = AW; canvas.height = AH;
-  g = canvas.getContext('2d');
-  g.clearRect(0, 0, AW, AH);
+  big = canvas.getContext('2d');
+  big.clearRect(0, 0, AW, AH);
   tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.premultiplyAlpha = true;
   tex.anisotropy = 4;
   tex.minFilter = THREE.LinearMipmapLinearFilter;
   tex.magFilter = THREE.LinearFilter;
+  tex.onUpdate = () => { uploaded = true; };
+  cellCanvas = document.createElement('canvas');
+  cellCanvas.width = cellCanvas.height = CELL;
+  g = cellCanvas.getContext('2d');
+  cellTex = new THREE.CanvasTexture(cellCanvas);
 }
 export function faceTexture() { ensure(); return tex; }
+// With a renderer, cells painted after the first upload go up alone (texSubImage2D + mipmaps)
+// instead of re-uploading the whole 16 MB atlas.
+export function setFaceRenderer(r) { renderer = r; }
+function commit(idx) {
+  const col = idx % COLS, row = Math.floor(idx / COLS);
+  big.clearRect(col * CELL, row * CELL, CELL, CELL);
+  big.drawImage(cellCanvas, col * CELL, row * CELL);
+  if (uploaded && renderer?.copyTextureToTexture) {
+    try {
+      renderer.copyTextureToTexture(cellTex, tex, null, new THREE.Vector2(col * CELL, AH - (row + 1) * CELL));
+      return;
+    } catch (err) { console.warn('[actors] face cell upload', err); }
+  }
+  tex.needsUpdate = true;
+}
 
 // UV of a head-local point (in head-radius units) inside cell `idx`, clamped to the cell.
 export function faceUV(idx, x, y) {
@@ -45,19 +66,20 @@ export function faceCell(recipe) {
   let idx;
   if (next < COLS * ROWS) idx = next++;
   else {
-    // Atlas full: reuse the cell of the most similar recipe (same sex / age / expression).
+    // Atlas full: reuse the cell of the most similar recipe (same style first, then sex / age /
+    // expression).
     let best = 1, bestScore = -1;
     for (const [k, i] of slots) {
       const r = JSON.parse(k);
-      const sc = (r.female === recipe.female) * 4 + (r.old === recipe.old) * 2 + (r.expr === recipe.expr) + (r.brow === recipe.brow) * 0.5;
+      const sc = (r.style === recipe.style) * 20 + (r.female === recipe.female) * 4 + (r.old === recipe.old) * 2 + (r.expr === recipe.expr) + (r.brow === recipe.brow) * 0.5;
       if (sc > bestScore) { bestScore = sc; best = i; }
     }
     slots.set(key, best);
     return best;
   }
   paint(idx, recipe);
+  commit(idx);
   slots.set(key, idx);
-  tex.needsUpdate = true;
   return idx;
 }
 
@@ -73,19 +95,19 @@ const mixHex = (a, b, t) => '#' + new THREE.Color(a).lerp(new THREE.Color(b), t)
 function lum(hex) { const c = new THREE.Color(hex); return 0.3 * c.r + 0.59 * c.g + 0.11 * c.b; }
 
 function paint(idx, r) {
-  const col = idx % COLS, row = Math.floor(idx / COLS);
   const sx = CELL / (FACE.x1 - FACE.x0), sy = CELL / (FACE.y1 - FACE.y0);
   g.save();
   g.setTransform(1, 0, 0, 1, 0, 0);
-  g.clearRect(col * CELL, row * CELL, CELL, CELL);
-  g.beginPath(); g.rect(col * CELL + 2, row * CELL + 2, CELL - 4, CELL - 4); g.clip();
-  g.setTransform(sx, 0, 0, -sy, col * CELL - FACE.x0 * sx, row * CELL + FACE.y1 * sy);
+  g.clearRect(0, 0, CELL, CELL);
+  g.beginPath(); g.rect(2, 2, CELL - 4, CELL - 4); g.clip();
+  g.setTransform(sx, 0, 0, -sy, -FACE.x0 * sx, FACE.y1 * sy);
   g.lineCap = 'round'; g.lineJoin = 'round';
   const dark = lum(r.skin || '#e0b48a') < 0.32;
   // Shading colours relative to the skin (so dark and light skin both read).
   const shadow = mixHex(r.skin || '#e0b48a', '#3a1a12', 0.55);
   const ink = dark ? '#140a08' : '#2a1610';
 
+  if (r.style === 'goblin' || r.style === 'troll') { paintBrute(r, ink, shadow); g.restore(); return; }
   if (r.blush) for (const s of [-1, 1]) radial(s * 0.43, -0.3, 0.17, dark ? 'rgba(170,60,60,0.16)' : 'rgba(225,95,95,0.2)');
   if (r.freckles) {
     g.fillStyle = rgba(shadeHex(r.skin || '#e0b48a', 0.62), 0.5);
@@ -258,3 +280,51 @@ function mouth(r, ink, shadow) {
 
 // Debug / QA: the atlas canvas (null until the first face is painted).
 export function faceCanvas() { return canvas; }
+
+// Goblins: big round yellow eyes with slit pupils, angry brows, a wide toothy grin.
+// Trolls: small deep-set eyes under a heavy brow, a broad frowning mouth (tusks are geometry).
+function paintBrute(r, ink, shadow) {
+  const gob = r.style === 'goblin';
+  const brow = r.brow || '#2a3a14';
+  for (const s of [-1, 1]) {
+    const ex = s * (gob ? 0.33 : 0.3), ey = gob ? 0.02 : -0.02;
+    const er = gob ? 0.13 : 0.07;
+    radial(ex, ey + 0.02, er * 2.2, rgba(shadow, gob ? 0.3 : 0.5));
+    g.fillStyle = gob ? '#f2e27a' : '#f0b060';
+    g.beginPath(); g.ellipse(ex, ey, er * (gob ? 1.08 : 1.2), er * (gob ? 0.92 : 0.7), s * (gob ? -0.25 : 0), 0, Math.PI * 2); g.fill();
+    g.strokeStyle = rgba('#7a2a10', 0.6); g.lineWidth = 0.012; g.stroke();
+    g.fillStyle = '#120a04';
+    g.beginPath(); g.ellipse(ex + s * 0.01, ey - 0.004, er * (gob ? 0.2 : 0.35), er * (gob ? 0.78 : 0.55), 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = 'rgba(255,255,255,0.9)'; g.beginPath(); g.arc(ex + 0.025, ey + 0.03, er * 0.2, 0, Math.PI * 2); g.fill();
+    // Lid line and brow (angled down toward the nose = angry).
+    g.strokeStyle = ink; g.lineWidth = gob ? 0.028 : 0.03;
+    g.beginPath(); g.ellipse(ex, ey, er * (gob ? 1.08 : 1.2), er * (gob ? 0.92 : 0.7), s * (gob ? -0.25 : 0), Math.PI * 1.05, Math.PI * 1.95, false); g.stroke();
+    g.fillStyle = rgba(brow, 0.95);
+    g.beginPath();
+    g.moveTo(s * 0.1, ey + (gob ? 0.1 : 0.06)); g.lineTo(s * 0.52, ey + (gob ? 0.26 : 0.16));
+    g.lineTo(s * 0.5, ey + (gob ? 0.32 : 0.24)); g.lineTo(s * 0.12, ey + (gob ? 0.17 : 0.14)); g.closePath(); g.fill();
+  }
+  // Nostrils (the nose is geometry) and warts.
+  g.fillStyle = rgba(ink, 0.5);
+  for (const s of [-1, 1]) { g.beginPath(); g.ellipse(s * 0.05, -0.3, 0.02, 0.013, 0, 0, Math.PI * 2); g.fill(); }
+  g.fillStyle = rgba(shadow, 0.45);
+  for (const [x, y, rr] of [[0.42, -0.25, 0.025], [-0.36, -0.4, 0.018], [0.2, 0.32, 0.016]]) { g.beginPath(); g.arc(x, y, rr, 0, Math.PI * 2); g.fill(); }
+  if (gob) {
+    // Wide grin with a row of uneven teeth.
+    const y = -0.5;
+    g.fillStyle = '#3a0e0a';
+    g.beginPath(); g.moveTo(-0.36, y + 0.06); g.quadraticCurveTo(0, y - 0.24, 0.36, y + 0.06); g.quadraticCurveTo(0, y - 0.06, -0.36, y + 0.06); g.fill();
+    g.fillStyle = '#f2ead2';
+    for (let i = -3; i <= 3; i++) {
+      const x = i * 0.085, top = y + 0.04 - Math.abs(i) * 0.012 - 0.06 * (1 - Math.abs(i) / 3);
+      g.beginPath(); g.moveTo(x - 0.03, top + 0.01); g.lineTo(x + 0.03, top + 0.01); g.lineTo(x, top - (i % 2 ? 0.05 : 0.07)); g.closePath(); g.fill();
+    }
+    g.strokeStyle = ink; g.lineWidth = 0.02;
+    g.beginPath(); g.moveTo(-0.36, y + 0.06); g.quadraticCurveTo(0, y - 0.24, 0.36, y + 0.06); g.stroke();
+  } else {
+    const y = -0.56;
+    g.strokeStyle = rgba(ink, 0.85); g.lineWidth = 0.035;
+    g.beginPath(); g.moveTo(-0.3, y - 0.04); g.quadraticCurveTo(0, y + 0.05, 0.3, y - 0.04); g.stroke();
+    radial(0, y - 0.1, 0.16, rgba(shadow, 0.3));
+  }
+}

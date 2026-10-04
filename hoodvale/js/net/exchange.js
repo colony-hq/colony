@@ -27,6 +27,9 @@ import { netHub, docWriter, errCode } from './caps.js';
 import * as M from './market.js';
 import { openExchangeWindow, closeExchangeWindow, exchangeWindowOpen } from './ui-exchange.js';
 
+// Price ties: player orders before NPC liquidity, then oldest first (a consistent comparator).
+const tieBreak = (a, c) => (c.src === 'player') - (a.src === 'player') || (a.at || 0) - (c.at || 0);
+
 const SETTLE_MS = 2600;      // ~one block before a taker settles a player fill
 const LOCK_MS = 20000;       // NPC makers leave a live order alone this long after a player fill
 const CANCEL_GRACE_MS = 3600; // live cancels refund after in-flight fills had a chance to land
@@ -129,8 +132,8 @@ export function createExchange(ctx) {
   // Combined opposite side for a taker (best first; players first at equal prices).
   function takerLevels(id, takerSide) {
     const b = npcBook(id);
-    if (takerSide === 'buy') return [...b.asks, ...playerLevels(id, 'sell', true)].sort((a, c) => a.price - c.price || (a.src === 'player' ? -1 : 1));
-    return [...b.bids, ...playerLevels(id, 'buy', true)].sort((a, c) => c.price - a.price || (a.src === 'player' ? -1 : 1));
+    if (takerSide === 'buy') return [...b.asks, ...playerLevels(id, 'sell', true)].sort((a, c) => a.price - c.price || tieBreak(a, c));
+    return [...b.bids, ...playerLevels(id, 'buy', true)].sort((a, c) => c.price - a.price || tieBreak(a, c));
   }
 
   // ---- Fills ----------------------------------------------------------------------------
@@ -552,8 +555,9 @@ export function createExchange(ctx) {
     quote(id) { return M.isTradeable(id) || ITEMS[id] ? quote(id) : null; },
     book(id, levels = 6) {
       const b = npcBook(id);
-      const asks = [...b.asks, ...playerLevels(id, 'sell')].sort((a, c) => a.price - c.price).slice(0, levels);
-      const bids = [...b.bids, ...playerLevels(id, 'buy')].sort((a, c) => c.price - a.price).slice(0, levels);
+      // Same order as matching: at one price, player orders fill before the NPC book.
+      const asks = [...b.asks, ...playerLevels(id, 'sell')].sort((a, c) => a.price - c.price || tieBreak(a, c)).slice(0, levels);
+      const bids = [...b.bids, ...playerLevels(id, 'buy')].sort((a, c) => c.price - a.price || tieBreak(a, c)).slice(0, levels);
       const mine = X().orders.filter((o) => o.item === id && o.status === 'open').map((o) => ({ price: o.price, qty: o.qty - o.filled - o.pend, side: o.side, src: 'you', order: o.id }));
       return { mid: b.mid, bid: b.bid, ask: b.ask, tick: b.tick, asks, bids, mine, bestAsk: asks[0]?.price ?? b.ask, bestBid: bids[0]?.price ?? b.bid };
     },

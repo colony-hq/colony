@@ -99,7 +99,7 @@ fx.chips(at, 'wood'|'rock'|'anvil'|'water'); fx.flash(pos, color, size, life); f
 ## Character redesign (round 2)
 Humans are now one continuous sculpted surface (`a-body.js`): lofted torso / arms / legs / hands /
 boots with anatomical cross-sections skinned across the joints, a shaped head whose front carries a
-painted face from the shared decal atlas (`a-face.js`, 2048x1024, 32 cells painted on demand per
+painted face from the shared decal atlas (`a-face.js`, 2048x2048, 100 cells painted on demand per
 recipe: iris, brows, lips, expression, age lines, blush, stubble, freckles, scar), sculpted hair
 shells with lock ridges (long hair = fanned locks), beard shells, skin eyelids on the eyes bone for
 blinks, and an ink outline (inverted hull, `outlineMaterial()`, ~1.6 px; off on low quality, 30 m

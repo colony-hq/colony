@@ -1,11 +1,13 @@
 {
   "page": "index.html",
-  "count": 146,
-  "bytes": 2182669,
+  "count": 148,
+  "bytes": 2279699,
   "files": {
     "js/actors/a-anim.js": "js/actors/a-anim.js",
+    "js/actors/a-body.js": "js/actors/a-body.js",
     "js/actors/a-core.js": "js/actors/a-core.js",
     "js/actors/a-creatures.js": "js/actors/a-creatures.js",
+    "js/actors/a-face.js": "js/actors/a-face.js",
     "js/actors/a-fx.js": "js/actors/a-fx.js",
     "js/actors/a-gear.js": "js/actors/a-gear.js",
     "js/actors/a-humanoid.js": "js/actors/a-humanoid.js",
