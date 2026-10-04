@@ -94,7 +94,7 @@ export function createFeedback(U) {
   const queue = [];
   let showing = null;
   events.on('level:up', ({ skill, level }) => {
-    U.ui.message(`Congratulations, you've just advanced your ${skillName(skill)} level. You are now level ${level}.`, 'level');
+    U.ui.message(`Your ${skillName(skill)} grows stronger: level ${level}!`, 'level');
     queue.push({ skill, level });
     if (!showing) nextLevel();
   });
