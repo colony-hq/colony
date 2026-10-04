@@ -728,6 +728,7 @@ class Actor {
       else st.speed = damp(st.speed, Math.min(v, 9), 10, dt);
     }
     this.prevPos.copy(p); this.hasPrev = true;
+    if (this.frozen) return;
     // Timers.
     st.hurtT += dt;
     st.hurtK = st.hurtT < 0.06 ? st.hurtK : st.hurtK * Math.exp(-dt * 7);

@@ -87,7 +87,7 @@
   "eval": "__c.pick(\"I'll get on\")"
  },
  {
-  "eval": "__hv.credit(2000); __hv.teleport(258, 57); 1"
+  "eval": "__hv.level('hitpoints', 99); __hv.level('defence', 99); __hv.level('attack', 99); __hv.level('strength', 99); __hv.credit(2000); __hv.teleport(258, 57); 1"
  },
  {
   "wait": 800
