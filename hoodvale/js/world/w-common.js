@@ -111,9 +111,9 @@ U.uNoise.value = getNoiseTexture();
 // GLSL helpers (no uniforms declared here, declare what you use).
 export const GLSL_COMMON = /* glsl */`
 float hvHash12(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
-vec3 hvLin(vec3 c) { return c * c * (0.3 + 0.7 * c); }
+vec3 hvLin(vec3 c) { return pow(max(c, vec3(0.0)), vec3(2.2)); }
 `;
-// hvLin: cheap sRGB -> linear approximation (close to pow 2.2 in the mid range).
+// hvLin: sRGB -> linear (gamma 2.2).
 
 export function srgbToLinearArr(r, g, b) {
   const f = (c) => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));

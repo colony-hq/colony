@@ -81,10 +81,12 @@ vec3 col = vBase;
   mudC = mix(mudC, mudC * vec3(0.8, 0.95, 0.9), smoothstep(0.6, 0.8, nD.r));
   col = mix(col, mudC, mudW);
   // ---- pebbles (river banks, scree) ----
-  vec4 nP = texture2D(uNoise, wp * 0.25);
-  float stone = smoothstep(0.08, 0.25, nP.b);
-  vec3 pebC = mix(vec3(0.42, 0.40, 0.36), vec3(0.68, 0.65, 0.58), nP.a) * mix(0.55, 1.0, stone);
-  col = mix(col, pebC, smoothstep(0.35, 0.62, vMA.z + (nD.g - 0.5) * 0.3));
+  vec4 nP = texture2D(uNoise, wp * 0.3);
+  float stone = smoothstep(0.1, 0.25, nP.b) * smoothstep(0.55, 0.7, nP.a);
+  vec3 gravel = mix(vec3(0.50, 0.47, 0.41), vec3(0.62, 0.59, 0.52), nF.g) * (0.9 + 0.15 * nF.r);
+  vec3 pebC = mix(gravel, mix(vec3(0.55, 0.53, 0.49), vec3(0.74, 0.71, 0.65), nP.a), stone);
+  float pebW = smoothstep(0.35, 0.62, vMA.z + (nD.g - 0.5) * 0.3);
+  col = mix(col, mix(col, pebC, 0.85), pebW);
   // ---- sand ----
   float sandW = smoothstep(0.38, 0.62, vMA.y + (nD.r - 0.5) * 0.3);
   vec3 sandC = mix(vec3(0.83, 0.74, 0.54), vec3(0.94, 0.87, 0.69), nF.r) * (0.94 + 0.08 * nD.g);
@@ -136,8 +138,10 @@ vec3 col = vBase;
   float rockW = smoothstep(0.24, 0.34, rockN) * (1.0 - step(0.48, vMB.x));
   vec3 rc = vRock * (0.82 + 0.3 * nD.r);
   rc *= 0.86 + 0.14 * sin(vWPos.y * 2.4 + nD.g * 5.0);
-  vec4 nR = texture2D(uNoise, vec2(wp.x * 0.7 + wp.y * 0.7, vWPos.y * 1.4) * 0.09);
-  rc *= mix(0.62, 1.0, smoothstep(0.02, 0.14, nR.b));
+  vec4 nR = texture2D(uNoise, vec2(wp.x * 0.7 + wp.y * 0.7, vWPos.y * 1.6) * 0.07);
+  float crk = (1.0 - smoothstep(0.02, 0.1, nR.b)) * smoothstep(0.4, 0.7, nD.b);
+  rc *= 1.0 - 0.3 * crk;
+  rc *= 0.9 + 0.2 * nR.a;
   rc *= 0.82 + 0.32 * clamp(vWNrm.y * 1.4, 0.0, 1.0);
   col = mix(col, rc, rockW);
   // ---- interior floors ----
@@ -184,13 +188,13 @@ vec3 col = vBase;
   }
   // ---- Orbio plateau: crystal-tinted ground with glowing veins ----
   if (vMC.z > 0.01) {
-    col = mix(col, col * vec3(0.9, 0.95, 1.2), vMC.z * 0.6);
-    float vein = 1.0 - smoothstep(0.0, 0.022, abs(nD.r - 0.5));
+    col = mix(col, col * vec3(0.95, 0.97, 1.1), vMC.z * 0.4);
+    float vein = (1.0 - smoothstep(0.0, 0.012, abs(nD.r - 0.5))) * smoothstep(0.35, 0.6, nM.g);
     float pulse = 0.6 + 0.4 * sin(uTime * 1.3 + wp.x * 0.15 + wp.y * 0.1);
     vec3 vc = mix(vec3(0.35, 0.95, 1.0), vec3(0.78, 0.52, 1.0), nM.r);
     float vk = vein * vMC.z * (1.0 - step(0.48, vMB.x)) * (1.0 - roadW);
-    col = mix(col, vc, vk * 0.7);
-    hvEmis += vc * vk * pulse * (0.35 + 0.9 * uNight) * uGlow;
+    col = mix(col, vc, vk * 0.5);
+    hvEmis += vc * vk * pulse * (0.12 + 0.9 * uNight) * uGlow;
   }
   // ---- wet line + caustics under shallow water ----
   float wet = 1.0 - smoothstep(0.02, 0.45, vWPos.y);
@@ -210,13 +214,13 @@ vec3 col = vBase;
   // ---- Goblin Warrens: earthy cave floor ----
   col *= 0.82 + 0.32 * nD.r;
   col *= 0.9 + 0.2 * nF.g;
-  vec4 nP = texture2D(uNoise, wp * 0.22);
-  float stone = smoothstep(0.08, 0.22, nP.b);
-  vec3 pebC = mix(vec3(0.38, 0.33, 0.27), vec3(0.56, 0.50, 0.41), nP.a) * mix(0.55, 1.0, stone);
-  col = mix(col, pebC, smoothstep(0.4, 0.6, vMA.z));
+  vec4 nP = texture2D(uNoise, wp * 0.3);
+  float stone = smoothstep(0.12, 0.3, nP.b) * smoothstep(0.72, 0.8, nP.a);
+  vec3 pebC = mix(vec3(0.45, 0.40, 0.33), vec3(0.62, 0.56, 0.47), nP.a);
+  col = mix(col, pebC, stone * smoothstep(0.3, 0.6, vMA.z));
   col = mix(col, vec3(0.21, 0.18, 0.13), smoothstep(0.4, 0.65, vMA.w) * 0.75);
-  float root = 1.0 - smoothstep(0.0, 0.018, abs(texture2D(uNoise, wp * 0.05).g - 0.5));
-  col *= 1.0 - 0.4 * root;
+  float root = (1.0 - smoothstep(0.0, 0.012, abs(texture2D(uNoise, wp * 0.05).g - 0.5))) * smoothstep(0.5, 0.7, nM.r);
+  col *= 1.0 - 0.3 * root;
   col *= mix(0.3, 1.0, vMC.w);
 #elif TERRAIN_KIND == 2
   // ---- Sheriff's Vault: worn flagstones + crimson carpet ----
@@ -241,17 +245,21 @@ vec3 col = vBase;
   col *= mix(0.3, 1.0, vMC.w);
 #elif TERRAIN_KIND == 3
   // ---- Ashen Lair: cracked basalt with glowing ash ----
-  vec4 nS = texture2D(uNoise, wp * 0.05);
-  float crack = 1.0 - smoothstep(0.012, 0.05, nS.b);
-  vec4 nS2 = texture2D(uNoise, wp * 0.13 + 0.3);
-  float crack2 = 1.0 - smoothstep(0.01, 0.035, nS2.b);
+  vec4 nS = texture2D(uNoise, wp * 0.028);
+  float fis = smoothstep(0.35, 0.65, texture2D(uNoise, wp * 0.012 + 0.7).r);
+  float crack = (1.0 - smoothstep(0.01, 0.03 + 0.04 * fis, nS.b)) * smoothstep(0.15, 0.5, fis + nD.g * 0.4);
+  vec4 nS2 = texture2D(uNoise, wp * 0.09 + 0.3);
+  float crack2 = 1.0 - smoothstep(0.008, 0.03, nS2.b);
   col = vBase * (0.75 + 0.5 * nS.a) * (0.85 + 0.25 * nF.r);
   vec3 ashC = mix(vec3(0.30, 0.29, 0.28), vec3(0.42, 0.40, 0.38), nF.g);
   col = mix(col, ashC, smoothstep(0.4, 0.7, vMC.y + (nD.r - 0.5) * 0.3) * 0.8);
-  float ck = max(crack, crack2 * 0.6);
+  col *= 0.85 + 0.15 * nS.a;
+  col = mix(col, col * 0.55, (1.0 - smoothstep(0.02, 0.12, nS.b)));
+  float ck = max(crack, crack2 * 0.25 * smoothstep(0.6, 0.8, nD.r));
   col = mix(col, vec3(0.10, 0.06, 0.05), ck);
   float pulse = 0.6 + 0.4 * sin(uTime * 1.6 + nS.a * 6.28);
-  hvEmis += vec3(1.0, 0.30, 0.05) * ck * pulse * 1.6 * uGlow;
+  hvEmis += vec3(1.0, 0.30, 0.05) * ck * pulse * 1.8 * uGlow;
+  hvEmis += vec3(1.0, 0.35, 0.08) * smoothstep(0.75, 0.95, fis) * (1.0 - smoothstep(0.0, 0.2, nS.b)) * 0.25 * pulse * uGlow;
   col *= mix(0.4, 1.0, vMC.w);
 #endif
 `;

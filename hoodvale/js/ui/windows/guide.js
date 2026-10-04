@@ -9,7 +9,7 @@ import { NPCS } from '../../data/npcs.js';
 import { QUEST_BY_ID } from '../../data/quests.js';
 import { SMELTING, COOKING, FIREMAKING, FLETCHING, CRAFTING, INSCRIBING, SPELLS } from '../../data/economy.js';
 import { skillIcon, spellIcon } from '../icons.js';
-import { esc, fmtInt, safe } from '../util.js';
+import { cap, esc, fmtInt, safe } from '../util.js';
 import { questStatus } from '../panels/quests.js';
 
 const CSS = `
@@ -167,7 +167,7 @@ export function createGuides(U) {
       list.append(h('li' + (lvl >= r.level ? '.ok' : ''), {}, [
         h('span.lv', { text: String(r.level) }),
         h('img', { src: icon, alt: '' }),
-        h('div', { html: `${esc(r.name || '')}${r.note ? `<small>${esc(r.note)}</small>` : ''}` }),
+        h('div', { html: `${esc(cap(r.name || ''))}${r.note ? `<small>${esc(r.note)}</small>` : ''}` }),
       ]));
     }
     if (!list.children.length) list.append(h('li', { text: 'Nothing to list yet.' }));

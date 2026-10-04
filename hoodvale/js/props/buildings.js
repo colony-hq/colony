@@ -23,6 +23,7 @@ export function createBuildings(ctx) {
   group.name = 'buildings';
   ctx.scene.add(group);
   const shadows = !!ctx.engine?.preset?.shadows;
+  const FAR = Math.max(180, (ctx.engine?.preset?.drawDistance || 480) * 0.7);
 
   const cells = new Map();
   const entries = [];
@@ -50,6 +51,7 @@ export function createBuildings(ctx) {
       entry.mesh.castShadow = shadows;
       entry.mesh.receiveShadow = true;
       group.add(entry.mesh);
+      entry.near = true;
     }
     // effects
     for (const f of K.fx) {
@@ -87,8 +89,10 @@ export function createBuildings(ctx) {
     mesh.castShadow = shadows;
     mesh.receiveShadow = true;
     group.add(mesh);
+    kit.cull(mesh, FAR);
   }
 
+  const camPos = new THREE.Vector3();
   function insideOf(b) {
     const p = ctx.player;
     if (!p) return false;
@@ -106,14 +110,22 @@ export function createBuildings(ctx) {
     update(dt) {
       kit.tick(ctx);
       const t = ctx.time.t;
+      const checkDist = ctx.time.frame % 3 === 0 && ctx.camera;
+      if (checkDist) ctx.camera.getWorldPosition(camPos);
+      const lim = Math.min(FAR, (ctx.scene.fog?.far ?? Infinity) + 8);
       for (const e of entries) {
+        if (checkDist && e.mesh) {
+          const bs = e.mesh.geometry.boundingSphere;
+          const near = bs.center.distanceTo(camPos) - bs.radius <= lim;
+          if (near !== e.near) { e.near = near; e.mesh.visible = near && e.op > 0.02; }
+        }
         const target = insideOf(e.b) ? 0 : 1;
         if (e.op === target) continue;
         e.op = target > e.op ? Math.min(1, e.op + dt * 3.5) : Math.max(0, e.op - dt * 3.5);
         const vis = e.op > 0.02;
         if (e.mat) {
           e.mat.opacity = e.op;
-          e.mesh.visible = vis;
+          e.mesh.visible = vis && e.near;
         }
         for (const h of e.fxFade) fx.show(h, vis);
         for (const a of e.anims) if (a.fade) a.holder.visible = vis;

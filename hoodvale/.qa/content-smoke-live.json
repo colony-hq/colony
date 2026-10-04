@@ -1,0 +1,68 @@
+[
+ {
+  "eval": "window.__c = {\n  D() { return __hv.ctx.ui._U.dialogue; },\n  waiting() { return !!this.D().waiting; },\n  text() { return (document.querySelector('.u-dlg .tx')?.textContent || '').slice(0, 160); },\n  opts() { return [...document.querySelectorAll('.u-dlg .opts button')].map((b) => b.textContent.replace(/^\\d+\\./, '')); },\n  next() { const d = this.D(); if (!d.waiting) return 'idle'; if (this.opts().length) return 'opts:' + this.opts().join('|'); d.key('Space'); d.key('Space'); return 'next'; },\n  pick(t) { const o = this.opts(); const i = o.findIndex((x) => x.includes(t)); if (i < 0) return 'missing ' + t + ' in ' + o.join('|'); this.D().choose(i); return 'picked ' + o[i]; },\n  async until(t, max = 12) { const log = []; for (let k = 0; k < max; k++) { await new Promise((r) => setTimeout(r, 120)); if (!this.waiting()) { log.push('wait'); continue; } const o = this.opts(); if (o.length) { if (t && o.some((x) => x.includes(t))) { log.push(this.pick(t)); return log.join(','); } return log.join(',') + ' STOP opts:' + o.join('|'); } log.push(this.text().slice(0, 40)); this.next(); } return log.join(',') + ' (max)'; },\n  async drain(max = 12) { const log = []; for (let k = 0; k < max; k++) { await new Promise((r) => setTimeout(r, 150)); if (!this.waiting()) { if (!__hv.ctx.dialogue.active) return log.join(' / ') + ' [closed]'; continue; } if (this.opts().length) return log.join(' / ') + ' [opts: ' + this.opts().join('|') + ']'; log.push(this.text().slice(0, 50)); this.next(); } return log.join(' / '); },\n}; 1"
+ },
+ {
+  "eval": "__hv.play('Smoke')"
+ },
+ {
+  "wait": 1500
+ },
+ {
+  "eval": "window.claude = { use: async (n) => (n === 'sample' ? async (p, o) => { await new Promise((r) => setTimeout(r, 1500)); return { text: 'Iron waits for you in Copperhollow at Mining 15, west along Miners\\' Way; Dunstan sells a sturdier pickaxe. (Mock live answer; the prompt carried ' + p.length + ' characters of Vale facts.)', truncated: false }; } : null) }; 1"
+ },
+ {
+  "eval": "__hv.level('hitpoints', 99); __hv.level('defence', 99); __hv.credit(500); __hv.ctx.combat?.setAutoRetaliate?.(false); __hv.ctx.state.flag('seen:op_intro', true); __hv.teleport(258, 56); 1"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "eval": "__hv.ctx.actions.perform(__hv.ctx.entities.get('n:oracle'), 'Consult'); 1"
+ },
+ {
+  "eval": "__hv.fastForward(4); 1"
+ },
+ {
+  "waitFor": "window.__c && __c.opts().some((o) => o.includes('own words'))",
+  "timeout": 20000
+ },
+ {
+  "log": "[__c.opts(), __hv.ctx.oracle.liveState]"
+ },
+ {
+  "eval": "__c.pick('own words')"
+ },
+ {
+  "waitFor": "!!document.querySelector('.hv-oracle-ask textarea')",
+  "timeout": 15000
+ },
+ {
+  "eval": "document.querySelector('.hv-oracle-ask textarea').value = 'Where should I mine iron?'; 1"
+ },
+ {
+  "shot": "d04-oracle-ask"
+ },
+ {
+  "eval": "[...document.querySelectorAll('.hv-oracle-ask button')].find((b) => b.textContent === 'Ask').click(); 1"
+ },
+ {
+  "wait": 600
+ },
+ {
+  "shot": "d05-oracle-thinking"
+ },
+ {
+  "waitFor": "window.__c && /Mock live answer/.test(__c.text())",
+  "timeout": 20000
+ },
+ {
+  "wait": 1200
+ },
+ {
+  "shot": "d06-oracle-live"
+ },
+ {
+  "log": "[__c.text(), __hv.ctx.wallet.balance, __hv.ctx.state.save.stats.thoughts]"
+ }
+]

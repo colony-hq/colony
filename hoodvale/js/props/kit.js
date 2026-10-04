@@ -414,6 +414,7 @@ export class Pool {
     this.owner = []; // dense index -> logical
     this.freeIds = [];
     this.dirty = true;
+    this.culled = false;
     this.mesh = null;
     this._grow(capacity);
   }
@@ -453,8 +454,13 @@ export class Pool {
   }
   _sync() {
     this.mesh.count = this.visible;
-    this.mesh.visible = this.visible > 0;
+    this.mesh.visible = this.visible > 0 && !this.culled;
     this.dirty = true;
+  }
+  setCulled(c) {
+    if (c === this.culled) return;
+    this.culled = c;
+    this.mesh.visible = this.visible > 0 && !c;
   }
   add(matrix, color = null) {
     if (this.total >= this.cap) this._grow(this.cap * 2);
@@ -531,6 +537,9 @@ export function getKit(ctx) {
   try { atlas.anisotropy = Math.min(8, ctx.renderer?.capabilities?.getMaxAnisotropy?.() || 1); } catch { /* ignore */ }
 
   const pools = new Set();
+  const culls = new Map(); // Mesh | Pool -> max distance
+  const _cam = new THREE.Vector3();
+  const _sph = new THREE.Sphere();
   const signs = []; // { text, style, rect px }
   const g2d = canvas.getContext('2d');
   let bigUsed = 0, smallUsed = 0;
@@ -547,6 +556,9 @@ export function getKit(ctx) {
     Builder, Pool, M, lin, mulberry32, hashStr,
     night: 0,
     pools,
+    // Distance culling (on top of frustum culling): beyond `dist` (or the fog) a mesh/pool hides.
+    cull(target, dist = Infinity) { culls.set(target, dist); },
+    uncull(target) { culls.delete(target); },
     makePool(parent, geometry, material, opts) {
       const p = new Pool(parent, geometry, material, opts);
       pools.add(p);
@@ -577,6 +589,23 @@ export function getKit(ctx) {
       KIT.night = nightFactor(hour);
       U.uNight.value = KIT.night;
       for (const p of pools) p.refresh();
+      if (c.time.frame % 3 === 0 && c.camera) {
+        c.camera.getWorldPosition(_cam);
+        const fogFar = c.scene?.fog?.far ?? Infinity;
+        for (const [t, dist] of culls) {
+          const lim = Math.min(dist, fogFar + 8);
+          if (t instanceof Pool) {
+            const bs = t.mesh.boundingSphere;
+            if (!bs) continue;
+            t.setCulled(bs.center.distanceTo(_cam) - bs.radius > lim);
+          } else {
+            const bs = t.geometry?.boundingSphere;
+            if (!bs) continue;
+            _sph.copy(bs).applyMatrix4(t.matrixWorld);
+            t.visible = _sph.center.distanceTo(_cam) - _sph.radius <= lim;
+          }
+        }
+      }
     },
   };
   // Repaint signs once the display fonts are available.

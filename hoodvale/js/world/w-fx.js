@@ -237,7 +237,7 @@ varying float vSeed;
 void main() {
   float d = length(vUv - 0.5) * 2.0;
   float n = texture2D(uNoise, vW.xz * 0.03 + uTime * vec2(0.004, 0.003) + vSeed).r;
-  float a = smoothstep(1.0, 0.2, d) * smoothstep(0.25, 0.75, n) * (0.3 + 0.18 * uNight);
+  float a = smoothstep(1.0, 0.3, d) * smoothstep(0.45, 0.85, n) * (0.11 + 0.1 * uNight);
   vec3 c = mix(vec3(0.75, 0.85, 0.82), uHorizon * 1.4 + vec3(0.06, 0.1, 0.1), 0.45) * (0.55 + 0.45 * uAmbient.g);
   gl_FragColor = vec4(c, a);
   #include <fog_fragment>

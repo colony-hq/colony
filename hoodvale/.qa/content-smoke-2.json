@@ -1,0 +1,223 @@
+[
+ {
+  "eval": "window.__c = {\n  D() { return __hv.ctx.ui._U.dialogue; },\n  waiting() { return !!this.D().waiting; },\n  text() { return (document.querySelector('.u-dlg .tx')?.textContent || '').slice(0, 160); },\n  opts() { return [...document.querySelectorAll('.u-dlg .opts button')].map((b) => b.textContent.replace(/^\\d+\\./, '')); },\n  next() { const d = this.D(); if (!d.waiting) return 'idle'; if (this.opts().length) return 'opts:' + this.opts().join('|'); d.key('Space'); d.key('Space'); return 'next'; },\n  pick(t) { const o = this.opts(); const i = o.findIndex((x) => x.includes(t)); if (i < 0) return 'missing ' + t + ' in ' + o.join('|'); this.D().choose(i); return 'picked ' + o[i]; },\n  async until(t, max = 12) { const log = []; for (let k = 0; k < max; k++) { await new Promise((r) => setTimeout(r, 120)); if (!this.waiting()) { log.push('wait'); continue; } const o = this.opts(); if (o.length) { if (t && o.some((x) => x.includes(t))) { log.push(this.pick(t)); return log.join(','); } return log.join(',') + ' STOP opts:' + o.join('|'); } log.push(this.text().slice(0, 40)); this.next(); } return log.join(',') + ' (max)'; },\n  async drain(max = 12) { const log = []; for (let k = 0; k < max; k++) { await new Promise((r) => setTimeout(r, 150)); if (!this.waiting()) { if (!__hv.ctx.dialogue.active) return log.join(' / ') + ' [closed]'; continue; } if (this.opts().length) return log.join(' / ') + ' [opts: ' + this.opts().join('|') + ']'; log.push(this.text().slice(0, 50)); this.next(); } return log.join(' / '); },\n}; 1"
+ },
+ {
+  "eval": "__hv.play('Smoke')"
+ },
+ {
+  "wait": 1500
+ },
+ {
+  "eval": "__hv.teleport(177, 243); __hv.ctx.actions.perform(__hv.ctx.entities.get('n:guide_elowen'), 'Talk-to'); 1"
+ },
+ {
+  "waitFor": "window.__c && __c.waiting()",
+  "timeout": 20000
+ },
+ {
+  "eval": "__c.until('Teach me')"
+ },
+ {
+  "eval": "__c.drain(10)"
+ },
+ {
+  "eval": "(() => { const ds = [\"tree\"]; const p = {x: 177, z: 236}; const os = __hv.ctx.entities.byKind('object').filter((e) => ds.includes(e.defId) && !e.state.depleted).sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z)); if (!os[0]) return 'none'; __hv.ctx.actions.perform(os[0], \"Chop down\"); return [os[0].defId, os[0].x, os[0].z]; })()"
+ },
+ {
+  "eval": "__hv.fastForward(40); 1"
+ },
+ {
+  "log": "[__hv.ctx.quests.stage('into_the_vale'), __hv.ctx.inventory.slots.filter(Boolean).map((e) => e.id + 'x' + e.qty).join(',')]"
+ },
+ {
+  "eval": "(() => { const i = __hv.ctx.inventory.indexOf('logs'); __hv.ctx.game.useInventory(i, 'Light'); return i; })()"
+ },
+ {
+  "eval": "__hv.fastForward(15); 1"
+ },
+ {
+  "log": "[__hv.ctx.quests.stage('into_the_vale'), __hv.ctx.inventory.slots.filter(Boolean).map((e) => e.id + 'x' + e.qty).join(',')]"
+ },
+ {
+  "eval": "(() => { const ds = [\"fish_net_bait\"]; const p = {x: 160, z: 246}; const os = __hv.ctx.entities.byKind('object').filter((e) => ds.includes(e.defId) && !e.state.depleted).sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z)); if (!os[0]) return 'none'; __hv.ctx.actions.perform(os[0], \"Net\"); return [os[0].defId, os[0].x, os[0].z]; })()"
+ },
+ {
+  "eval": "__hv.fastForward(70); 1"
+ },
+ {
+  "log": "[__hv.ctx.quests.stage('into_the_vale'), __hv.ctx.inventory.slots.filter(Boolean).map((e) => e.id + 'x' + e.qty).join(',')]"
+ },
+ {
+  "eval": "(() => { const ds = [\"range\"]; const p = {x: 167, z: 260}; const os = __hv.ctx.entities.byKind('object').filter((e) => ds.includes(e.defId) && !e.state.depleted).sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z)); if (!os[0]) return 'none'; __hv.ctx.actions.perform(os[0], \"Cook\"); return [os[0].defId, os[0].x, os[0].z]; })()"
+ },
+ {
+  "waitFor": "!!document.querySelector('.u-mitem')",
+  "timeout": 15000
+ },
+ {
+  "eval": "(() => { const b = [...document.querySelectorAll('.u-mitem')].find((x) => x.textContent.includes(\"Shrimp\") && !x.disabled); if (!b) return 'no ' + \"Shrimp\"; b.click(); return 'made'; })()"
+ },
+ {
+  "eval": "__hv.fastForward(25); 1"
+ },
+ {
+  "log": "[__hv.ctx.quests.stage('into_the_vale'), __hv.ctx.inventory.slots.filter(Boolean).map((e) => e.id + 'x' + e.qty).join(',')]"
+ },
+ {
+  "eval": "(() => { const ds = [\"rock_copper\"]; const p = {x: 209, z: 253}; const os = __hv.ctx.entities.byKind('object').filter((e) => ds.includes(e.defId) && !e.state.depleted).sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z)); if (!os[0]) return 'none'; __hv.ctx.actions.perform(os[0], \"Mine\"); return [os[0].defId, os[0].x, os[0].z]; })()"
+ },
+ {
+  "eval": "__hv.fastForward(30); 1"
+ },
+ {
+  "eval": "(() => { const ds = [\"rock_tin\"]; const p = {x: 209, z: 253}; const os = __hv.ctx.entities.byKind('object').filter((e) => ds.includes(e.defId) && !e.state.depleted).sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z)); if (!os[0]) return 'none'; __hv.ctx.actions.perform(os[0], \"Mine\"); return [os[0].defId, os[0].x, os[0].z]; })()"
+ },
+ {
+  "eval": "__hv.fastForward(30); 1"
+ },
+ {
+  "log": "[__hv.ctx.quests.stage('into_the_vale'), __hv.ctx.inventory.slots.filter(Boolean).map((e) => e.id + 'x' + e.qty).join(',')]"
+ },
+ {
+  "eval": "(() => { const ds = [\"furnace\"]; const p = {x: 197, z: 255}; const os = __hv.ctx.entities.byKind('object').filter((e) => ds.includes(e.defId) && !e.state.depleted).sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z)); if (!os[0]) return 'none'; __hv.ctx.actions.perform(os[0], \"Smelt\"); return [os[0].defId, os[0].x, os[0].z]; })()"
+ },
+ {
+  "waitFor": "!!document.querySelector('.u-mitem')",
+  "timeout": 15000
+ },
+ {
+  "eval": "(() => { const b = [...document.querySelectorAll('.u-mitem')].find((x) => x.textContent.includes(\"Bronze bar\") && !x.disabled); if (!b) return 'no ' + \"Bronze bar\"; b.click(); return 'made'; })()"
+ },
+ {
+  "eval": "__hv.fastForward(12); 1"
+ },
+ {
+  "log": "[__hv.ctx.quests.stage('into_the_vale'), __hv.ctx.inventory.slots.filter(Boolean).map((e) => e.id + 'x' + e.qty).join(',')]"
+ },
+ {
+  "eval": "(() => { const ds = [\"anvil\"]; const p = {x: 201, z: 257}; const os = __hv.ctx.entities.byKind('object').filter((e) => ds.includes(e.defId) && !e.state.depleted).sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z)); if (!os[0]) return 'none'; __hv.ctx.actions.perform(os[0], \"Smith\"); return [os[0].defId, os[0].x, os[0].z]; })()"
+ },
+ {
+  "waitFor": "!!document.querySelector('.u-mitem')",
+  "timeout": 15000
+ },
+ {
+  "eval": "(() => { const b = [...document.querySelectorAll('.u-mitem')].find((x) => x.textContent.includes(\"Bronze dagger\") && !x.disabled); if (!b) return 'no ' + \"Bronze dagger\"; b.click(); return 'made'; })()"
+ },
+ {
+  "eval": "__hv.fastForward(12); 1"
+ },
+ {
+  "log": "[__hv.ctx.quests.stage('into_the_vale'), __hv.ctx.inventory.slots.filter(Boolean).map((e) => e.id + 'x' + e.qty).join(',')]"
+ },
+ {
+  "eval": "(() => { const p = __hv.ctx.player; const r = __hv.ctx.entities.byKind('monster').filter((e) => e.defId === 'rat' && e.alive && !e.hidden).sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z))[0]; __hv.ctx.actions.perform(r, 'Attack'); return [r.x, r.z]; })()"
+ },
+ {
+  "eval": "__hv.fastForward(50); 1"
+ },
+ {
+  "log": "[__hv.ctx.quests.stage('into_the_vale'), __hv.ctx.inventory.slots.filter(Boolean).map((e) => e.id + 'x' + e.qty).join(',')]"
+ },
+ {
+  "eval": "(() => { const ds = [\"bank_booth\"]; const p = {x: 201, z: 238}; const os = __hv.ctx.entities.byKind('object').filter((e) => ds.includes(e.defId) && !e.state.depleted).sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z)); if (!os[0]) return 'none'; __hv.ctx.actions.perform(os[0], \"Bank\"); return [os[0].defId, os[0].x, os[0].z]; })()"
+ },
+ {
+  "eval": "__hv.fastForward(12); 1"
+ },
+ {
+  "log": "[__hv.ctx.quests.stage('into_the_vale'), __hv.ctx.inventory.slots.filter(Boolean).map((e) => e.id + 'x' + e.qty).join(',')]"
+ },
+ {
+  "wait": 500
+ },
+ {
+  "shot": "d01-bank-step"
+ },
+ {
+  "eval": "__hv.ctx.ui.closeWindow?.('bank'); document.querySelector('.u-win .hv-close, .u-win .u-x')?.click(); __hv.ctx.actions.perform(__hv.ctx.entities.get('n:guide_elowen'), 'Talk-to'); 1"
+ },
+ {
+  "eval": "__hv.fastForward(12); 1"
+ },
+ {
+  "waitFor": "window.__c && __c.waiting()",
+  "timeout": 20000
+ },
+ {
+  "eval": "__c.drain(3)"
+ },
+ {
+  "shot": "d02-elowen-finish"
+ },
+ {
+  "eval": "__c.drain(10)"
+ },
+ {
+  "log": "[__hv.ctx.quests.stage('into_the_vale'), __hv.ctx.wallet.balance, __hv.ctx.quests.points(), __hv.ctx.state.flag('unlock:wallet_airdrop')]"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "shot": "d03-complete"
+ },
+ {
+  "eval": "window.claude = { use: async (n) => (n === 'sample' ? async (p, o) => { await new Promise((r) => setTimeout(r, 1500)); return { text: 'Iron waits for you in Copperhollow at Mining 15, west along Miners\\' Way; Dunstan sells a sturdier pickaxe. (Mock live answer; the prompt carried ' + p.length + ' characters of Vale facts.)', truncated: false }; } : null) }; 1"
+ },
+ {
+  "eval": "__hv.level('hitpoints', 99); __hv.level('defence', 99); __hv.credit(500); __hv.ctx.state.flag('seen:op_intro', true); __hv.teleport(258, 57); 1"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "eval": "__hv.ctx.actions.perform(__hv.ctx.entities.get('n:oracle'), 'Consult'); 1"
+ },
+ {
+  "eval": "__hv.fastForward(4); 1"
+ },
+ {
+  "waitFor": "window.__c && __c.opts().some((o) => o.includes('own words'))",
+  "timeout": 20000
+ },
+ {
+  "log": "[__c.opts(), __hv.ctx.oracle.liveState]"
+ },
+ {
+  "eval": "__c.pick('own words')"
+ },
+ {
+  "waitFor": "!!document.querySelector('.hv-oracle-ask textarea')",
+  "timeout": 15000
+ },
+ {
+  "eval": "document.querySelector('.hv-oracle-ask textarea').value = 'Where should I mine iron?'; 1"
+ },
+ {
+  "shot": "d04-oracle-ask"
+ },
+ {
+  "eval": "[...document.querySelectorAll('.hv-oracle-ask button')].find((b) => b.textContent === 'Ask').click(); 1"
+ },
+ {
+  "wait": 600
+ },
+ {
+  "shot": "d05-oracle-thinking"
+ },
+ {
+  "waitFor": "window.__c && /Mock live answer/.test(__c.text())",
+  "timeout": 20000
+ },
+ {
+  "wait": 1200
+ },
+ {
+  "shot": "d06-oracle-live"
+ },
+ {
+  "log": "[__c.text(), __hv.ctx.wallet.balance, __hv.ctx.state.save.stats.thoughts]"
+ }
+]

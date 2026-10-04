@@ -8,7 +8,8 @@ import { iconHTML } from '../icons.js';
 
 const CSS = `
 .u-side { position: absolute; right: 8px; bottom: 8px; width: 250px; pointer-events: auto; padding: 6px; box-sizing: border-box; display: flex; flex-direction: column; }
-.u-tabrow { display: grid; gap: 3px; }
+.u-tabrow { display: flex; justify-content: center; gap: 3px; }
+.u-tabrow .u-tab { flex: 0 0 calc((100% - (var(--n, 5) - 1) * 3px) / var(--n, 5)); }
 .u-tabrow.top { margin-bottom: 5px; } .u-tabrow.bot { margin-top: 5px; }
 .u-tab { position: relative; height: 34px; border: 0; padding: 0; cursor: pointer; display: grid; place-items: center; color: #bf9f5c;
   background: linear-gradient(180deg, #3b2c20, #261c14); border-radius: 6px;
@@ -68,7 +69,7 @@ export function createSide(U) {
     top.innerHTML = ''; bot.innerHTML = ''; bar.innerHTML = '';
     const n = tabs.length;
     const perRow = Math.ceil(n / 2);
-    top.style.gridTemplateColumns = bot.style.gridTemplateColumns = `repeat(${perRow}, 1fr)`;
+    top.style.setProperty('--n', perRow); bot.style.setProperty('--n', perRow);
     tabs.forEach((t, i) => (i < perRow ? top : bot).append(t.btn));
     for (const t of tabs) bar.append(t.barBtn);
     for (const b of extraBar) bar.append(b);

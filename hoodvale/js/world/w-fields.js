@@ -40,11 +40,11 @@ const PAL_HEX = {
   copperhollow: { grass: 0x949648, dry: 0xbc9b52, lush: 0x7b8d41, soil: 0xa7713d, rock: 0x9e6c4b, dryAmt: 0.95, soilAmt: 0.42 },
   mistfen: { grass: 0x638a6c, dry: 0x7d8e72, lush: 0x557f66, soil: 0x5f5b47, rock: 0x66726b, dryAmt: 0.55, soilAmt: 0.3 },
   gildmoor: { grass: 0x70a047, dry: 0x95ae57, lush: 0x5c8f40, soil: 0x876f53, rock: 0x908879, dryAmt: 0.6, soilAmt: 0.08 },
-  oracle: { grass: 0x5d8d8a, dry: 0x7d8ab0, lush: 0x4b7e84, soil: 0x5f557b, rock: 0x8c84b0, dryAmt: 0.8, soilAmt: 0.18 },
+  oracle: { grass: 0x67907a, dry: 0x8a8ea6, lush: 0x56826f, soil: 0x6a6080, rock: 0x8c84b0, dryAmt: 0.7, soilAmt: 0.15 },
   highlands: { grass: 0x7a845f, dry: 0x968f69, lush: 0x627750, soil: 0x6b6357, rock: 0x7f7b77, dryAmt: 0.85, soilAmt: 0.38 },
 };
 export const PALETTE = {};
-const desat = (c, k = 0.14) => { const l = c[0] * 0.3 + c[1] * 0.55 + c[2] * 0.15; return c.map((v) => v + (l - v) * k); };
+const desat = (c, k = 0.2) => { const l = c[0] * 0.3 + c[1] * 0.55 + c[2] * 0.15; return c.map((v) => v + (l - v) * k); };
 for (const k of ZONE_KEYS) {
   const p = PAL_HEX[k];
   PALETTE[k] = { grass: desat(hex(p.grass)), dry: desat(hex(p.dry)), lush: desat(hex(p.lush)), soil: hex(p.soil), rock: hex(p.rock), dryAmt: p.dryAmt, soilAmt: p.soilAmt };
@@ -458,7 +458,7 @@ export function getOverworldFields() {
     for (let c = 0; c < 3; c++) {
       tmp[c] = lerp(tmp[c], ALPINE[c], alt * 0.55);
       tmp[c] = lerp(tmp[c], ASH[c], ash[v] * 0.85);
-      tmp[c] = lerp(tmp[c], CRYS[c], crystal[v] * 0.4);
+      tmp[c] = lerp(tmp[c], CRYS[c], crystal[v] * 0.18);
       tmp[c] = lerp(tmp[c], SNOW[c], snow[v]);
       rk[c] = lerp(rk[c], ASH[c] * 0.85, ash[v] * 0.7);
       rk[c] = lerp(rk[c], 0.62, alt * 0.25);
@@ -550,9 +550,9 @@ export function getDungeonFields(id) {
   const floor = new Float32Array(NN), floorType = new Float32Array(NN), farm = new Float32Array(NN), farmInfo = new Float32Array(NN);
   const cobble = new Float32Array(NN), ash = new Float32Array(NN), crystal = new Float32Array(NN), ao = new Float32Array(NN);
   const PAL = {
-    1: { a: hex(0x6b5638), b: hex(0x84694a), rock: hex(0x6e5a44) },
+    1: { a: hex(0x7c6444), b: hex(0x957856), rock: hex(0x7a6448) },
     2: { a: hex(0x7c7a76), b: hex(0x8f8b84), rock: hex(0x77736c) },
-    3: { a: hex(0x2f2c2b), b: hex(0x45403c), rock: hex(0x2d2a2a) },
+    3: { a: hex(0x4a4440), b: hex(0x655c55), rock: hex(0x3a3434) },
   }[kind];
   for (let z = 0; z < N; z++) for (let x = 0; x < N; x++) {
     const v = z * N + x;

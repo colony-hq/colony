@@ -349,7 +349,7 @@ export class BKit {
   }
 
   // Hipped roof (or pyramid when square). Faces with own plane UVs.
-  hipRoof({ H = this.H, pitch = 35, over = 0.45, mat, under = '#5a4636', fascia = '#4e3524', B = this.R, axis = this.b.w >= this.b.d ? 'x' : 'z', lift = 0 } = {}) {
+  hipRoof({ H = this.H, pitch = 35, over = 0.45, mat, under = '#5a4636', fascia = '#4e3524', B = this.R, axis = this.b.w >= this.b.d ? 'x' : 'z', lift = 0.16 } = {}) {
     const F = this.roofFrame(axis);
     const { L, hs } = this.dims(axis);
     const th = (pitch * Math.PI) / 180;

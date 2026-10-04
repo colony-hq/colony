@@ -21,7 +21,7 @@ function particleMaterial(additive) {
       void main() {
         vColor = aColor; vAlpha = aAlpha;
         vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-        gl_PointSize = max(1.0, aSize * uScale / max(0.1, -mvPosition.z));
+        gl_PointSize = max(1.0, aSize * uScale * 1.35 / max(0.1, -mvPosition.z));
         gl_Position = projectionMatrix * mvPosition;
         #include <fog_vertex>
       }`,
@@ -32,7 +32,14 @@ function particleMaterial(additive) {
         float a = texture2D(uTex, gl_PointCoord).a * vAlpha;
         if (a < 0.004) discard;
         gl_FragColor = vec4(vColor * ${additive ? 'a' : '1.0'}, ${additive ? '1.0' : 'a'});
-        #include <fog_fragment>
+        ${additive ? `#ifdef USE_FOG
+          #ifdef FOG_EXP2
+            float fogF = 1.0 - exp(-fogDensity * fogDensity * vFogDepth * vFogDepth);
+          #else
+            float fogF = smoothstep(fogNear, fogFar, vFogDepth);
+          #endif
+          gl_FragColor.rgb *= 1.0 - fogF;
+        #endif` : '#include <fog_fragment>'}
       }`,
     transparent: true, depthWrite: false, fog: true,
     blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending,
@@ -270,6 +277,15 @@ export function createFx(ctx, parent) {
     }
     return p;
   }
+  // Slow rising motes (ambient glow around magical beings).
+  function motes(where, o = {}) {
+    const p = at(where, new THREE.Vector3(), 'feet');
+    const n = o.count ?? 1;
+    for (let i = 0; i < n; i++) {
+      const a = R() * TAU, r = (o.radius ?? 0.8) * Math.sqrt(R());
+      add.emit({ x: p.x + Math.cos(a) * r, y: p.y + (o.y0 ?? 0.1) + R() * (o.height ?? 0.6), z: p.z + Math.sin(a) * r, vx: 0, vy: o.speed ?? 0.5, vz: 0, life: o.life ?? 2.2, size: o.size ?? 0.09, size1: 0.02, color: col(R() < 0.5 ? (o.color || 'orbio') : (o.color2 || 'magic'), 1.3), alpha: 0.9, flicker: 0.3 });
+    }
+  }
   function ring(where, o = {}) {
     const p = at(where, new THREE.Vector3(), 'feet');
     const n = Math.round((o.count ?? 32) * Math.max(0.5, q()));
@@ -303,7 +319,7 @@ export function createFx(ctx, parent) {
     for (let i = 0; i < Math.round(50 * q()); i++) {
       later(R() * 0.8, () => {
         const a = R() * TAU, r = 0.3 + R() * 0.3;
-        add.emit({ x: p.x + Math.cos(a) * r, y: p.y + 0.1, z: p.z + Math.sin(a) * r, vy: 2.5 + R() * 2, life: 1.2, size: 0.13, size1: 0.03, color: col('#ffe9a8', 1.4), alpha: 1, flicker: 0.5 });
+        add.emit({ x: p.x + Math.cos(a) * r, y: p.y + 0.1, z: p.z + Math.sin(a) * r, vy: 2.5 + R() * 2, life: 1.2, size: 0.16, size1: 0.04, color: col('#ffe9a8', 1.5), alpha: 1, flicker: 0.5 });
       });
     }
     // Fireworks: rockets that burst around the head.
@@ -315,7 +331,7 @@ export function createFx(ctx, parent) {
       const c = colors[k % colors.length];
       later(0.1 + k * 0.22, () => {
         projectile({ from: p.clone().setY(p.y + 0.3), to: target, kind: 'rocket', color: c, speed: 9, arc: 0.4, onHit: (pt) => {
-          burst(pt, { color: c, count: 46, speed: 4.2, size: 0.13, size1: 0.03, life: 1.1, grav: 2.2, drag: 1.6, flicker: 0.4, flashSize: 2.2 });
+          burst(pt, { color: c, count: 56, speed: 4.4, size: 0.2, size1: 0.04, life: 1.2, grav: 2.2, drag: 1.6, flicker: 0.4, flashSize: 2.6 });
           burst(pt, { color: '#ffffff', count: 10, speed: 2, size: 0.08, life: 0.5, grav: 1, flash: false });
         } });
       });
@@ -513,7 +529,7 @@ export function createFx(ctx, parent) {
   return {
     group, update, clear,
     projectile, shoot, cast, breath, breathStream,
-    burst, hitSpark, smoke, deathSmoke, dust, splash, sparkle, heal, ring, swirl, teleport, levelUp, stun, chips, flash,
+    burst, hitSpark, smoke, deathSmoke, dust, splash, sparkle, heal, ring, swirl, teleport, levelUp, stun, chips, flash, motes,
     get count() { return add.n + soft.n; },
     get projectiles() { return projectiles.length; },
   };

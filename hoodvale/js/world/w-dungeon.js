@@ -62,7 +62,12 @@ if (vKeep < 0.5) {
     col *= mix(0.55, 1.0, smoothstep(0.0, 1.4, vWPos.y));
     col = mix(col, vec3(0.22, 0.3, 0.18), smoothstep(0.65, 0.85, texture2D(uNoise, tuv * 0.15).r) * (1.0 - smoothstep(0.2, 1.2, vWPos.y)) * 0.7);
   } else {
-    col = vec3(0.16, 0.16, 0.17) * (0.8 + 0.3 * texture2D(uNoise, wp * 0.2).r);
+    vec2 q = wp / vec2(1.0, 0.6);
+    q.x += mod(floor(q.y), 2.0) * 0.5;
+    vec2 f = fract(q);
+    float hh = hvHash12(floor(q) + 3.0);
+    col = mix(vec3(0.34, 0.33, 0.31), vec3(0.44, 0.42, 0.40), hh) * (0.85 + 0.25 * texture2D(uNoise, wp * 0.2).r);
+    col *= mix(0.6, 1.0, smoothstep(0.0, 0.06, f.x) * smoothstep(1.0, 0.94, f.x) * smoothstep(0.0, 0.1, f.y) * smoothstep(1.0, 0.9, f.y));
   }
   col = hvLin(col);
 #else
@@ -103,33 +108,54 @@ vKeep = aKeep;`);
 
 // ---------------------------------------------------------------------------------------------
 function caveWalls(id, DF, kind) {
-  const { N, W, H, x0, z0, solid, floorV, rockDepth, heights } = DF;
+  const { N, W, H, x0, z0, solid, rockDepth, heights } = DF;
   const n1 = createNoise2D(900 + kind), n2 = createNoise2D(950 + kind);
-  const px = new Float32Array(N * N), py = new Float32Array(N * N), pz = new Float32Array(N * N);
-  for (let z = 0; z < N; z++) for (let x = 0; x < N; x++) {
-    const v = z * N + x;
+  // Half-tile sub-grid: M x M vertices at (i/2, j/2).
+  const M = 2 * W + 1;
+  const isSolid = (tx, tz) => tx < 0 || tz < 0 || tx >= W || tz >= H || solid[tz * W + tx] === 1;
+  const px = new Float32Array(M * M), py = new Float32Array(M * M), pz = new Float32Array(M * M);
+  const hBil = (x, z) => {
+    const i = Math.min(N - 2, Math.floor(x)), j = Math.min(N - 2, Math.floor(z));
+    const tx = x - i, tz = z - j, k = j * N + i;
+    return (heights[k] * (1 - tx) + heights[k + 1] * tx) * (1 - tz) + (heights[k + N] * (1 - tx) + heights[k + N + 1] * tx) * tz;
+  };
+  const dBil = (x, z) => {
+    const i = Math.min(N - 2, Math.floor(x)), j = Math.min(N - 2, Math.floor(z));
+    const tx = x - i, tz = z - j, k = j * N + i;
+    return (rockDepth[k] * (1 - tx) + rockDepth[k + 1] * tx) * (1 - tz) + (rockDepth[k + N] * (1 - tx) + rockDepth[k + N + 1] * tx) * tz;
+  };
+  for (let j = 0; j < M; j++) for (let i = 0; i < M; i++) {
+    const v = j * M + i;
+    const x = i / 2, z = j / 2;
+    // tiles touching this sub-vertex
+    const xs = i % 2 === 0 ? [i / 2 - 1, i / 2] : [(i - 1) / 2];
+    const zs = j % 2 === 0 ? [j / 2 - 1, j / 2] : [(j - 1) / 2];
+    let floorish = false;
+    for (const tz of zs) for (const tx of xs) if (!isSolid(tx, tz)) floorish = true;
     const wx = x0 + x, wz = z0 + z;
-    if (floorV[v]) { px[v] = wx; py[v] = heights[v]; pz[v] = wz; continue; }
-    const d = rockDepth[v];
-    const j = d < 1.6 ? 0.42 : 0.25;
-    px[v] = wx + n1(wx * 0.6, wz * 0.6) * j;
-    pz[v] = wz + n2(wx * 0.6, wz * 0.6) * j;
-    py[v] = (kind === 3 ? 2.0 : 2.3) + Math.min(d, 4.5) * 0.75 + n1(wx * 0.23, wz * 0.23) * 1.0 + n2(wx * 0.9, wz * 0.9) * 0.35;
+    if (floorish) { px[v] = wx; py[v] = hBil(x, z); pz[v] = wz; continue; }
+    const d = dBil(x, z);
+    const j2 = d < 1.2 ? 0.28 : 0.2;
+    px[v] = wx + n1(wx * 0.9, wz * 0.9) * j2;
+    pz[v] = wz + n2(wx * 0.9, wz * 0.9) * j2;
+    const lip = Math.min(1, d / 0.9);
+    py[v] = hBil(x, z) + lip * ((kind === 3 ? 2.2 : 2.6) + Math.min(d, 4.5) * 0.85 + n1(wx * 0.23, wz * 0.23) * 1.0 + n2(wx * 1.3, wz * 1.3) * 0.45);
   }
   const pos = [], col = [];
-  const baseC = kind === 3 ? [0.2, 0.18, 0.18] : [0.46, 0.37, 0.27];
-  const topC = kind === 3 ? [0.11, 0.1, 0.1] : [0.24, 0.19, 0.14];
+  const baseC = kind === 3 ? [0.44, 0.38, 0.36] : [0.6, 0.48, 0.36];
+  const topC = kind === 3 ? [0.22, 0.19, 0.18] : [0.26, 0.2, 0.15];
   const vcol = (v) => {
     const t = Math.min(1, Math.max(0, (py[v] - 0.3) / 3.5));
-    const nn = 0.85 + 0.3 * (n2(px[v] * 0.4, pz[v] * 0.4) * 0.5 + 0.5);
+    const nn = 0.82 + 0.36 * (n2(px[v] * 0.5, pz[v] * 0.5) * 0.5 + 0.5);
     return [lin((baseC[0] + (topC[0] - baseC[0]) * t) * nn), lin((baseC[1] + (topC[1] - baseC[1]) * t) * nn), lin((baseC[2] + (topC[2] - baseC[2]) * t) * nn)];
   };
-  const P = (v) => [px[v], py[v], pz[v]];
   for (let tz = 0; tz < H; tz++) for (let tx = 0; tx < W; tx++) {
     if (!solid[tz * W + tx]) continue;
-    const a = tz * N + tx, b = a + 1, c = a + N, d = c + 1;
-    for (const tri of [[a, c, b], [c, d, b]]) {
-      for (const v of tri) { pos.push(...P(v)); col.push(...vcol(v)); }
+    for (let sj = 0; sj < 2; sj++) for (let si = 0; si < 2; si++) {
+      const i = tx * 2 + si, j = tz * 2 + sj;
+      const a = j * M + i, b = a + 1, c = a + M, d = c + 1;
+      const tris = (si + sj) % 2 === 0 ? [[a, c, b], [c, d, b]] : [[a, c, d], [a, d, b]];
+      for (const tri of tris) for (const v of tri) { pos.push(px[v], py[v], pz[v]); col.push(...vcol(v)); }
     }
   }
   const geo = new THREE.BufferGeometry();

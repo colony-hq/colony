@@ -34,9 +34,9 @@ const KEYS = [
 ];
 
 const DUNGEON_RIG = {
-  warrens: { fog: 0x120d09, near: 5, far: 34, hemiSky: 0x8a7258, hemiGround: 0x22160c, hemiI: 0.75, key: 0xffd2a0, keyI: 0.55, torch: 0xffae5c, torchI: 26 },
-  vault: { fog: 0x0c0e14, near: 6, far: 38, hemiSky: 0x6a7288, hemiGround: 0x1a1812, hemiI: 0.7, key: 0xc8d4ff, keyI: 0.5, torch: 0xffbf70, torchI: 24 },
-  lair: { fog: 0x1c0905, near: 5, far: 34, hemiSky: 0x8a4428, hemiGround: 0x220a05, hemiI: 0.8, key: 0xff9050, keyI: 0.6, torch: 0xff9a55, torchI: 22 },
+  warrens: { fog: 0x161009, near: 7, far: 38, hemiSky: 0xb09070, hemiGround: 0x3a2a1a, hemiI: 1.25, key: 0xffd8b0, keyI: 0.9, torch: 0xffae5c, torchI: 30 },
+  vault: { fog: 0x0e1018, near: 7, far: 40, hemiSky: 0x9aa2b8, hemiGround: 0x2a2620, hemiI: 1.2, key: 0xd0dcff, keyI: 0.85, torch: 0xffbf70, torchI: 28 },
+  lair: { fog: 0x220c06, near: 6, far: 36, hemiSky: 0xb06a48, hemiGround: 0x3a140a, hemiI: 1.25, key: 0xffa070, keyI: 0.9, torch: 0xff9a55, torchI: 28 },
 };
 
 const C = (h) => new THREE.Color(h);
@@ -320,7 +320,7 @@ export function createSky(ctx) {
         if (scene.background?.isColor) scene.background.setHex(R.fog);
         hemi.color.setHex(R.hemiSky); hemi.groundColor.setHex(R.hemiGround); hemi.intensity = R.hemiI;
         sun.color.setHex(R.key); sun.intensity = R.keyI;
-        keyDir.set(0.25, 1, 0.35).normalize();
+        keyDir.set(0.45, 0.75, 0.6).normalize();
         engine.renderer.toneMappingExposure = 1.12;
         const fl = 1 + 0.06 * Math.sin(t * 9.1) + 0.05 * Math.sin(t * 13.7 + 1.3);
         torch.color.setHex(R.torch);

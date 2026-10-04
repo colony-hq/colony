@@ -83,6 +83,22 @@ window.__hv = {
     document.body.appendChild(cv);
     return { ms: Math.round(ms), w: cv.width, icons: m.mapIcons(region).length };
   },
+  tris() {
+    const cam = engine.camera; cam.updateMatrixWorld();
+    const fr = new THREE.Frustum().setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
+    const out = {};
+    engine.scene.traverseVisible((o) => {
+      if (!o.isMesh && !o.isPoints) return;
+      if (o.frustumCulled && !fr.intersectsObject(o)) return;
+      const g = o.geometry; let t = (g.index ? g.index.count : g.attributes.position.count) / 3;
+      if (g.drawRange && g.drawRange.count !== Infinity) t = g.drawRange.count / 3;
+      if (o.isInstancedMesh) t *= o.count; else if (g.isInstancedBufferGeometry) t *= g.instanceCount;
+      let top = o; while (top.parent && top.parent !== engine.scene) top = top.parent;
+      const key = (top.name || o.name || o.type).split(':').slice(0, 2).join(':');
+      out[key] = (out[key] || 0) + Math.round(t);
+    });
+    return Object.fromEntries(Object.entries(out).sort((a, b) => b[1] - a[1]).slice(0, 25));
+  },
   unmap() { document.getElementById('mapimg')?.remove(); },
   ff(sec) { for (let t = 0; t < sec; t += 1 / 30) step(1 / 30); },
 };

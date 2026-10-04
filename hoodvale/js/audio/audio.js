@@ -108,7 +108,7 @@ export function createAudio(ctx) {
   let loop = { cur: null, n: 0 };
   const monsterVoiceAt = new Map();
   const deathHandled = new Map();
-  let idleT = 0, musicT = 0, paramT = 0;
+  let idleT = 0, paramT = 0;
   let lastSpell = null;
   let lastSurface = 'grass';
   let lastDeath = -99;
@@ -261,7 +261,7 @@ export function createAudio(ctx) {
     if (!jumped && wantKey && wantKey !== 'login' && wantKey !== 'boss' && wantKey !== 'dungeon' && wantKey !== 'wilds' && now() - wildsSince < 40) return wantKey;
     return 'wilds';
   }
-  function updateMusic(dt) {
+  function updateMusic() {
     const target = musicOverride || autoMusic();
     const t = now();
     if (target !== candidate) { candidate = target; candidateSince = t; }
@@ -324,15 +324,29 @@ export function createAudio(ctx) {
     if (!p || !es?.near) return;
     const night = ctx.sky?.hour != null && (ctx.sky.hour < 5.5 || ctx.sky.hour > 20.5);
     for (const e of es.near(Math.floor(p.x), Math.floor(p.z), 16)) {
-      if (e.kind !== 'monster' || e.alive === false) continue;
+      if (e.kind !== 'monster' || e.alive === false || e.hidden || e.dying) continue;
       const v = voiceFor(e);
       if (!v || !v[2]) continue;
-      if (Math.random() < v[2] * 1.2 * (e.state?.target || e.state?.combat ? 0.3 : 1)) {
+      if (Math.random() < v[2] * 1.2 * (e.ai?.mode === 'combat' ? 0.3 : 1)) {
         voice(e, 'idle', v[0] === 'wolf' && night && Math.random() < 0.4 ? { howl: true } : {});
         break;
       }
     }
   }
+
+  // Music selection + bar scheduling, timed on the audio clock (frames may be slow or clamped).
+  let lastMusicCheck = -9, lastMusicTick = -9;
+  function tickMusic() {
+    const t = now();
+    lastMusicTick = t;
+    if (t - lastMusicCheck >= 0.4 || forceMusic) {
+      lastMusicCheck = t;
+      try { updateMusic(); } catch (err) { console.warn('[audio] music', err); }
+    }
+    music.update();
+  }
+  // Fallback when frames stall (heavy load): keep the score scheduled from a timer.
+  setInterval(() => { if (ready() && now() - lastMusicTick > 0.25) { try { tickMusic(); } catch { /* ignore */ } } }, 200);
 
   // ---------------------------------------------------------------- API
   const api = {
@@ -351,8 +365,10 @@ export function createAudio(ctx) {
           ac = new AC({ latencyHint: 'interactive' });
           build();
           forceMusic = true;
+          // iOS: a silent buffer started inside the gesture fully unlocks output.
+          try { const b = ac.createBuffer(1, 1, ac.sampleRate); const s = ac.createBufferSource(); s.buffer = b; s.connect(ac.destination); s.start(0); } catch { /* ignore */ }
         }
-        if (ac.state === 'suspended' && !document.hidden) ac.resume().catch(() => {});
+        if (ac.state !== 'running' && ac.state !== 'closed' && !document.hidden) ac.resume().catch(() => {});
         api.unlocked = true;
         return true;
       } catch (err) {
@@ -394,9 +410,7 @@ export function createAudio(ctx) {
       if (!ready()) return;
       const t = now();
       sfx.updateListener();
-      musicT -= dt;
-      if (musicT <= 0) { musicT = 0.4; try { updateMusic(dt); } catch (err) { console.warn('[audio] music', err); } }
-      music.update();
+      tickMusic();
       amb.update(dt);
       idleVoices(dt);
       api.frameExtras?.(dt);
@@ -455,7 +469,13 @@ export function createAudio(ctx) {
   events.on('save:loaded', spawned);
   events.on('mode:change', () => { forceMusic = true; });
   events.on('region:enter', () => { forceMusic = true; });
-  events.on('settings:change', () => applyVolumes(false));
+  let lastSfxVol = state.settings?.sfxVolume;
+  events.on('settings:change', () => {
+    applyVolumes(false);
+    const v = state.settings?.sfxVolume;
+    if (ready() && v !== lastSfxVol) play('ui-tab', { delay: 0.05 }); // preview the new effects level
+    lastSfxVol = v;
+  });
   on('zone:enter', ({ first, minor }) => {
     forceMusic = true;
     if (first && !minor && state.mode === 'play') { const end = play('discover', { delay: 0.2 }); if (end) duck(0.5, end - now()); }
@@ -738,7 +758,7 @@ export function createAudio(ctx) {
     if (custom) { if (sfx.has(custom)) play(custom); return; }
     play('ui-click');
   };
-  const unlockOnGesture = () => { if (!api.unlocked || ac?.state === 'suspended') api.unlock(); };
+  const unlockOnGesture = () => { if (!api.unlocked || (ac && ac.state !== 'running')) api.unlock(); };
   window.addEventListener('pointerdown', (ev) => { unlockOnGesture(); uiClick(ev); }, true);
   window.addEventListener('keydown', unlockOnGesture, true);
   window.addEventListener('touchend', unlockOnGesture, true);

@@ -30,7 +30,7 @@ export function geoGrassTuft() {
     const h = 0.26 + r() * 0.26, w = 0.045 + r() * 0.03;
     const lean = 0.06 + r() * 0.1;
     B.tri([bx - tx * w, 0, bz - tz * w], [bx + tx * w, 0, bz + tz * w], [bx + Math.cos(a) * lean, h, bz + Math.sin(a) * lean],
-      [g3(0.62), g3(0.62), [1.22, 1.24, 1.05]], 0, [0, 1, 0]);
+      [g3(0.7), g3(0.7), [1.12, 1.15, 1.0]], 0, [0, 1, 0]);
   }
   return B.build({ upNormals: true });
 }
@@ -62,7 +62,7 @@ function blob(B, cx, cy, cz, rad, seed, colTop = 1.15, colBot = 0.62, keep = 0, 
   const g = new THREE.IcosahedronGeometry(rad, 1);
   const p = g.attributes.position;
   for (let i = 0; i < p.count; i++) {
-    const k = 0.82 + r() * 0.3;
+    const k = 0.9 + r() * 0.16;
     p.setXYZ(i, p.getX(i) * k, p.getY(i) * k * sy, p.getZ(i) * k);
   }
   const m = M4().makeTranslation(cx, cy, cz);
@@ -76,7 +76,7 @@ function blob(B, cx, cy, cz, rad, seed, colTop = 1.15, colBot = 0.62, keep = 0, 
     nrm.push(v.x, v.y, v.z);
   }
   for (let i = 0; i < pp.count; i += 3) {
-    const shade = 0.9 + r() * 0.2;
+    const shade = 1;
     const tri = [];
     for (let j = 0; j < 3; j++) {
       const y = pp.getY(i + j);
@@ -93,9 +93,11 @@ function blob(B, cx, cy, cz, rad, seed, colTop = 1.15, colBot = 0.62, keep = 0, 
 
 export function geoBush(berries = false) {
   const B = new GeoBuilder();
-  blob(B, 0, 0.42, 0, 0.55, 3);
-  blob(B, 0.42, 0.32, 0.12, 0.4, 5);
-  blob(B, -0.3, 0.3, -0.25, 0.42, 7);
+  blob(B, 0, 0.45, 0, 0.55, 3);
+  blob(B, 0.42, 0.33, 0.12, 0.4, 5);
+  blob(B, -0.32, 0.3, -0.25, 0.42, 7);
+  blob(B, -0.1, 0.3, 0.38, 0.36, 9);
+  blob(B, 0.15, 0.72, -0.08, 0.32, 11);
   if (berries) {
     const r = mulberry32(99);
     for (let i = 0; i < 9; i++) {

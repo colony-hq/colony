@@ -187,7 +187,7 @@ export const STYLES = {
     K.H = 3.5;
     const big = K.b.w * K.b.d > 40;
     stoneBuilding(K, { stone: '#cbc2b0', quoin: '#e2dacb', arch: true, bars: true, doorArch: true, floor: '#d0c8b8', floorTile: TILE.MARBLE });
-    K.hipRoof({ pitch: 32, mat: { tile: TILE.SLATE, color: '#5d6672' }, under: '#4a3a2e' });
+    K.hipRoof({ pitch: 32, mat: { tile: TILE.SLATE, color: '#707c8a' }, under: '#4a3a2e' });
     const d = K.doors[0];
     const sd = K.side(d.side);
     // pilasters + chain emblem over the door
@@ -572,9 +572,9 @@ export const STYLES = {
     K.floor({ tile: TILE.MARBLE, color: '#e6e0d4', found: '#9a9286' });
     // checker inlay
     for (let x = K.x0 + 1; x < K.x1 - 1; x++) for (let z = K.z0 + 1; z < K.z1 - 1; z++) if ((x + z) % 2 === 0) K.S.boxAt(x + 0.05, K.fy + 0.07, z + 0.05, x + 0.95, K.fy + 0.075, z + 0.95, { tile: TILE.MARBLE, color: '#8a8478', world: true });
-    const roof = K.hipRoof({ pitch: 30, mat: { tile: TILE.SLATE, color: '#4f5a66' } });
+    const roof = K.hipRoof({ pitch: 30, mat: { tile: TILE.SLATE, color: '#6a7480' } });
     // cupola with the glowing ledger band, dome and chain finial
-    const cx = K.cx, cz = K.cz, cy = roof.Hr - 0.4;
+    const cx = K.cx, cz = K.cz, cy = K.fy + roof.Hr - 0.4;
     const drum = new THREE.CylinderGeometry(1.25, 1.25, 1.4, 8, 1, true);
     K.R.geo(drum.clone().translate(0, 0.7, 0), M(cx, cy, cz, Math.PI / 8), { tile: TILE.LEDGER, uv: 'own', uvScale: [4, 1], color: '#ffffff', glow: '#7fffd0', glowMode: 'always', glowK: 0.5, jit: 0 });
     for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; K.R.box(0.16, 1.5, 0.16, M(cx + Math.cos(a) * 1.28, cy + 0.72, cz + Math.sin(a) * 1.28), MAT.stone(q)); }

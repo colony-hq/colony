@@ -565,6 +565,15 @@ class RigidDriver {
       if (st.shotT >= st.shotDur) { st.shot = null; st.shotDef = null; }
     }
     this.obj.animate(this.a, dt);
+    // Ambient motes around glowing beings (only when close to the camera).
+    if (this.a.dist < 45 && !st.dead && dt > 0) {
+      this.moteT = (this.moteT || 0) - dt;
+      if (this.moteT <= 0) {
+        this.moteT = this.kind === 'oracle' ? 0.12 : 0.3;
+        if (this.kind === 'oracle') this.a.sys.fx.motes(this.a, { radius: 1.0, height: 1.2 });
+        else this.a.sys.fx.motes(this.a.socket('chest', _v), { radius: 0.3, height: 0.2, y0: -0.2, color: this.obj.colors?.core || 'orbio', color2: this.obj.colors?.glow || 'magic', life: 1.2, speed: 0.3 });
+      }
+    }
   }
   socket(part, out) {
     this.a.root.updateMatrixWorld(true);
@@ -592,7 +601,7 @@ class Actor {
     this.state = {
       base: 'idle', shot: null, shotT: 0, shotDur: 0, shotDef: null, released: true, onRelease: null,
       dead: false, deadT: 0, dieW: 0, faded: 0, hurtK: 0, hurtT: 9, talking: false, talkK: 0, moveK: 0, speed: 0,
-      readyT: 0, attackN: 0, rate: 1, toolTint: null,
+      readyT: 0, attackN: 0, rate: 1, toolTint: null, req: new Map(), shotReq: null,
     };
     this.yaw = 0; this.yawTarget = 0; this.yawInit = false;
     this.prevPos = new THREE.Vector3(); this.hasPrev = false;
@@ -622,8 +631,17 @@ class Actor {
   play(name, opts = {}) {
     if (!name) return;
     const st = this.state;
-    const r = this.drv.resolve(name);
+    opts = opts || {};
+    // Callers either fire a one-shot once or keep requesting it every frame for a window; a
+    // request that continues an uninterrupted stream of the same name never restarts it.
+    const now = this.sys.time;
+    const last = st.req.get(name);
+    const continuing = last !== undefined && now - last < 0.2;
+    st.req.set(name, now);
+    if (st.req.size > 24) st.req.clear();
     if (opts.tool !== undefined) st.toolTint = toolTint(opts.tool);
+    if (continuing && !opts.restart && st.shotReq === name) return;
+    const r = this.drv.resolve(opts.variant && this.drv.resolve(opts.variant).type === 'shot' ? opts.variant : name);
     if (st.dead) {
       if (r.type === 'die') return;
       if ((r.name === 'walk' || r.name === 'run') && st.deadT > 1.5) this.revive();
@@ -639,10 +657,11 @@ class Actor {
         this.current = st.shot ? st.shotName : r.name;
         break;
       case 'shot': {
-        if (st.shot && st.shotName === r.name && !opts.restart && st.shotT < st.shotDur * 0.85) return;
+        if (st.shot && (st.shotName === r.name || st.shotReq === name) && !opts.restart && st.shotT < st.shotDur * 0.85) return;
+        if (continuing && !opts.restart && !st.shot) { st.shotReq = name; return; }
         const def = this.drv.shotDef(r.name);
         if (!def) return;
-        st.shot = r.name; st.shotName = r.name; st.shotDef = def; st.shotT = 0; st.shotDur = def.dur;
+        st.shot = r.name; st.shotName = r.name; st.shotReq = name; st.shotDef = def; st.shotT = 0; st.shotDur = def.dur;
         st.released = def.release === undefined; st.onRelease = opts.onRelease || null; st.rate = opts.speed || 1;
         if (/slash|stab|crush|swing|punch|kick|shoot|cast|attack|claw|breath/.test(r.name)) st.readyT = 5;
         this.current = r.name;
@@ -669,7 +688,15 @@ class Actor {
   setTalking(on) { this.state.talking = !!on; }
   setLook(look) { if (this.drv.setLook) this.drv.setLook(look); }
   setEquipment(eq) { if (this.drv.setEquipment) this.drv.setEquipment(eq); }
-  setVisible(v) { this.userVisible = !!v; this.root.visible = this.userVisible; }
+  setVisible(v) {
+    v = !!v;
+    if (!v && this.userVisible && this.state.dead && !this.state.smoked) {
+      this.state.smoked = true;
+      if (this.dist < 60) this.sys.fx.deathSmoke(this, { scale: Math.max(0.6, this.headHeight / 1.8) });
+    }
+    this.userVisible = v;
+    this.root.visible = v;
+  }
   hit(o = {}) {
     const st = this.state;
     if (st.dead) return;
@@ -850,12 +877,14 @@ export function createActors(ctx) {
   ev?.on?.('entity:death', onDeath);
   ev?.on?.('player:death', () => { if (auto.deaths) ctx.player?.actor?.die?.(); });
   ev?.on?.('level:up', () => { if (!auto.levelUp) return; const a = ctx.player?.actor; if (a) fx.levelUp(a); });
-  const talkFor = (npcId, on) => {
-    if (!auto.talk || !ctx.entities?.all) return;
-    for (const e of ctx.entities.all()) if (e.kind === 'npc' && (e.defId === npcId || e.uid === npcId)) e.view?.setTalking?.(on);
+  const talkFor = (d, on) => {
+    if (!auto.talk) return;
+    if (d?.entity?.view?.setTalking) { d.entity.view.setTalking(on); return; }
+    if (!ctx.entities?.all) return;
+    for (const e of ctx.entities.all()) if (e.kind === 'npc' && (e.defId === d?.npcId || e.uid === d?.npcId || e.uid === d?.uid)) e.view?.setTalking?.(on);
   };
-  ev?.on?.('dialogue:open', (d) => talkFor(d?.npcId, true));
-  ev?.on?.('dialogue:close', (d) => talkFor(d?.npcId, false));
+  ev?.on?.('dialogue:open', (d) => talkFor(d, true));
+  ev?.on?.('dialogue:close', (d) => talkFor(d, false));
   ev?.on?.('emote', (d) => {
     if (!auto.emotes || !d?.name) return;
     const v = d.entity ? viewOf(d.entity) : d.peer ? null : ctx.player?.actor;

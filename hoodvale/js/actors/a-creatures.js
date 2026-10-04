@@ -688,8 +688,8 @@ function buildWyrm(spec, bones) {
   }
   // Legs: heavy haunches merging into the body, claws.
   for (const [U, L, F, front] of [[WB.flU, WB.flL, WB.flF, 1], [WB.frU, WB.frL, WB.frF, 1], [WB.blU, WB.blL, WB.blF, 0], [WB.brU, WB.brL, WB.brF, 0]]) {
-    B.add(taper(front ? 0.15 : 0.19, 0.09, 0.42, 8, 2), U, bodyC, { at: [0, 0.1, 0], flat: true });
-    B.add(taper(0.09, 0.065, 0.32, 8, 2), L, bodyC, { flat: true });
+    B.add(taper(front ? 0.17 : 0.22, 0.11, 0.44, 8, 2), U, bodyC, { at: [0, 0.12, 0], flat: true, shine: 0.2 });
+    B.add(taper(0.11, 0.075, 0.32, 8, 2), L, shade(bodyC, 0.95), { flat: true, shine: 0.2 });
     B.add(sphere(0.095, 8, 6), F, shade(bodyC, 0.85), { at: [0, -0.01, -0.06], scale: [1.15, 0.55, 1.5], flat: true });
     for (let i = -1; i <= 1; i++) B.add(cone(0.022, 0.1, 4), F, '#efe6d0', { at: [i * 0.055, -0.03, -0.2], rot: [-Math.PI / 2 - 0.3, 0, 0], shine: 0.3 });
   }
@@ -849,7 +849,6 @@ export function creatureSpec(model = {}, monster = '') {
 let WISP_GEO = null;
 export function buildWisp(colors = {}) {
   const coreC = col(colors.core, '#8fe3ff'), glowC = col(colors.glow, '#b18cff');
-  const M = materials();
   const root = new THREE.Group();
   if (!WISP_GEO) {
     const B = new Builder(null, { aoMin: 1 });
@@ -882,7 +881,7 @@ export function buildWisp(colors = {}) {
   core.castShadow = false;
   let t = Math.random() * 10;
   return {
-    root, body, core, halo, headHeight: 1.4, castShadow: [],
+    root, body, core, halo, headHeight: 1.4, castShadow: [], colors: { core: '#' + coreC.getHexString(), glow: '#' + glowC.getHexString() },
     socket: body,
     animate(actor, dt) {
       t += dt;
@@ -913,67 +912,113 @@ const WISP_MATS = new Map();
 function wispMaterials(coreC, glowC) {
   const key = coreC.getHexString() + glowC.getHexString();
   if (WISP_MATS.has(key)) return WISP_MATS.get(key);
-  const M = materials();
-  const core = M.body.clone();
-  const mk = (c, transparent, opacity) => {
-    const m = new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 1.6, roughness: 0.3, transparent, opacity, depthWrite: !transparent, flatShading: true });
-    return m;
-  };
-  const mats = { core: mk(mix(coreC, '#ffffff', 0.35), false, 1), shell: mk(glowC, true, 0.35), shard: mk(coreC, false, 1) };
-  mats.core.emissiveIntensity = 2.2;
+  const mk = (c, transparent, opacity, ei) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: ei, roughness: 0.3, transparent, opacity, depthWrite: !transparent, flatShading: true });
+  const mats = { core: mk(mix(coreC, '#ffffff', 0.35), false, 1, 2.2), shell: mk(glowC, true, 0.35, 1.6), shard: mk(coreC, false, 1, 1.6) };
   WISP_MATS.set(key, mats);
-  core.dispose();
   return mats;
 }
 
-// The Orbio Oracle: a hooded figure of violet-cyan crystal light, floating, crowned by orbiting
-// rings and thought-shards; two floating crystal hands; a faceless glowing visage with one eye.
+// The Orbio Oracle: a hooded figure of violet-cyan crystal light, floating above a glyph circle.
+// Faceted robe with glowing seams, crystal pauldrons and a mandorla of shards behind the head, a
+// deep hood around a faceless visage with one great eye, two floating crystal hands cradling a
+// "thought orb", orbit rings and drifting shards. Built from shared static meshes.
 let ORACLE = null;
 function oracleGeometry() {
   if (ORACLE) return ORACLE;
-  const violet = C('#8a5cff'), cyan = C('#5fe1ff'), deep = C('#2a1a5a'), tmp = new THREE.Color();
-  // Robe: faceted crystal column, deep violet at the hem rising to cyan at the shoulders.
+  const violet = C('#7a4cf0'), cyan = C('#5fe1ff'), deep = C('#1e1240'), pale = C('#c9b8ff'), tmp = new THREE.Color();
+  // Robe: faceted lathe with folds; deep hem rising to violet, cyan seams in the folds.
   const B = new Builder(null, { aoMin: 1 });
-  const robe = lathe([[0.02, 0.0], [0.42, 0.04], [0.5, 0.25], [0.44, 0.7], [0.34, 1.15], [0.3, 1.45], [0.36, 1.62], [0.22, 1.78], [0.02, 1.84]], 7);
-  B.add(robe, null, violet, {
-    flat: true, ao: false, shine: 1,
-    colorFn: (x, y) => tmp.copy(deep).lerp(violet, smooth01(0, 0.9, y)).lerp(cyan, smooth01(1.0, 1.75, y)),
-    glowFn: (x, y) => 0.25 + 0.5 * smooth01(0.9, 1.7, y),
+  const prof = [[0.05, 0.0], [0.52, 0.05], [0.55, 0.2], [0.47, 0.55], [0.37, 0.95], [0.33, 1.2], [0.37, 1.42], [0.45, 1.58], [0.43, 1.68], [0.28, 1.78], [0.12, 1.84], [0.02, 1.86]];
+  const robe = lathe(prof, 20);
+  deform(robe, (x, y, z) => {
+    const a = Math.atan2(z, x);
+    const fold = 1 + 0.06 * Math.sin(a * 7) * smooth01(1.3, 0.2, y);
+    return [x * fold, y, z * fold * 0.85];
   });
-  // Hood: crystal shell around the visage.
-  const hood = new THREE.SphereGeometry(0.34, 7, 6, Math.PI * 1.5 + 0.7, Math.PI * 2 - 1.4, 0, Math.PI * 0.72);
-  B.add(hood, null, violet, { at: [0, 2.0, 0.02], scale: [1, 1.25, 1.05], flat: true, ao: false, shine: 1, colorFn: (x, y) => tmp.copy(violet).lerp(cyan, smooth01(1.9, 2.35, y)), glowFn: () => 0.45 });
-  B.add(cone(0.12, 0.42, 5), null, cyan, { at: [0, 2.45, 0.16], rot: [0.55, 0, 0], flat: true, glow: 0.7, ao: false });
-  // Shoulder crystals.
+  B.add(robe, null, violet, {
+    flat: true, ao: false, shine: 0.6,
+    colorFn: (x, y, z) => {
+      const a = Math.atan2(z, x);
+      const seam = Math.abs(Math.sin(a * 7)) > 0.985 && y < 1.25 && y > 0.1;
+      if (seam) return tmp.copy(cyan);
+      return tmp.copy(deep).lerp(violet, smooth01(0.0, 0.9, y)).lerp(pale, smooth01(1.35, 1.8, y) * 0.5);
+    },
+    glowFn: (x, y, z) => { const a = Math.atan2(z, x); return Math.abs(Math.sin(a * 7)) > 0.985 && y < 1.25 && y > 0.1 ? 0.8 : 0.1 + 0.3 * smooth01(1.0, 1.75, y); },
+  });
+  // Bell sleeves hanging from the shoulders (the hands float just beyond their openings).
   for (const sx of [-1, 1]) {
-    B.add(new THREE.OctahedronGeometry(0.16, 0), null, cyan, { at: [sx * 0.36, 1.68, 0.02], scale: [0.7, 1.5, 0.7], rot: [0, 0, sx * -0.5], flat: true, glow: 0.65, ao: false, shine: 1 });
-    B.add(new THREE.OctahedronGeometry(0.1, 0), null, violet, { at: [sx * 0.46, 1.55, 0.1], scale: [0.6, 1.4, 0.6], rot: [0.3, 0, sx * -0.9], flat: true, glow: 0.55, ao: false });
+    const pts = [[sx * 0.4, 1.64, 0.0], [sx * 0.5, 1.45, -0.08], [sx * 0.52, 1.28, -0.22], [sx * 0.48, 1.18, -0.33]];
+    B.add(tube(pts, (t) => 0.08 + 0.09 * t * t, 10, 9), null, violet, { flat: true, ao: false, shine: 0.6, colorFn: (x, y) => tmp.copy(violet).lerp(pale, smooth01(1.2, 1.7, y) * 0.4), glowFn: () => 0.18 });
+    B.add(torus(0.165, 0.016, 3, 14), null, cyan, { at: [sx * 0.48, 1.18, -0.33], rot: [0.9, 0, 0], glow: 1, ao: false });
+    B.add(sphere(0.15, 8, 6), null, deep, { at: [sx * 0.48, 1.2, -0.31], scale: [1, 1, 0.3], rot: [0.9, 0, 0], ao: false, shade: 0.6 });
   }
-  // Glyph bands on the robe.
-  for (const y of [0.45, 0.9]) B.add(torus(0.48 - y * 0.15, 0.012, 3, 7), null, cyan, { at: [0, y, 0], rot: [Math.PI / 2, 0, 0], glow: 1, ao: false });
+  // Hem: crystal points hanging below the robe.
+  for (let i = 0; i < 10; i++) {
+    const a = (i / 10) * TAU;
+    B.add(new THREE.OctahedronGeometry(0.07, 0), null, i % 2 ? violet : cyan, { at: [Math.cos(a) * 0.48, 0.0, Math.sin(a) * 0.42], scale: [0.6, 1.8, 0.6], flat: true, glow: i % 2 ? 0.4 : 0.9, ao: false });
+  }
+  // Glowing hem band and sash.
+  B.add(torus(0.53, 0.018, 3, 20), null, cyan, { at: [0, 0.12, 0], rot: [Math.PI / 2, 0, 0], scale: [1, 0.88, 1], glow: 1, ao: false });
+  B.add(torus(0.355, 0.03, 3, 16), null, pale, { at: [0, 1.22, 0], rot: [Math.PI / 2, 0, 0], scale: [1, 0.86, 1], glow: 0.5, ao: false, flat: true });
+  // Pauldrons: clusters of crystals on each shoulder.
+  for (const sx of [-1, 1]) {
+    B.add(new THREE.OctahedronGeometry(0.17, 0), null, cyan, { at: [sx * 0.42, 1.66, 0.0], scale: [0.75, 1.3, 0.75], rot: [0, 0, sx * -0.65], flat: true, glow: 0.75, ao: false, shine: 1 });
+    B.add(new THREE.OctahedronGeometry(0.11, 0), null, violet, { at: [sx * 0.55, 1.52, 0.08], scale: [0.6, 1.5, 0.6], rot: [0.3, 0, sx * -1.0], flat: true, glow: 0.5, ao: false });
+    B.add(new THREE.OctahedronGeometry(0.09, 0), null, pale, { at: [sx * 0.33, 1.78, 0.1], scale: [0.5, 1.6, 0.5], rot: [-0.2, 0, sx * -0.3], flat: true, glow: 0.7, ao: false });
+  }
+  // Mandorla: a fan of tall shards rising behind the head.
+  for (let i = -3; i <= 3; i++) {
+    const a = i * 0.32;
+    const h = 0.55 - Math.abs(i) * 0.06;
+    B.add(new THREE.OctahedronGeometry(0.08, 0), null, Math.abs(i) % 2 ? violet : cyan, { at: [Math.sin(a) * 0.5, 2.05 + Math.cos(a) * 0.38, 0.32], scale: [0.45, h / 0.08 * 0.5, 0.3], rot: [0.15, 0, -a], flat: true, glow: 0.85, ao: false, shine: 1 });
+  }
+  // Deep hood around the visage.
+  const hoodG = new THREE.SphereGeometry(0.34, 10, 8, Math.PI * 1.5 + 0.75, Math.PI * 2 - 1.5, 0, Math.PI * 0.74);
+  B.add(hoodG, null, violet, { at: [0, 2.02, 0.03], scale: [1, 1.22, 1.08], flat: true, ao: false, shine: 0.6, colorFn: (x, y) => tmp.copy(violet).lerp(pale, smooth01(2.0, 2.4, y) * 0.6), glowFn: (x, y) => 0.15 + 0.3 * smooth01(2.0, 2.4, y) });
+  const hoodIn = new THREE.SphereGeometry(0.325, 10, 8, Math.PI * 1.5 + 0.75, Math.PI * 2 - 1.5, 0, Math.PI * 0.74);
+  { const ia = hoodIn.index.array; for (let i = 0; i < ia.length; i += 3) { const t = ia[i + 1]; ia[i + 1] = ia[i + 2]; ia[i + 2] = t; } }
+  B.add(hoodIn, null, deep, { at: [0, 2.02, 0.03], scale: [1, 1.22, 1.08], ao: false, shade: 0.5 });
+  B.add(cone(0.11, 0.38, 5), null, violet, { at: [0, 2.44, 0.2], rot: [0.6, 0, 0], flat: true, glow: 0.35, ao: false });
   const body = B.build();
-  // Visage: a white-cyan glowing orb with an eye ring.
+  // Visage: a pale glowing orb with one great eye.
   const V = new Builder(null, { aoMin: 1 });
-  V.add(new THREE.IcosahedronGeometry(0.2, 2), null, '#e8fbff', { glow: 1, ao: false });
-  V.add(torus(0.09, 0.016, 4, 16), null, '#8a5cff', { at: [0, 0, -0.18], glow: 0.8, ao: false });
-  V.add(sphere(0.045, 8, 6), null, '#2a1a5a', { at: [0, 0, -0.19], glow: 0.2, ao: false });
+  V.add(new THREE.IcosahedronGeometry(0.19, 2), null, '#e8fbff', { glow: 1, ao: false });
+  V.add(torus(0.095, 0.02, 5, 20), null, '#8a5cff', { at: [0, 0, -0.17], glow: 0.9, ao: false });
+  V.add(sphere(0.07, 10, 8), null, '#b18cff', { at: [0, 0, -0.165], scale: [1, 1, 0.4], glow: 1, ao: false });
+  V.add(sphere(0.035, 8, 6), null, '#120a28', { at: [0, 0, -0.19], scale: [1, 1, 0.5], ao: false });
+  V.add(sphere(0.012, 5, 4), null, '#ffffff', { at: [0.02, 0.022, -0.2], glow: 1, ao: false });
   const visage = V.build();
-  // Hand: a floating crystal palm with three finger shards.
+  // Hand: crystal palm with three finger shards.
   const H = new Builder(null, { aoMin: 1 });
   H.add(new THREE.OctahedronGeometry(0.1, 0), null, cyan, { scale: [0.9, 1.2, 0.5], flat: true, glow: 0.8, ao: false, shine: 1 });
-  for (let i = -1; i <= 1; i++) H.add(new THREE.OctahedronGeometry(0.05, 0), null, violet, { at: [i * 0.05, -0.14, 0], scale: [0.5, 1.8, 0.5], rot: [0, 0, i * 0.2], flat: true, glow: 0.7, ao: false });
+  for (let i = -1; i <= 1; i++) H.add(new THREE.OctahedronGeometry(0.05, 0), null, pale, { at: [i * 0.05, 0.14, 0], scale: [0.5, 1.8, 0.5], rot: [0, 0, -i * 0.2], flat: true, glow: 0.8, ao: false });
+  H.add(new THREE.OctahedronGeometry(0.04, 0), null, pale, { at: [0.09, 0.03, 0], scale: [0.5, 1.4, 0.5], rot: [0, 0, -0.9], flat: true, glow: 0.8, ao: false });
   const hand = H.build();
-  // Ring: a thin halo torus with tick marks (the "Orbio" orbit).
+  // Orbit ring with tick marks.
   const R = new Builder(null, { aoMin: 1 });
-  R.add(torus(0.62, 0.016, 4, 48), null, '#9ff0ff', { glow: 1, ao: false });
-  for (let i = 0; i < 12; i++) { const a = (i / 12) * TAU; R.add(box(0.03, 0.06, 0.03), null, '#c9b8ff', { at: [Math.cos(a) * 0.62, 0, Math.sin(a) * 0.62], glow: 1, ao: false }); }
+  R.add(torus(0.62, 0.014, 4, 56), null, '#9ff0ff', { glow: 1, ao: false });
+  for (let i = 0; i < 12; i++) { const a = (i / 12) * TAU; R.add(box(0.03, 0.07, 0.03), null, '#c9b8ff', { at: [Math.cos(a) * 0.62, 0, Math.sin(a) * 0.62], glow: 1, ao: false }); }
   const ring = R.build();
   const SH = new Builder(null, { aoMin: 1 });
   SH.add(new THREE.OctahedronGeometry(0.06, 0), null, '#b18cff', { scale: [0.6, 1.7, 0.6], flat: true, glow: 0.9, ao: false, shine: 1 });
   const shard = SH.build();
-  const D = new Builder(null, { aoMin: 1 });
-  D.add(cyl(0.9, 0.9, 0.02, 32), null, '#5fe1ff', { glow: 0.6, ao: false });
-  ORACLE = { body, visage, hand, ring, shard, disc: D.build() };
+  // Thought orb.
+  const O = new Builder(null, { aoMin: 1 });
+  O.add(new THREE.IcosahedronGeometry(0.1, 1), null, '#ffffff', { glow: 1, ao: false, flat: true });
+  O.add(torus(0.15, 0.008, 3, 24), null, '#5fe1ff', { glow: 1, ao: false });
+  O.add(torus(0.15, 0.008, 3, 24), null, '#b18cff', { rot: [Math.PI / 2, 0, 0], glow: 1, ao: false });
+  const orb = O.build();
+  // Glyph circle on the ground.
+  const G = new Builder(null, { aoMin: 1 });
+  G.add(torus(1.05, 0.018, 3, 64), null, '#5fe1ff', { rot: [Math.PI / 2, 0, 0], glow: 0.9, ao: false });
+  G.add(torus(0.8, 0.012, 3, 56), null, '#b18cff', { rot: [Math.PI / 2, 0, 0], glow: 0.9, ao: false });
+  for (let i = 0; i < 16; i++) {
+    const a = (i / 16) * TAU;
+    G.add(box(0.12, 0.01, i % 2 ? 0.035 : 0.06), null, i % 2 ? '#b18cff' : '#5fe1ff', { at: [Math.cos(a) * 0.925, 0, Math.sin(a) * 0.925], rot: [0, -a, 0], glow: 0.9, ao: false });
+  }
+  for (let i = 0; i < 3; i++) { const a = (i / 3) * TAU; G.add(box(0.5, 0.01, 0.012), null, '#5fe1ff', { at: [Math.cos(a) * 0.4, 0, Math.sin(a) * 0.4], rot: [0, -a + Math.PI / 2, 0], glow: 0.7, ao: false }); }
+  const glyph = G.build();
+  ORACLE = { body, visage, hand, ring, shard, orb, glyph };
   return ORACLE;
 }
 export function buildOracle() {
@@ -982,68 +1027,79 @@ export function buildOracle() {
   const root = new THREE.Group();
   const float = new THREE.Group();
   root.add(float);
-  const body = new THREE.Mesh(G.body, M.crystal);
-  body.renderOrder = 2;
+  const body = new THREE.Mesh(G.body, M.body);
   float.add(body);
   const visage = new THREE.Mesh(G.visage, M.body);
-  visage.position.set(0, 2.02, -0.04);
+  visage.position.set(0, 2.0, -0.06);
   float.add(visage);
-  const hands = [new THREE.Mesh(G.hand, M.crystal), new THREE.Mesh(G.hand, M.crystal)];
-  for (const h of hands) { h.renderOrder = 2; float.add(h); }
+  const hands = [new THREE.Mesh(G.hand, M.body), new THREE.Mesh(G.hand, M.body)];
+  for (const h of hands) float.add(h);
+  const orb = new THREE.Mesh(G.orb, M.body);
+  float.add(orb);
   const rings = [new THREE.Mesh(G.ring, M.body), new THREE.Mesh(G.ring, M.body)];
-  rings[1].scale.setScalar(0.72);
+  rings[1].scale.setScalar(0.74);
   for (const r of rings) float.add(r);
   const shards = [];
-  for (let i = 0; i < 7; i++) { const s = new THREE.Mesh(G.shard, M.body); float.add(s); shards.push(s); }
-  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture(), color: new THREE.Color('#9a7cff'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.55 }));
-  halo.scale.setScalar(3.2);
-  halo.position.y = 1.7;
-  float.add(halo);
-  const aura = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture(), color: new THREE.Color('#5fe1ff'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.45 }));
-  aura.scale.setScalar(1.3);
-  aura.position.set(0, 2.02, -0.05);
-  float.add(aura);
-  const disc = new THREE.Mesh(G.disc, new THREE.MeshBasicMaterial({ color: '#5fe1ff', transparent: true, opacity: 0.18, depthWrite: false, blending: THREE.AdditiveBlending }));
-  disc.position.y = 0.04;
-  root.add(disc);
+  for (let i = 0; i < 8; i++) { const s = new THREE.Mesh(G.shard, M.body); float.add(s); shards.push(s); }
+  const sprite = (color, size, opacity) => {
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture(), color: new THREE.Color(color), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity }));
+    s.scale.setScalar(size);
+    return s;
+  };
+  const halo = sprite('#7a5cff', 3.4, 0.45); halo.position.set(0, 1.9, 0.25); float.add(halo);
+  const aura = sprite('#9ff0ff', 1.15, 0.6); aura.position.set(0, 2.0, -0.08); float.add(aura);
+  const orbGlow = sprite('#ffffff', 0.7, 0.7); float.add(orbGlow);
+  const glyph = new THREE.Mesh(G.glyph, M.body);
+  glyph.position.y = 0.04;
+  root.add(glyph);
+  const pool = sprite('#5fe1ff', 2.6, 0.3); pool.position.y = 0.15; pool.scale.set(2.8, 0.9, 1); root.add(pool);
   let t = Math.random() * 10;
   let pulse = 0;
   return {
-    root, headHeight: 2.9, socket: visage, castShadow: [body],
+    root, headHeight: 2.95, socket: orb, castShadow: [body],
     animate(actor, dt) {
       t += dt;
       const st = actor.state;
       const talk = st.talkK || 0;
-      const shot = st.shot ? env(st.shotT, st.shotDur, 0.2, 0.5) : 0;
+      const shot = st.shot ? env(st.shotT, st.shotDur, 0.25, 0.6) : 0;
       pulse = Math.max(0, pulse - dt * 1.5);
       if (st.hurtK > 0.5) pulse = 1;
-      const energy = 0.5 + 0.5 * talk + shot;
-      float.position.y = 0.35 + Math.sin(t * 1.3) * 0.08;
-      float.rotation.y = Math.sin(t * 0.3) * 0.08;
-      body.rotation.y = Math.sin(t * 0.5) * 0.05;
-      visage.rotation.y = Math.sin(t * 0.7) * 0.25 * (1 - talk);
-      visage.scale.setScalar(1 + 0.05 * Math.sin(t * (3 + 6 * talk)) + shot * 0.15);
-      // Hands drift; gesture when talking / consulting.
+      const energy = 0.4 + 0.6 * talk + 1.2 * shot;
+      float.position.y = 0.38 + Math.sin(t * 1.3) * 0.08 - st.moveK * 0.05;
+      float.rotation.y = Math.sin(t * 0.3) * 0.06;
+      float.rotation.x = st.moveK * 0.12;
+      visage.rotation.y = Math.sin(t * 0.7) * 0.22 * (1 - talk);
+      visage.rotation.x = Math.sin(t * 0.5) * 0.08;
+      visage.scale.setScalar(1 + 0.04 * Math.sin(t * (3 + 6 * talk)) + shot * 0.12);
+      // Hands cradle the thought orb; they rise and open when consulted.
+      const orbY = 1.32 + 0.12 * talk + 0.45 * shot + 0.03 * Math.sin(t * 2);
       for (let i = 0; i < 2; i++) {
         const sx = i ? 1 : -1;
-        const g = Math.sin(t * (1.1 + i * 0.3) + i) * 0.08;
-        hands[i].position.set(sx * (0.62 + 0.12 * talk + 0.15 * shot), 1.35 + g + talk * 0.25 * (0.5 + 0.5 * Math.sin(t * 2.2 + i * 2)) + shot * 0.5, -0.18 - 0.15 * talk);
-        hands[i].rotation.set(0.3 * talk, 0, sx * (0.4 + 0.3 * Math.sin(t * 1.4 + i)));
+        const open = 0.18 + 0.12 * talk + 0.25 * shot;
+        hands[i].position.set(sx * (0.2 + open), orbY - 0.08 + 0.04 * Math.sin(t * 1.7 + i * 2), -0.42 - 0.06 * talk);
+        hands[i].rotation.set(-0.3 - 0.2 * shot, 0, sx * (0.9 - 0.4 * shot) + 0.05 * Math.sin(t * 1.3 + i));
       }
-      rings[0].position.y = 2.05; rings[1].position.y = 2.05;
-      rings[0].rotation.set(1.2 + Math.sin(t * 0.4) * 0.2, t * (0.6 + energy), 0.3);
-      rings[1].rotation.set(-0.9 + Math.cos(t * 0.5) * 0.25, -t * (0.9 + energy * 1.5), -0.4);
+      orb.position.set(0, orbY, -0.45);
+      orb.rotation.set(t * 1.4, t * 2.1, 0);
+      orb.scale.setScalar(0.9 + 0.15 * Math.sin(t * 4) + 0.6 * shot + 0.2 * talk);
+      orbGlow.position.copy(orb.position);
+      orbGlow.material.opacity = 0.45 + 0.3 * energy;
+      orbGlow.scale.setScalar(0.6 + 0.5 * shot + 0.2 * talk);
+      rings[0].position.set(0, 2.0, 0); rings[1].position.set(0, 2.0, 0);
+      rings[0].rotation.set(1.25 + Math.sin(t * 0.4) * 0.15, t * (0.5 + energy), 0.25);
+      rings[1].rotation.set(-0.95 + Math.cos(t * 0.5) * 0.2, -t * (0.8 + energy * 1.4), -0.35);
       for (let i = 0; i < shards.length; i++) {
-        const a = t * (0.7 + energy * 1.4) + (i / shards.length) * TAU;
-        const r = 0.95 + 0.12 * Math.sin(t * 1.7 + i * 2.1);
-        shards[i].position.set(Math.cos(a) * r, 1.2 + 0.9 * ((i % 3) / 2) + 0.1 * Math.sin(t * 2 + i), Math.sin(a) * r);
+        const a = t * (0.5 + energy) + (i / shards.length) * TAU;
+        const r = 1.05 + 0.12 * Math.sin(t * 1.7 + i * 2.1);
+        shards[i].position.set(Math.cos(a) * r, 0.9 + 1.2 * ((i % 4) / 3) + 0.1 * Math.sin(t * 2 + i), Math.sin(a) * r);
         shards[i].rotation.set(t * 1.1 + i, t * 0.8, 0.5);
       }
-      halo.material.opacity = 0.4 + 0.15 * Math.sin(t * 2) + 0.25 * energy + pulse * 0.3;
-      halo.scale.setScalar(3 + energy * 0.8);
-      aura.material.opacity = 0.35 + 0.25 * talk + 0.4 * shot;
-      disc.material.opacity = 0.12 + 0.06 * Math.sin(t * 1.5) + 0.1 * energy;
-      disc.scale.setScalar(1 + 0.05 * Math.sin(t * 1.5));
+      halo.material.opacity = 0.3 + 0.1 * Math.sin(t * 2) + 0.15 * energy + pulse * 0.3;
+      halo.scale.setScalar(3.1 + energy * 0.5);
+      aura.material.opacity = 0.5 + 0.25 * talk + 0.3 * shot;
+      glyph.rotation.y = t * 0.12;
+      glyph.scale.setScalar(1 + 0.03 * Math.sin(t * 1.5) + 0.1 * shot);
+      pool.material.opacity = 0.18 + 0.08 * Math.sin(t * 1.5) + 0.12 * energy;
       const dead = st.dead ? smooth01(0, 1, st.deadT) : 0;
       float.scale.setScalar(1 - dead * 0.95);
     },

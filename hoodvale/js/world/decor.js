@@ -200,6 +200,14 @@ export function createDecor(ctx) {
   const decor = {
     scatters: S, dungeons, lights, focus,
     fx: { fireflies, embers, ash, lairEmbers, mist, shafts, birds, flames: flameMesh },
+    // Debug: per-type instance counts and triangles currently drawn.
+    stats() {
+      const out = {};
+      let tris = 0;
+      for (const [k, s] of Object.entries(S)) { const st = s.stats(); if (st.shown) out[k] = st.shown + '/' + st.total + ' ' + st.tris; tris += st.tris; }
+      out.totalTris = tris;
+      return out;
+    },
     update(dt, t) {
       getFocus(ctx, focus);
       const pr = engine.preset;
@@ -207,7 +215,7 @@ export function createDecor(ctx) {
       const rs = pr.name === 'low' ? 0.72 : pr.name === 'medium' ? 0.88 : 1;
       if (shadowsOn !== !!pr.shadows) {
         shadowsOn = !!pr.shadows;
-        for (const s of Object.values(S)) if (s.mesh) s.mesh.castShadow = shadowsOn && s.wantsShadow;
+        for (const s of Object.values(S)) s.setShadows(shadowsOn && s.wantsShadow);
       }
       const region = focus.region;
       const inDungeon = region !== 'overworld';

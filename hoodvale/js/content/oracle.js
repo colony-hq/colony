@@ -24,11 +24,22 @@ export function createOracle(ctx) {
   let sampleFn = null;
   let liveState = 'unknown'; // unknown | ready | none | denied
 
-  // Resolve the capability early (asks the viewer nothing; may take a while to decide).
-  try {
-    const p = typeof window !== 'undefined' ? window.claude?.use?.('sample') : null;
-    Promise.resolve(p).then((fn) => { sampleFn = typeof fn === 'function' ? fn : null; liveState = sampleFn ? 'ready' : 'none'; }).catch(() => { liveState = 'none'; });
-  } catch { liveState = 'none'; }
+  // Resolve the capability early (asks the viewer nothing; may take a while to decide), and again
+  // lazily at consult time if it wasn't available yet.
+  let resolving = null;
+  function resolveLive() {
+    if (sampleFn || liveState === 'denied' || resolving) return resolving;
+    try {
+      const use = typeof window !== 'undefined' ? window.claude?.use : null;
+      if (typeof use !== 'function') { liveState = 'none'; return null; }
+      resolving = Promise.resolve(use.call(window.claude, 'sample'))
+        .then((fn) => { sampleFn = typeof fn === 'function' ? fn : null; if (liveState !== 'denied') liveState = sampleFn ? 'ready' : 'none'; })
+        .catch(() => { liveState = 'none'; })
+        .finally(() => { resolving = null; });
+    } catch { liveState = 'none'; }
+    return resolving;
+  }
+  resolveLive();
 
   const oracleDef = () => NPCS.oracle;
   const speaker = (tag) => ({ name: tag ? `The Orbio Oracle · ${tag}` : 'The Orbio Oracle', kind: 'oracle', npcId: 'oracle', look: oracleDef()?.look, tier: tag || null });
@@ -137,7 +148,8 @@ export function createOracle(ctx) {
     await s.frame(speaker('Live — answered by Claude'), text + (result?.truncated ? ' …' : ''));
   }
 
-  // Free-text question box (only when the live mind is available).
+  // Free-text question box (only when the live mind is available). askBox.cancel() closes it.
+  let cancelAsk = null;
   function askBox() {
     return new Promise((resolve) => {
       const root = typeof document !== 'undefined' ? document.getElementById('windows') : null;
@@ -150,7 +162,8 @@ export function createOracle(ctx) {
       `);
       const input = h('textarea', { rows: 3, maxlength: 240, placeholder: 'Ask the Oracle anything about the Vale…' });
       let done = false;
-      const finish = (v) => { if (done) return; done = true; el.remove(); resolve(v && v.trim() ? v.trim() : null); };
+      const finish = (v) => { if (done) return; done = true; cancelAsk = null; el.remove(); resolve(v && v.trim() ? v.trim() : null); };
+      cancelAsk = () => finish(null);
       const el = h('div.hv-window.hv-panel.hv-oracle-ask', { 'data-interactive': '', role: 'dialog', 'aria-label': 'Ask the Oracle' }, [
         h('h2.hv-title', { text: 'Ask the Oracle' }),
         h('p', { text: `Your question goes to a live mind beyond the Vale (Claude). It costs as a Beacon thought: ${cr(THOUGHT_TIERS.beacon.cost)}. You have ${cr(ctx.wallet?.balance ?? 0)}.` }),
@@ -208,7 +221,7 @@ export function createOracle(ctx) {
       if (pick.custom) {
         try { ctx.ui?.closeDialogue?.(); } catch { /* ignore */ }
         const question = await Promise.race([askBox(), s.closedP.then(() => null)]);
-        if (s.closed) return;
+        if (s.closed) { cancelAsk?.(); return; }
         if (!question) continue;
         await live(s, question, routeQuestion(question));
       } else {
@@ -245,6 +258,7 @@ export function createOracle(ctx) {
       return text;
     },
     consult(entity) {
+      resolveLive();
       const e = entity && entity.kind === 'npc' ? entity : ctx.entities?.get?.('n:oracle') || entity || null;
       const st = ctx.quests?.stage?.('oracles_price');
       const shards = ctx.inventory?.count?.('orbium_shard') || 0;

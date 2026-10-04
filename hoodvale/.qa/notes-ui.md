@@ -71,5 +71,11 @@ Dialogue: Space/Enter continue, 1–6 options. Make-X: Space = first item, 1–9
   names, roads (from `ROADS`), building names and icons itself, so the painting can stay label-free.
 - **audio**: hook `ui:fanfare` (or `level:up`) for the jingle; UI also emits `ui:window` / `ui:tab` if you
   want subtle open/close clicks.
+- **integration (data)**: the plain bows are named `shortbow` / `longbow` (lower case) in `items.js`
+  (`${pre}shortbow` with an empty prefix) — consider `Shortbow` / `Longbow`.
+- **game**: the death chat line "Oh dear, you are dead!" is RuneScape's exact wording; DESIGN asks for original
+  wording (the UI's death screen says "You have fallen").
+- **content**: `zone:enter` fires twice for the spawn zone at game start (save:loaded + game:start teleports);
+  the UI dedupes banners, but audio/quests may not.
 - **game**: click crosses are drawn at the screen click position (RS style) from the UI's own click handler;
   `player:click` is not used (minimap walks show the red flag on the minimap instead).

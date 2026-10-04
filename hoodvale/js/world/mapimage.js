@@ -60,6 +60,8 @@ const ROOF = {
   'tent-brown': '#7d5c3c', 'stone-hut': '#6c6a66', 'stilt-hut': '#6a5a40', 'stone-hall-grand': '#5c6676', 'stone-shop': '#6a6670',
   'castle-keep': '#5a5a64', townhouse: '#8c4c3a', stables: '#7c5c3c', 'crystal-spire': '#8f7ce0', 'ruin-tower': '#7a7670',
 };
+const FURROW = [112, 82, 54], COBC = [160, 154, 144];
+const CROPS = { 1: [214, 178, 80], 2: [110, 150, 128], 3: [104, 150, 72], 4: [138, 104, 70], 5: [96, 132, 60], 6: [204, 186, 100] };
 const TREE_COL = {
   'tree-broadleaf': [62, 112, 50], 'tree-oak': [48, 92, 40], 'tree-willow': [104, 132, 62], 'tree-maple': [170, 82, 46],
   'tree-yew': [34, 66, 44], 'tree-elder': [112, 84, 150],
@@ -84,7 +86,7 @@ function overworldVertexColours() {
     const l = Math.hypot(nx, ny, nz);
     const lx = -0.55, ly = 0.7, lz = -0.45;
     const d = (nx * lx + ny * ly + nz * lz) / l;
-    shade[v] = 0.72 + 0.5 * (d - 0.55) / 0.45;
+    shade[v] = Math.max(0.5, Math.min(1.25, 0.72 + 0.5 * (d - 0.55) / 0.45));
     const slope = Math.hypot(dx, dz);
     let r = F.base[v * 3] * 255, g = F.base[v * 3 + 1] * 255, b = F.base[v * 3 + 2] * 255;
     const rk = sstep(0.55, 1.0, slope) * (1 - F.floor[v]);
@@ -121,61 +123,68 @@ function paintOverworld(s, opts) {
   const img = g.createImageData(cw, ch);
   const D = img.data;
   const ROAD = [184, 156, 108], ROAD_EDGE = [112, 92, 62];
+  const { road, farm, farmInfo, floor, cobble, snow, wtype } = F;
+  const doGrain = opts.grain !== false;
+  let seed = 1234567;
   for (let py = 0; py < ch; py++) {
     const z = (py + 0.5) / s;
     const j = Math.min(N - 2, z | 0), tz = z - j;
+    const ey = Math.min(py, ch - 1 - py) / (ch * 0.08);
     for (let px = 0; px < cw; px++) {
       const x = (px + 0.5) / s;
       const i = Math.min(N - 2, x | 0), tx = x - i;
-      const v = j * N + i;
+      const v = j * N + i, v1 = v + 1, v2 = v + N, v3 = v + N + 1;
       const w00 = (1 - tx) * (1 - tz), w10 = tx * (1 - tz), w01 = (1 - tx) * tz, w11 = tx * tz;
-      const bl = (arr) => arr[v] * w00 + arr[v + 1] * w10 + arr[v + N] * w01 + arr[v + N + 1] * w11;
-      const bl3 = (arr, c) => arr[v * 3 + c] * w00 + arr[(v + 1) * 3 + c] * w10 + arr[(v + N) * 3 + c] * w01 + arr[(v + N + 1) * 3 + c] * w11;
-      const h = bl(heights);
+      const h = heights[v] * w00 + heights[v1] * w10 + heights[v2] * w01 + heights[v3] * w11;
       let r, gg, b;
       if (h < -0.02) {
-        r = bl3(water, 0); gg = bl3(water, 1); b = bl3(water, 2);
-        const t = F.wtype[v];
-        if (t === W_SEA || t === W_LAKE) {
+        r = water[v * 3] * w00 + water[v1 * 3] * w10 + water[v2 * 3] * w01 + water[v3 * 3] * w11;
+        gg = water[v * 3 + 1] * w00 + water[v1 * 3 + 1] * w10 + water[v2 * 3 + 1] * w01 + water[v3 * 3 + 1] * w11;
+        b = water[v * 3 + 2] * w00 + water[v1 * 3 + 2] * w10 + water[v2 * 3 + 2] * w01 + water[v3 * 3 + 2] * w11;
+        const t = wtype[v];
+        if ((t === W_SEA || t === W_LAKE) && -h > 0.6) {
           const wave = Math.sin(x * 0.9 + Math.sin(z * 0.35) * 2.2 + z * 0.15);
-          if (wave > 0.93 && -h > 0.6) { r += 26; gg += 26; b += 22; }
+          if (wave > 0.93) { r += 26; gg += 26; b += 22; }
         }
-        const foam = 1 - sstep(0.0, 0.35, -h);
-        r += (236 - r) * foam * 0.85; gg += (244 - gg) * foam * 0.85; b += (240 - b) * foam * 0.85;
+        const fo = -h / 0.35;
+        const foam = fo >= 1 ? 0 : (1 - fo * fo * (3 - 2 * fo)) * 0.85;
+        r += (236 - r) * foam; gg += (244 - gg) * foam; b += (240 - b) * foam;
       } else {
-        const sh = bl(shade);
-        r = bl3(land, 0) * sh; gg = bl3(land, 1) * sh; b = bl3(land, 2) * sh;
-        // farm furrows
-        const fm = bl(F.farm);
+        const sh = shade[v] * w00 + shade[v1] * w10 + shade[v2] * w01 + shade[v3] * w11;
+        r = (land[v * 3] * w00 + land[v1 * 3] * w10 + land[v2 * 3] * w01 + land[v3 * 3] * w11) * sh;
+        gg = (land[v * 3 + 1] * w00 + land[v1 * 3 + 1] * w10 + land[v2 * 3 + 1] * w01 + land[v3 * 3 + 1] * w11) * sh;
+        b = (land[v * 3 + 2] * w00 + land[v1 * 3 + 2] * w10 + land[v2 * 3 + 2] * w01 + land[v3 * 3 + 2] * w11) * sh;
+        const fm = farm[v] * w00 + farm[v1] * w10 + farm[v2] * w01 + farm[v3] * w11;
         if (fm > 0.45) {
-          const info = Math.round(F.farmInfo[v] * 15), orient = info >= 8, type = info - (orient ? 8 : 0);
-          const u = orient ? x : z;
-          const ridge = Math.sin(u * Math.PI * 1.84) > 0;
-          const crop = type === 1 ? [214, 178, 80] : type === 2 ? [110, 150, 128] : type === 3 ? [104, 150, 72] : type === 4 ? [138, 104, 70] : type === 5 ? [96, 132, 60] : [204, 186, 100];
-          const c = ridge ? crop : [112, 82, 54];
+          const info = Math.round(farmInfo[v] * 15), orient = info >= 8, type = info - (orient ? 8 : 0);
+          const ridge = Math.sin((orient ? x : z) * Math.PI * 1.84) > 0;
+          const c = !ridge ? FURROW : (CROPS[type] || CROPS[6]);
           r = c[0] * sh; gg = c[1] * sh; b = c[2] * sh;
         }
-        // roads with dark edges
-        const rd = bl(F.road) * (1 - bl(F.floor));
+        const rd = (road[v] * w00 + road[v1] * w10 + road[v2] * w01 + road[v3] * w11) * (1 - (floor[v] * w00 + floor[v1] * w10 + floor[v2] * w01 + floor[v3] * w11));
         if (rd > 0.36) {
           const e = rd < 0.5;
-          const c = e ? ROAD_EDGE : ROAD;
+          const cob = !e && cobble[v] > 0.4;
+          const cc = cob ? COBC : e ? ROAD_EDGE : ROAD;
           const k = e ? 0.55 : 1;
-          const cob = bl(F.cobble) > 0.4;
-          const cc = cob && !e ? [160, 154, 144] : c;
           r += (cc[0] * sh - r) * k; gg += (cc[1] * sh - gg) * k; b += (cc[2] * sh - b) * k;
         }
-        // snow caps a touch brighter
-        const sn = bl(F.snow);
+        const sn = snow[v];
         if (sn > 0.3) { r += (246 - r) * sn; gg += (248 - gg) * sn; b += (252 - b) * sn; }
       }
+      if (doGrain) {
+        seed = (seed * 1664525 + 1013904223) >>> 0;
+        const n = (seed / 4294967296 - 0.5) * 10;
+        const ex = Math.min(px, cw - 1 - px) / (cw * 0.08);
+        const vig = 0.82 + 0.18 * Math.min(1, ex, ey);
+        r = (r + n) * vig; gg = (gg + n) * vig; b = (b + n * 0.8) * vig;
+      }
       const o = (py * cw + px) * 4;
-      D[o] = r > 255 ? 255 : r < 0 ? 0 : r; D[o + 1] = gg > 255 ? 255 : gg < 0 ? 0 : gg; D[o + 2] = b > 255 ? 255 : b < 0 ? 0 : b; D[o + 3] = 255;
+      D[o] = r; D[o + 1] = gg; D[o + 2] = b; D[o + 3] = 255;
     }
   }
   g.putImageData(img, 0, 0);
   drawOverlays(g, s, opts);
-  if (opts.grain !== false) grain(g, cw, ch, s);
   return cv;
 }
 

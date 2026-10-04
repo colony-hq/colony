@@ -26,6 +26,8 @@ export function createObjectViews(ctx) {
   ctx.scene.add(root);
   const lod = ctx.engine?.preset?.name === 'low' ? 0 : 1;
   const shadows = !!ctx.engine?.preset?.shadows;
+  const NEAR = Math.max(100, (ctx.engine?.preset?.drawDistance || 480) * 0.36); // small things
+  const MID = Math.max(140, (ctx.engine?.preset?.drawDistance || 480) * 0.5); // trees, utilities
 
   // ---------------------------------------------------------------- geometry + pools
   const geos = new Map();
@@ -41,6 +43,7 @@ export function createObjectViews(ctx) {
     if (!p) {
       p = kit.makePool(root, geo(key, make), opts.material || kit.mat, { capacity: opts.capacity || 24, castShadow: opts.castShadow ?? shadows, receiveShadow: true, name: 'obj:' + ck });
       pools.set(ck, p);
+      kit.cull(p, key.startsWith('tree') ? MID : NEAR);
     }
     return p;
   }
@@ -416,12 +419,13 @@ export function createObjectViews(ctx) {
       bt.dirty = false;
       const b = new Builder(1);
       for (const { geom, m } of bt.items.values()) b.addBuilt(geom, m);
-      if (bt.mesh) { root.remove(bt.mesh); bt.mesh.geometry.dispose(); bt.mesh = null; }
+      if (bt.mesh) { kit.uncull(bt.mesh); root.remove(bt.mesh); bt.mesh.geometry.dispose(); bt.mesh = null; }
       if (b.isEmpty()) continue;
       bt.mesh = new THREE.Mesh(b.build(), kit.mat);
       bt.mesh.name = 'objects:' + bt.key;
       bt.mesh.castShadow = shadows; bt.mesh.receiveShadow = true;
       root.add(bt.mesh);
+      kit.cull(bt.mesh, MID);
     }
   }
 

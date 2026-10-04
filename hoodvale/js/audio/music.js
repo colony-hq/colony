@@ -9,7 +9,7 @@
 import { PIECES } from './pieces.js';
 import { MODES, degMidi, rand, pick, clamp } from './kit.js';
 
-const LOOKAHEAD = 0.3;
+const LOOKAHEAD = 0.5;
 
 // ---------------------------------------------------------------- parsing (cached per piece)
 function parseMelody(str, barSteps, where) {

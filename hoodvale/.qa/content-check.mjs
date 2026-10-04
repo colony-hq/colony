@@ -72,6 +72,11 @@ function makeCtx({ loot = false } = {}) {
   // scripted UI
   const ui = { plan: [], transcript: [], unexpected: [] };
   ui.dialogue = ({ speaker, text, options }) => {
+    if (ui.pending) { const r = ui.pending; ui.pending = null; r(-1); } // like the real UI: a new frame dismisses the old
+    if (options?.length === 1 && options[0] === 'Stop waiting' && !ui.plan.length) {
+      ui.transcript.push(`${speaker?.name}: ${text} [waiting]`);
+      return new Promise((r) => { ui.pending = r; });
+    }
     ui.transcript.push(`${speaker?.name || '·'}: ${text}${options ? '  [' + options.join(' | ') + ']' : ''}`);
     if (!text && !(options?.length)) ui.unexpected.push('empty frame from ' + speaker?.name);
     if (/\{\w+\}|undefined|\[object Object\]|NaN/.test(text + (options || []).join(' '))) ui.unexpected.push('bad text: ' + text + ' ' + (options || []).join('|'));
@@ -321,6 +326,46 @@ notes.push(`travellers moved: ${moved}/10`);
   ok(!c2.inventory.has('village_bell') && c2.quests.stage('goblin_bell') === 2, 'viaLoot: bell not handed over directly');
   c2.inventory.add('village_bell', 1); c2.ticks.advance(2); await new Promise((r) => setTimeout(r, 0));
   ok(c2.quests.stage('goblin_bell') === 3, `viaLoot: picking up the bell advances (stage ${c2.quests.stage('goblin_bell')})`);
+}
+
+// ------------------------------------------------------------------ Live oracle (mock sample)
+{
+  let mode = 'ok';
+  const prompts = [];
+  globalThis.window.claude = { use: async (name) => (name === 'sample' ? async (prompt, opts) => {
+    prompts.push({ prompt, opts });
+    if (mode === 'ok') return { text: 'Mine copper and tin east of the smithy, then iron in Copperhollow.', truncated: false };
+    throw { code: mode, message: mode };
+  } : null) };
+  const c3 = makeCtx();
+  await new Promise((r) => setTimeout(r, 5));
+  ok(c3.oracle.liveAvailable, 'live available with mock sample');
+  c3.wallet.credit(1000, 'test');
+  c3.state.flag('seen:op_intro', true);
+  const u = c3.ui;
+  u.plan = ['Where should I train', 'Mining', 'Live'];
+  u.transcript.length = 0;
+  await c3.oracle.consult(c3.entities.get('n:oracle'));
+  ok(u.transcript.some((l) => l.startsWith('The Orbio Oracle · Live — answered by Claude: Mine copper')), 'live answer shown with label');
+  ok(c3.wallet.balance === 960, `live charged beacon (${c3.wallet.balance})`);
+  ok(c3.state.save.stats.thoughts.live === 1 && c3.state.save.stats.thoughts.beacon === 1, 'live stats');
+  ok(prompts[0]?.prompt.includes('GAME FACTS') && prompts[0].prompt.includes('PLAYER: Tester'), 'live prompt has facts + player');
+  ok(c3.wallet.history().some((t) => /Oracle thought \(Live\)/.test(t.reason)), 'live memo');
+  mode = 'rate_limited';
+  u.plan = ['Where should I train', 'Mining', 'Live'];
+  u.transcript.length = 0;
+  await c3.oracle.consult(c3.entities.get('n:oracle'));
+  ok(u.transcript.some((l) => /Too many minds/.test(l)) && u.transcript.some((l) => /Orbium shards at 20/.test(l)), 'rate_limited falls back to Beacon');
+  ok(c3.wallet.balance === 920, `fallback charged beacon (${c3.wallet.balance})`);
+  mode = 'not_granted';
+  u.plan = ['Tell me the secrets', 'Is CREDIT real', 'Live'];
+  await c3.oracle.consult(c3.entities.get('n:oracle'));
+  ok(c3.oracle.liveState === 'denied' && !c3.oracle.liveAvailable, 'not_granted hides Live');
+  u.plan = ['Where should I train'];
+  u.transcript.length = 0;
+  await c3.oracle.consult(c3.entities.get('n:oracle'));
+  ok(!u.transcript.some((l) => /own words/.test(l)), 'Live options hidden after denial');
+  delete globalThis.window.claude;
 }
 
 if (ui.unexpected.length) for (const u of [...new Set(ui.unexpected)]) fail('ui: ' + u);

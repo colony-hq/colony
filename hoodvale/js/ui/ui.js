@@ -177,6 +177,9 @@ export function createUI(ctx) {
   setTouch(!!ctx.engine?.isTouch);
   window.addEventListener('pointerdown', (e) => setTouch(e.pointerType === 'touch'), { capture: true, passive: true });
 
+  // No browser context menu over the HUD (inputs keep theirs for paste).
+  for (const r of Object.values(roots)) r.addEventListener('contextmenu', (e) => { if (!e.target.closest('input, textarea')) e.preventDefault(); });
+
   // ---- modes ----
   function onMode(mode) {
     const playing = mode === 'play' || mode === 'dead' || mode === 'cutscene';

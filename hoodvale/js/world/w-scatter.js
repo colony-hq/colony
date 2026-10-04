@@ -11,7 +11,8 @@ import { U } from './w-common.js';
 const STRIDE = 10; // x, y, z, yaw, sx, sy, r, g, b, rank
 
 export class Scatter {
-  constructor(ctx, { name, geometry, material, radius = 60, cell = 16, castShadow = false, receiveShadow = true, region = 'overworld', density = 1, fade = 0.18, max = 4000, tilt = 0 }) {
+  constructor(ctx, { name, geometry, material, radius = 60, cell = 16, castShadow = false, receiveShadow = true, region = 'overworld', density = 1, fade = 0.18, max = 4000, tilt = 0, shadowRadius = 36 }) {
+    this.shadowRadius = shadowRadius;
     this.ctx = ctx;
     this.name = name;
     this.radius = radius;
@@ -57,20 +58,55 @@ export class Scatter {
     scene.add(mesh);
     this.mesh = mesh;
     this.cap = cap;
+    // Shadow casters: instances near the focus go to a second mesh that casts shadows, so the
+    // shadow pass never re-draws the far field.
+    this.near = null;
+    if (this.castShadow) {
+      mesh.castShadow = false;
+      const capN = Math.max(1, Math.min(cap, 1200));
+      const near = new THREE.InstancedMesh(this.geometry, this.material, capN);
+      near.name = 'decor:' + this.name + ':near';
+      near.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      near.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(capN * 3), 3);
+      near.instanceColor.setUsage(THREE.DynamicDrawUsage);
+      near.count = 0;
+      near.visible = false;
+      near.castShadow = true;
+      near.receiveShadow = this.receiveShadow;
+      near.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1);
+      near.matrixAutoUpdate = false;
+      scene.add(near);
+      this.near = near;
+      this.capN = capN;
+    }
     return this;
+  }
+  setShadows(on) {
+    this.shadowsOn = on;
+    this.last.x = 1e9;
+  }
+  stats() {
+    const tri = (this.geometry.index ? this.geometry.index.count : this.geometry.attributes.position.count) / 3;
+    const shown = (this.mesh?.visible ? this.mesh.count : 0) + (this.near?.visible ? this.near.count : 0);
+    return { total: this.total, shown, tris: Math.round(shown * tri), triPer: tri };
   }
 
   // Repack around (fx, fz) when the focus moved enough, or density / radius changed.
   update(fx, fz, region, density = 1, radiusScale = 1) {
     const mesh = this.mesh;
     if (!mesh) return;
-    if (region !== this.region || this.total === 0 || density <= 0) { mesh.visible = false; this.last.x = 1e9; return; }
+    const near = this.near;
+    if (region !== this.region || this.total === 0 || density <= 0) { mesh.visible = false; if (near) near.visible = false; this.last.x = 1e9; return; }
     const R = this.radius * radiusScale;
     const L = this.last;
     const moved = Math.hypot(fx - L.x, fz - L.z);
-    if (moved < Math.max(2.5, R * 0.07) && L.d === density && L.r === R) { mesh.visible = mesh.count > 0; return; }
+    if (moved < Math.max(2.5, Math.min(R * 0.07, 6)) && L.d === density && L.r === R) { mesh.visible = mesh.count > 0; if (near) near.visible = near.count > 0; return; }
     L.x = fx; L.z = fz; L.d = density; L.r = R;
-    const m = mesh.instanceMatrix.array, c = mesh.instanceColor.array;
+    const mF = mesh.instanceMatrix.array, cF = mesh.instanceColor.array;
+    const useNear = !!(near && this.shadowsOn);
+    const mN = useNear ? near.instanceMatrix.array : null, cN = useNear ? near.instanceColor.array : null;
+    const SR2 = this.shadowRadius * this.shadowRadius;
+    let nN = 0;
     const R2 = R * R, f0 = R * (1 - this.fade);
     const cs = this.cell;
     const c0x = Math.floor((fx - R) / cs), c1x = Math.floor((fx + R) / cs);
@@ -91,7 +127,10 @@ export class Scatter {
         if (s < 0.04) continue;
         const yaw = a[i + 3], sx = a[i + 4] * s, sy = a[i + 5] * s;
         const co = Math.cos(yaw), si = Math.sin(yaw);
-        const o = n * 16;
+        const toNear = useNear && d2 < SR2 && nN < this.capN;
+        const m = toNear ? mN : mF, c = toNear ? cN : cF;
+        const idx = toNear ? nN : n;
+        const o = idx * 16;
         if (tilt) {
           // small lean, direction from the rank (deterministic)
           const tl = (a[i + 9] - 0.5) * tilt * 2, tc = Math.cos(tl), ts = Math.sin(tl);
@@ -104,25 +143,28 @@ export class Scatter {
           m[o + 8] = si * sx; m[o + 9] = 0; m[o + 10] = co * sx; m[o + 11] = 0;
         }
         m[o + 12] = a[i]; m[o + 13] = a[i + 1]; m[o + 14] = a[i + 2]; m[o + 15] = 1;
-        c[n * 3] = a[i + 6]; c[n * 3 + 1] = a[i + 7]; c[n * 3 + 2] = a[i + 8];
+        c[idx * 3] = a[i + 6]; c[idx * 3 + 1] = a[i + 7]; c[idx * 3 + 2] = a[i + 8];
         if (a[i + 1] < minY) minY = a[i + 1];
         if (a[i + 1] > maxY) maxY = a[i + 1];
-        n++;
+        if (toNear) nN++; else n++;
       }
     }
-    mesh.count = n;
-    mesh.visible = n > 0;
-    if (n) {
-      mesh.instanceMatrix.clearUpdateRanges();
-      mesh.instanceMatrix.addUpdateRange(0, n * 16);
-      mesh.instanceMatrix.needsUpdate = true;
-      mesh.instanceColor.clearUpdateRanges();
-      mesh.instanceColor.addUpdateRange(0, n * 3);
-      mesh.instanceColor.needsUpdate = true;
-      const h = this.geometry.boundingSphere ? this.geometry.boundingSphere.radius * 2.5 : 4;
-      mesh.boundingSphere.center.set(fx, (minY + maxY) / 2, fz);
-      mesh.boundingSphere.radius = Math.hypot(R, (maxY - minY) / 2) + h;
-    }
+    const h = this.geometry.boundingSphere ? this.geometry.boundingSphere.radius * 2.5 : 4;
+    const fin = (msh, cnt, rad) => {
+      msh.count = cnt;
+      msh.visible = cnt > 0;
+      if (!cnt) return;
+      msh.instanceMatrix.clearUpdateRanges();
+      msh.instanceMatrix.addUpdateRange(0, cnt * 16);
+      msh.instanceMatrix.needsUpdate = true;
+      msh.instanceColor.clearUpdateRanges();
+      msh.instanceColor.addUpdateRange(0, cnt * 3);
+      msh.instanceColor.needsUpdate = true;
+      msh.boundingSphere.center.set(fx, (minY + maxY) / 2, fz);
+      msh.boundingSphere.radius = Math.hypot(rad, (maxY - minY) / 2) + h;
+    };
+    fin(mesh, n, R);
+    if (near) fin(near, useNear ? nN : 0, this.shadowRadius);
   }
 }
 

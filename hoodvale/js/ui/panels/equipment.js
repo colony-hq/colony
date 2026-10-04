@@ -18,7 +18,11 @@ const SLOT_NAME = { head: 'Head', cape: 'Cape', neck: 'Neck', ammo: 'Ammunition'
 export const BONUS_NAMES = { atk: 'Attack', str: 'Strength', def: 'Defence', rng: 'Archery', rstr: 'Ranged str.', mag: 'Arcana' };
 
 const CSS = `
-.u-doll { --rh: 40px; --rg: 6px; position: relative; display: grid; grid-template-columns: repeat(3, 44px); grid-auto-rows: var(--rh); gap: var(--rg) 14px; justify-content: center; margin: 2px 0 8px; }
+.u-doll { --rh: 40px; --rg: 6px; position: relative; display: grid; grid-template-columns: repeat(3, 44px); grid-auto-rows: var(--rh); gap: var(--rg) 14px; justify-content: center; width: max-content; margin: 2px auto 8px; }
+[data-layout=phone] .u-eqhead { display: none; }
+[data-layout=phone] .u-doll { --rh: 46px; --rg: 8px; grid-template-columns: repeat(3, 52px); gap: var(--rg) 22px; margin-top: 8px; }
+[data-layout=phone] .u-doll .u-slot { width: 52px; height: 46px; }
+[data-layout=phone] .u-doll .u-slot img { width: 40px; height: 40px; }
 .u-doll::before { content: ''; position: absolute; left: 50%; top: 20px; bottom: 20px; width: 3px; margin-left: -1.5px; background: linear-gradient(#5a4428, #3a2a18); box-shadow: 0 0 0 1px #000; z-index: 0; }
 .u-doll .hl { position: absolute; left: 22px; right: 22px; height: 3px; background: linear-gradient(90deg, #3a2a18, #5a4428, #3a2a18); box-shadow: 0 0 0 1px #000; z-index: 0; }
 .u-doll .u-slot { z-index: 1; width: 44px; height: 40px; cursor: pointer; background: radial-gradient(circle at 50% 40%, #3e2f22, #1c140e); box-shadow: inset 0 0 0 1px rgba(201,162,74,.45), 0 0 0 1px #000, 0 2px 4px rgba(0,0,0,.5); border-radius: 6px; }

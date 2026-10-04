@@ -39,10 +39,10 @@ const CSS = `
 
 /* ---- orbs ---- */
 .u-orb { position: absolute; display: flex; align-items: center; pointer-events: auto; cursor: pointer; }
-.u-orb .plate { min-width: 34px; height: 20px; padding: 0 6px 0 7px; margin-right: -5px; border-radius: 10px 0 0 10px; display: grid; place-items: center end;
+.u-orb .plate { min-width: 34px; height: 20px; padding: 0 12px 0 8px; margin-right: -7px; border-radius: 10px 0 0 10px; display: grid; place-items: center end;
   font: 700 13px/1 var(--font-mono); color: #4cd137; text-shadow: 1px 1px 0 #000;
   background: linear-gradient(180deg, #2a1f16, #120c07); box-shadow: inset 0 0 0 1px rgba(201,162,74,.45), 0 2px 6px rgba(0,0,0,.5); }
-.u-orb .ball { position: relative; width: 36px; height: 36px; border-radius: 50%; overflow: hidden; background: #0a0705;
+.u-orb .ball { position: relative; z-index: 1; flex: 0 0 auto; width: 36px; height: 36px; border-radius: 50%; overflow: hidden; background: #0a0705;
   box-shadow: 0 0 0 2px #c9a24a, 0 0 0 3px #2a1e08, 0 3px 8px rgba(0,0,0,.6); }
 .u-orb .fill { position: absolute; left: 0; right: 0; bottom: 0; height: 100%; transition: height .35s var(--ease); }
 .u-orb .ball::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle at 35% 28%, rgba(255,255,255,.45), rgba(255,255,255,0) 40%), radial-gradient(circle at 50% 80%, rgba(0,0,0,0), rgba(0,0,0,.35) 75%); pointer-events: none; }
