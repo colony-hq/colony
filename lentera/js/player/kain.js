@@ -49,13 +49,15 @@ export function createKain({ material, cols = 5, rows = 9, length = 0.95 }) {
   const inv = new THREE.Matrix4();
   const tmp = new THREE.Vector3();
 
-  function reset(pins) {
+  // back: world unit vector pointing out of the wearer's back (cloth starts behind the body).
+  function reset(pins, back) {
+    const bx = back ? back[0] : 0, bz = back ? back[2] : 1;
     for (let j = 0; j < rows; j++) {
       for (let i = 0; i < cols; i++) {
         const k = (j * cols + i) * 3;
-        p[k] = pins[i * 3];
-        p[k + 1] = pins[i * 3 + 1] - j * segLen;
-        p[k + 2] = pins[i * 3 + 2] + j * 0.02;
+        p[k] = pins[i * 3] + bx * (0.06 + j * 0.03);
+        p[k + 1] = pins[i * 3 + 1] - j * segLen * 0.97;
+        p[k + 2] = pins[i * 3 + 2] + bz * (0.06 + j * 0.03);
         v[k] = v[k + 1] = v[k + 2] = 0;
       }
     }
@@ -91,10 +93,16 @@ export function createKain({ material, cols = 5, rows = 9, length = 0.95 }) {
         const dx = p[q] - cx, dy = p[q + 1] - cy, dz = p[q + 2] - cz;
         const d2 = dx * dx + dy * dy + dz * dz;
         if (d2 < c.r * c.r) {
-          const d = Math.sqrt(d2) || 1e-6;
-          // Push out, prefer pushing backward (+ local back) when exactly on the axis.
-          const s = (c.r - d) / d;
-          p[q] += dx * s; p[q + 1] += dy * s; p[q + 2] += dz * s;
+          let ex = dx, ey = dy, ez = dz;
+          if (c.back) {
+            // Always leave through the back: mirror a forward-pointing escape direction.
+            const f = ex * c.back[0] + ey * c.back[1] + ez * c.back[2];
+            if (f < 0) { ex -= 2 * f * c.back[0]; ey -= 2 * f * c.back[1]; ez -= 2 * f * c.back[2]; }
+            if (ex * ex + ey * ey + ez * ez < 1e-8) { ex = c.back[0]; ey = c.back[1]; ez = c.back[2]; }
+          }
+          const d = Math.sqrt(ex * ex + ey * ey + ez * ez) || 1e-6;
+          const pushTo = c.r / d;
+          p[q] = cx + ex * pushTo; p[q + 1] = cy + ey * pushTo; p[q + 2] = cz + ez * pushTo;
         }
       }
       if (p[q + 1] < groundY + 0.02) p[q + 1] = groundY + 0.02;
@@ -109,10 +117,10 @@ export function createKain({ material, cols = 5, rows = 9, length = 0.95 }) {
     // pins: Float32Array(cols*3) world positions of the top row for this frame.
     // opts: { capsules, groundY, waterY, flutter (0..1), lift (0..1), gravity }
     update(dt, pins, parent, opts) {
-      if (!initialised) reset(pins);
+      if (!initialised) reset(pins, opts.back);
       // Teleports and huge jumps: start over instead of stretching across the island.
       const jump = Math.hypot(pins[0] - pinPrev[0], pins[1] - pinPrev[1], pins[2] - pinPrev[2]);
-      if (jump > 3) reset(pins);
+      if (jump > 3) reset(pins, opts.back);
       time += dt;
       const steps = Math.min(4, Math.max(1, Math.ceil(dt / SUB)));
       const h = dt / steps;

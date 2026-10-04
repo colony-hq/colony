@@ -332,6 +332,7 @@ export function createCharacter(opts = {}) {
     { ax: 0, ay: 0, az: 0, bx: 0, by: 0, bz: 0, r: 0.2 * build.scale },
   ];
   const handL = new THREE.Vector3(), handR = new THREE.Vector3(), backC = new THREE.Vector3();
+  const backDir = new THREE.Vector3(), backArr = [0, 0, 1];
   const rootPrev = new THREE.Vector3();
   let rootPrevInit = false;
   const rootVel = new THREE.Vector3();
@@ -505,6 +506,11 @@ export function createCharacter(opts = {}) {
     c1.bx = (handL.x + handR.x) / 2; c1.by = (handL.y + handR.y) / 2; c1.bz = (handL.z + handR.z) / 2;
     const c2 = capsules[2];
     c2.ax = c2.bx = headW.x; c2.ay = c2.by = headW.y; c2.az = c2.bz = headW.z;
+    // Back direction (chest +z in world) so cloth always leaves the torso through the back.
+    chest.getWorldQuaternion(tmpQ);
+    backDir.set(0, 0, 1).applyQuaternion(tmpQ);
+    backArr[0] = backDir.x; backArr[1] = backDir.y; backArr[2] = backDir.z;
+    c0.back = backArr; c1.back = backArr;
     const speed = rootVel.length();
     root.getWorldPosition(tmpV);
     kain.update(dt, pins, root, {
@@ -513,6 +519,7 @@ export function createCharacter(opts = {}) {
       waterY: anim.waterY ?? -1e9,
       flutter: clamp(speed / 7, 0, 1) * 0.8 + kainOpen * 0.6,
       lift: kainOpen * clamp(speed / 8, 0.3, 1),
+      back: backArr,
     });
   }
 
