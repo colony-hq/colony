@@ -135,17 +135,23 @@ vec3 col = vBase;
     dirt = mix(dirt, cob, smoothstep(0.3, 0.7, vMC.x));
   }
   col = mix(col, dirt, roadW);
-  // ---- slope rock with strata and cracks ----
+  // ---- slope rock: side-projected pattern (no streaks), soft strata, cracks only on bare rock ----
   float rockN = slope + (nD.b - 0.5) * 0.16 + (nF.r - 0.5) * 0.08;
   float rockW = smoothstep(0.24, 0.34, rockN) * (1.0 - step(0.48, vMB.x));
-  vec3 rc = vRock * (0.82 + 0.3 * nD.r);
-  rc *= 0.86 + 0.14 * sin(vWPos.y * 2.4 + nD.g * 5.0);
-  vec4 nR = texture2D(uNoise, vec2(wp.x * 0.7 + wp.y * 0.7, vWPos.y * 1.6) * 0.07);
-  float crk = (1.0 - smoothstep(0.02, 0.1, nR.b)) * smoothstep(0.4, 0.7, nD.b);
-  rc *= 1.0 - 0.3 * crk;
-  rc *= 0.9 + 0.2 * nR.a;
-  rc *= 0.82 + 0.32 * clamp(vWNrm.y * 1.4, 0.0, 1.0);
-  col = mix(col, rc, rockW);
+  if (rockW > 0.001) {
+    vec2 rp = abs(vWNrm.x) > abs(vWNrm.z) ? vec2(wp.y, vWPos.y) : vec2(wp.x, vWPos.y);
+    rp = mix(wp, rp, smoothstep(0.3, 0.55, slope));
+    vec4 r1 = texture2D(uNoise, rp * 0.045);
+    vec4 r2 = texture2D(uNoise, rp * 0.16);
+    vec3 rc = vRock * (0.8 + 0.32 * r1.r) * (0.92 + 0.12 * r2.g);
+    rc *= 0.93 + 0.07 * sin(vWPos.y * 1.3 + r1.g * 6.0);
+    float crk = (1.0 - smoothstep(0.02, 0.09, r2.b)) * smoothstep(0.45, 0.7, r1.b);
+    rc *= 1.0 - 0.32 * crk * smoothstep(0.6, 0.95, rockW);
+    rc *= 0.82 + 0.32 * clamp(vWNrm.y * 1.4, 0.0, 1.0);
+    // a little moss / dust on gentler rock
+    rc = mix(rc, col * 0.9, (1.0 - smoothstep(0.32, 0.5, slope)) * 0.35);
+    col = mix(col, rc, rockW);
+  }
   // ---- interior floors ----
   if (vMB.x > 0.45) {
     float ft = floor(vMB.y * 7.0 + 0.5);
@@ -479,7 +485,7 @@ export function createTerrain(ctx) {
       // Distance culling past the fog (frustum culling does the rest).
       const far = (ctx.scene.fog?.far || 400) + 24;
       const px = cam.position.x, pz = cam.position.z;
-      const lodK = ctx.engine.preset.name === 'high' ? 1.4 : ctx.engine.preset.name === 'low' ? 0.8 : 1;
+      const lodK = ctx.engine.preset.name === 'high' ? 1.4 : ctx.engine.preset.name === 'low' ? 0.7 : 1;
       for (const c of chunks) {
         const dx = Math.max(c.x0 - px, 0, px - c.x1), dz = Math.max(c.z0 - pz, 0, pz - c.z1);
         const d = Math.hypot(dx, dz, Math.max(0, cam.position.y - 30) * 0.5);

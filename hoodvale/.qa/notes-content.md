@@ -6,7 +6,15 @@ Dialogue for every NPC (33 + 10 travellers), all 8 quests end to end, shops, the
   stage has journal text, oracle answers exist, then **all 8 quests are played end to end** against
   the real dialogue/quest/shop/oracle modules (+ real actions/inventory/skills/wallet) with a
   scripted UI. Exit code 1 on failure.
-- `node tools/smoke.mjs --size 960x540 --out .qa/shots-content --steps .qa/content-smoke.json`
+  Also covers the `loot.questDrops` path and the Live Oracle with a mock `sample` (success,
+  `rate_limited` → Beacon fallback, `not_granted` → Live hidden).
+- Browser (`node tools/smoke.mjs --size 960x540 --out .qa/shots-content --steps <file>`):
+  `.qa/content-smoke.json` (Elowen, Oracle tiers, shop, signpost, traveller talk),
+  `.qa/content-smoke-2.json` (the whole tutorial with real game actions: chop, light, net, cook,
+  mine, smelt, smith, rat, bank, hand-in → done, 0.250 CREDIT, 1 QP),
+  `.qa/content-smoke-live.json` (Live Oracle with an injected mock `window.claude`),
+  `.qa/content-smoke-travellers.json` (travellers at work). All run with `errors: []`.
+  Drive dialogue in-page with `__hv.ctx.ui._U.dialogue` (`waiting`, `key('Space')`, `choose(i)`).
 
 ## Files
 | File | What |

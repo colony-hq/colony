@@ -26,8 +26,10 @@ export function createObjectViews(ctx) {
   ctx.scene.add(root);
   const lod = ctx.engine?.preset?.name === 'low' ? 0 : 1;
   const shadows = !!ctx.engine?.preset?.shadows;
-  const NEAR = Math.max(100, (ctx.engine?.preset?.drawDistance || 480) * 0.36); // small things
-  const MID = Math.max(140, (ctx.engine?.preset?.drawDistance || 480) * 0.5); // trees, utilities
+  const DD = ctx.engine?.preset?.drawDistance || 480;
+  const NEAR = Math.max(60, DD * 0.22); // small things (rocks, crops, utilities)
+  const MID = Math.max(120, DD * 0.42); // trees
+  const LOD_R = lod ? (DD >= 600 ? 40 : 30) : 0; // trees closer than this use the detailed model
 
   // ---------------------------------------------------------------- geometry + pools
   const geos = new Map();
@@ -43,14 +45,13 @@ export function createObjectViews(ctx) {
     if (!p) {
       p = kit.makePool(root, geo(key, make), opts.material || kit.mat, { capacity: opts.capacity || 24, castShadow: opts.castShadow ?? shadows, receiveShadow: true, name: 'obj:' + ck });
       pools.set(ck, p);
-      const lodPair = opts.lod ? [geo(key, make), geo(opts.lod[0], opts.lod[1])] : null;
-      kit.cull(p, key.startsWith('tree') ? MID : NEAR, { shadowDist: 40, lod: lodPair, lodDist: 42 });
+      kit.cull(p, opts.dist ?? (key.startsWith('tree') ? MID : NEAR), { shadowDist: 40 });
     }
     return p;
   }
 
-  const animated = new Set();
-  const tmpM = new THREE.Matrix4();
+  const trees = new Set();
+  const camPos = new THREE.Vector3();
 
   // ---------------------------------------------------------------- placement helpers
   function footprintMinY(e) {
@@ -162,9 +163,13 @@ export function createObjectViews(ctx) {
     const cx = e.x + (e.w || 1) / 2, cz = e.z + (e.d || 1) / 2;
     const y = footprintMinY(e) - 0.08;
     const m = M(cx + (rnd() - 0.5) * 0.2, y, cz + (rnd() - 0.5) * 0.2, yaw, 0, 0, s, sy, s);
-    const tp = pool('tree:' + kind + ':' + lod, cx, cz, () => treeGeometry(kind, lod), { capacity: 48, lod: lod ? ['tree:' + kind + ':0', () => treeGeometry(kind, 0)] : null });
+    const tp = pool('tree:' + kind + ':0', cx, cz, () => treeGeometry(kind, 0), { capacity: 48 });
+    const hp = lod ? pool('tree:' + kind + ':1', cx, cz, () => treeGeometry(kind, 1), { capacity: 16, dist: LOD_R + 30 }) : null;
     const tint = 0.9 + rnd() * 0.16;
-    const slot = tp.add(m, [tint, tint * (0.97 + rnd() * 0.06), tint]);
+    const tc = [tint, tint * (0.97 + rnd() * 0.06), tint];
+    const slot = tp.add(m, tc);
+    const hslot = hp ? hp.add(m, tc) : -1;
+    if (hp) hp.setVisible(hslot, false);
     const sp = pool('stump', cx, cz, () => stumpGeometry(), { capacity: 16 });
     const ss = big ? 1.4 : 1;
     const sm = M(cx, y + 0.05, cz, yaw, 0, 0, ss, ss * 0.9, ss);
@@ -174,17 +179,24 @@ export function createObjectViews(ctx) {
     sp.setVisible(sslot, false);
     let halo = null;
     if (kind === 'tree-elder') halo = fx.halo(cx, y + 4.2 * sy, cz, 6, [0.16, 0.08, 0.26]);
+    const tree = { x: cx, z: cz, near: false, dep: false };
+    const apply = () => {
+      tp.setVisible(slot, !tree.dep && !tree.near);
+      if (hp) hp.setVisible(hslot, !tree.dep && tree.near);
+      sp.setVisible(sslot, tree.dep);
+    };
+    tree.setNear = (n) => { if (n !== tree.near) { tree.near = n; apply(); } };
+    trees.add(tree);
     const view = {
       object3d: tp.mesh, state: 'active', entity: e,
       setState(st) {
         view.state = st;
-        const dep = st === 'depleted';
-        tp.setVisible(slot, !dep);
-        sp.setVisible(sslot, dep);
-        if (halo) fx.show(halo, !dep);
+        tree.dep = st === 'depleted';
+        apply();
+        if (halo) fx.show(halo, !tree.dep);
       },
       update() { edge(view, e); },
-      dispose() { tp.remove(slot); sp.remove(sslot); if (halo) fx.remove(halo); },
+      dispose() { tp.remove(slot); if (hp) hp.remove(hslot); sp.remove(sslot); if (halo) fx.remove(halo); trees.delete(tree); },
     };
     view._lastDepleted = false;
     return view;
@@ -198,7 +210,7 @@ export function createObjectViews(ctx) {
     const m = M(cx, y, cz, rnd() * Math.PI * 2, 0, 0, s, s * (0.85 + rnd() * 0.25), s);
     const zone = map.zoneAt(cx, cz);
     const tone = new THREE.Color(ROCK_TONE[zone] || '#a8a096');
-    const rp = pool('rock:' + lod, cx, cz, () => rockGeometry(lod), { capacity: 32, lod: lod ? ['rock:0', () => rockGeometry(0)] : null });
+    const rp = pool('rock:' + lod, cx, cz, () => rockGeometry(lod), { capacity: 32 });
     const slot = rp.add(m, tone);
     const tint = e.def.model?.tint || '#c4703b';
     const shiny = tint === '#3f6fd8' || tint === '#c9b8ff';
@@ -233,7 +245,7 @@ export function createObjectViews(ctx) {
     const y = footprintMinY(e) - 0.05;
     const s = 0.9 + rnd() * 0.3;
     const m = M(cx, y, cz, rnd() * Math.PI * 2, 0, 0, s);
-    const cp = pool('crystal', cx, cz, () => crystalGeometry(lod), { capacity: 16 });
+    const cp = pool('crystal', cx, cz, () => crystalGeometry(lod), { capacity: 16, dist: NEAR * 1.6 });
     const slot = cp.add(m, [1, 1, 1]);
     const halo = fx.halo(cx, y + 1.0 * s, cz, 2.4 * s, [0.12, 0.3, 0.45]);
     const view = {
@@ -426,7 +438,7 @@ export function createObjectViews(ctx) {
       bt.mesh.name = 'objects:' + bt.key;
       bt.mesh.castShadow = shadows; bt.mesh.receiveShadow = true;
       root.add(bt.mesh);
-      kit.cull(bt.mesh, MID, { shadowDist: 45, cast: shadows });
+      kit.cull(bt.mesh, Math.max(90, NEAR * 1.6), { shadowDist: 45, cast: shadows });
     }
   }
 
@@ -502,6 +514,12 @@ export function createObjectViews(ctx) {
     update(dt) {
       started = true;
       batchRebuild();
+      // per-tree level of detail around the camera
+      if (LOD_R && ctx.time.frame % 6 === 0 && ctx.camera) {
+        ctx.camera.getWorldPosition(camPos);
+        const r2 = LOD_R * LOD_R;
+        for (const t of trees) t.setNear((t.x - camPos.x) ** 2 + (t.z - camPos.z) ** 2 < r2);
+      }
       kit.tick(ctx);
     },
   };

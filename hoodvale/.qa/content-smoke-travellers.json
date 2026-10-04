@@ -1,0 +1,12 @@
+[
+ {"eval": "__hv.play('Smoke')"},
+ {"wait": 1500},
+ {"eval": "__hv.level('hitpoints', 99); __hv.level('defence', 99); __hv.ctx.combat?.setAutoRetaliate?.(false); 1"},
+ {"eval": "__hv.fastForward(45); __hv.ctx.travellers.list.map((e) => e.name.split(' ')[0] + '@' + e.x + ',' + e.z + (e.state.anim ? ':' + e.state.anim : '')).join('; ')"},
+ {"eval": "(() => { let w = __hv.ctx.travellers.list.find((e) => e.state.anim); for (let k = 0; !w && k < 8; k++) { __hv.fastForward(8); w = __hv.ctx.travellers.list.find((e) => e.state.anim); } if (!w) return 'none working'; window.__w = w; __hv.teleport(w.x + 3, w.z + 3); return [w.name, w.state.anim, w.x, w.z]; })()"},
+ {"wait": 1500},
+ {"eval": "(() => { const w = window.__w; if (!w) return 0; __hv.lookFrom([w.pos.x + 5, w.pos.y + 4, w.pos.z + 5], [w.pos.x, w.pos.y + 1, w.pos.z]); return [w.state.anim]; })()"},
+ {"wait": 1500},
+ {"shot": "t01-traveller-working"},
+ {"eval": "__hv.follow(); 1"}
+]
