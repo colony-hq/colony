@@ -36,6 +36,7 @@ import { createWorld } from './world.js';
 import { createOverlay } from './overlay.js';
 import { createFeedback } from './feedback.js';
 import { createDialogueBox } from './windows/dialogue.js';
+import { setPortraitRenderer } from './portrait.js';
 import { createBankWindow } from './windows/bank.js';
 import { createShopWindow } from './windows/shop.js';
 import { createMakeWindow } from './windows/make.js';
@@ -50,6 +51,8 @@ const KEY_TABS = { KeyC: 'combat', KeyK: 'skills', KeyQ: 'quests', KeyI: 'invent
 export function createUI(ctx) {
   const { events, input, state } = ctx;
   injectStyle('ui-theme', THEME_CSS);
+  // Chat heads from the real 3D characters when the actors module is up.
+  if (ctx.actors?.portrait) setPortraitRenderer((look, size) => ctx.actors.portrait(look, size));
   const roots = {};
   for (const id of ['overlay', 'hud', 'windows', 'menus', 'toasts']) {
     roots[id] = document.getElementById(id) || document.body.appendChild(h('div#' + id));

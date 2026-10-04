@@ -20,7 +20,7 @@
 import * as THREE from 'three';
 import { ITEMS } from '../data/items.js';
 import {
-  materials, fadeMaterial, acquireGeometry, releaseGeometry, geometryCacheStats, damp, clamp, smooth01, env, wrapAngle,
+  materials, fadeMaterial, outlineMaterial, acquireGeometry, releaseGeometry, geometryCacheStats, damp, clamp, smooth01, env, wrapAngle,
   newPose, hexOf, shade, SHARED, makeBones, shadowTexture,
 } from './a-core.js';
 import { HB, HB_COUNT, HB_UPPER, normaliseLook, buildHumanoid, layoutFor, createHumanoidBones } from './a-humanoid.js';
@@ -108,14 +108,14 @@ class HumanDriver {
     this.loco = { idle: 1, walk: 0, run: 0, ready: 0 };
     this.tools = { R: null, L: null };
     this.toolKey = { R: '', L: '' };
-    this.blink = 2 + Math.random() * 3; this.blinkT = 0;
+    this.blink = 0; this.blinkT = 1 + Math.random() * 4;
     this.glance = { t: 2 + Math.random() * 3, yaw: 0, pitch: 0, hold: 0, cy: 0, cp: 0 };
     this.line = null;
     this.build();
   }
   outfit() { return { ...this.baseOutfit, ...(this.equip || {}) }; }
   build() {
-    const spec = normaliseLook(this.look, this.outfit(), this.variant);
+    const spec = normaliseLook(this.look, this.outfit(), this.variant, { npc: !this.a.player && !this.a.spec?.remote });
     if (spec.key === this.key) return;
     const a = this.a;
     const geo = acquireGeometry(spec.key, () => buildHumanoid(spec).geo);
@@ -131,13 +131,21 @@ class HumanDriver {
     a.body.add(mesh);
     mesh.bind(skeleton, IDENTITY);
     mesh.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, layout.height * 0.5, 0), layout.height * 0.9 + 0.6);
+    const outline = new THREE.SkinnedMesh(geo, outlineMaterial());
+    outline.name = 'actor-outline';
+    outline.castShadow = false;
+    outline.bind(skeleton, IDENTITY);
+    outline.boundingSphere = mesh.boundingSphere;
+    a.body.add(outline);
     // Swap in.
     if (this.mesh) {
       this.detachTools();
       a.body.remove(this.mesh);
+      if (a.outline) a.body.remove(a.outline);
       a.body.remove(this.bones[0]);
       releaseGeometry(this.key);
     }
+    a.outline = outline;
     this.mesh = mesh; this.bones = bones; this.skeleton = skeleton; this.spec = spec; this.layout = layout; this.key = spec.key;
     this.bindHips = bones[HB.hips].position.clone();
     this.nockRest = bones[HB.nock].position.clone();
@@ -306,7 +314,9 @@ class HumanDriver {
     if (this.blinkT <= 0) { this.blink = 0.14; this.blinkT = 2.2 + Math.random() * 3.5; }
     if (this.blink > 0) this.blink -= dt;
     const bk = st.dead ? 0.12 : this.blink > 0 ? Math.max(0.12, Math.abs(this.blink - 0.07) / 0.07) : 1;
-    bones[HB.eyes].scale.set(1, (this.c.old ? 0.85 : 1) * bk, 1);
+    // Painted eyes close with skin lids on the eyes bone (scaled up to close); modelled eyes squash.
+    if (this.spec.lids) { const k = (1 - bk) / 0.88; if (k < 0.02) bones[HB.eyes].scale.setScalar(0.0001); else bones[HB.eyes].scale.set(1, k, 1); }
+    else bones[HB.eyes].scale.set(1, (this.c.old ? 0.85 : 1) * bk, 1);
     // Tools.
     this.setTools(toolsFrom?.tools || null);
     // Bow draw: the nock follows the right hand while drawing; arrow visible until release.
@@ -433,6 +443,12 @@ class CreatureDriver {
     const bb = geo.boundingBox;
     const r = Math.max(bb.max.x - bb.min.x, bb.max.y - bb.min.y, bb.max.z - bb.min.z);
     mesh.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, (bb.max.y + bb.min.y) / 2, (bb.max.z + bb.min.z) / 2), r * 0.85 + 0.4);
+    const outline = new THREE.SkinnedMesh(geo, outlineMaterial());
+    outline.name = 'actor-outline';
+    outline.bind(skeleton, IDENTITY);
+    outline.boundingSphere = mesh.boundingSphere;
+    actor.body.add(outline);
+    actor.outline = outline;
     this.mesh = mesh; this.bones = bones; this.skeleton = skeleton;
     actor.mesh = mesh;
     actor.headHeight = (bb.max.y + 0.15) * actor.scale;
@@ -859,6 +875,14 @@ export function createActors(ctx) {
     const fogFar = ctx.scene.fog?.far ?? 220;
     const cull = Math.min(fogFar + 25, ctx.engine?.preset?.drawDistance ?? 400);
     const shadows = !!ctx.engine?.preset?.shadows;
+    // Outline: ~1.6 CSS px wide at any distance; off on low quality, limited range on medium.
+    const q = ctx.engine?.quality || 'medium';
+    const olRange = q === 'low' ? 0 : q === 'medium' ? 30 : 55;
+    if (olRange) {
+      const hpx = ctx.renderer?.domElement?.height || innerHeight;
+      const fov = (ctx.camera.fov || 50) * Math.PI / 180;
+      SHARED.outline.value = 1.6 * (ctx.renderer?.getPixelRatio?.() || 1) * 2 * Math.tan(fov / 2) / hpx;
+    }
     let nb = 0;
     blobMat.opacity = shadows ? 0.35 : 0.55;
     for (const a of list) {
@@ -890,6 +914,7 @@ export function createActors(ctx) {
         }
       }
       if (a.mesh) a.mesh.castShadow = shadows && (a.player || d < 42);
+      if (a.outline) a.outline.visible = d < olRange && !a.state.dead && a.mesh?.visible !== false && !a.noOutline;
       // Full-rate animation near the camera, decimated further away.
       const every = a.player || d < 32 ? 1 : d < 64 ? 2 : d < 110 ? 4 : 8;
       const full = (frame + a.frame) % every === 0;
@@ -944,5 +969,63 @@ export function createActors(ctx) {
     return { actors: list.size, visible: vis, fullRate: anim, particles: fx.count, projectiles: fx.projectiles, geometry: geometryCacheStats() };
   }
 
-  return { create, update, fx, list, auto, stats, outfitFromEquipment };
+  // ---- Chat-head portraits rendered from the real actor (dialogue box, creator, title card) ----
+  // portrait(look, size) -> canvas with a transparent background (head and shoulders, 3/4 view).
+  let P = null;
+  function portrait(look = {}, size = 192) {
+    const renderer = ctx.renderer;
+    if (!renderer) return null;
+    if (!P) {
+      const scene = new THREE.Scene();
+      scene.add(new THREE.HemisphereLight(0xfff2dc, 0x6a5a4c, 1.6));
+      const key = new THREE.DirectionalLight(0xfff0d8, 2.6); key.position.set(-0.8, 1.8, -2.6); scene.add(key);
+      const rim = new THREE.DirectionalLight(0xb8d0ff, 1.4); rim.position.set(2, 1.5, 2.5); scene.add(rim);
+      const cam = new THREE.PerspectiveCamera(22, 1, 0.05, 20);
+      const rt = new THREE.WebGLRenderTarget(size, size, { samples: 4 });
+      rt.texture.colorSpace = THREE.SRGBColorSpace;
+      P = { scene, cam, rt, buf: new Uint8Array(size * size * 4), size };
+    }
+    if (P.size !== size) { P.rt.setSize(size, size); P.buf = new Uint8Array(size * size * 4); P.size = size; }
+    let a = null;
+    const prevTarget = renderer.getRenderTarget(), prevAlpha = renderer.getClearAlpha(), prevColor = new THREE.Color();
+    renderer.getClearColor(prevColor);
+    const prevOutline = SHARED.outline.value;
+    try {
+      a = new Actor(sys, { kind: 'humanoid', look, npc: true });
+      a.root.position.set(0, 0, 0);
+      a.root.rotation.y = 0;
+      a.yaw = 0; a.yawInit = true;
+      P.scene.add(a.root);
+      a.root.updateMatrixWorld(true);
+      if (a.outline) a.outline.visible = true;
+      const hh = a.headHeight;
+      const hy = hh - 0.2;
+      P.cam.position.set(0.42, hy + 0.06, -1.25);
+      P.cam.lookAt(0.02, hy - 0.08, 0);
+      SHARED.outline.value = 2.2 * 2 * Math.tan((22 * Math.PI) / 360) / size;
+      renderer.setRenderTarget(P.rt);
+      renderer.setClearColor(0x000000, 0);
+      renderer.clear();
+      renderer.render(P.scene, P.cam);
+      renderer.readRenderTargetPixels(P.rt, 0, 0, size, size, P.buf);
+    } catch (err) {
+      console.warn('[actors] portrait', err);
+      return null;
+    } finally {
+      renderer.setRenderTarget(prevTarget);
+      renderer.setClearColor(prevColor, prevAlpha);
+      SHARED.outline.value = prevOutline;
+      if (a) { P.scene.remove(a.root); try { a.drv.dispose(); } catch { /* ignore */ } }
+    }
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const g = c.getContext('2d');
+    const img = g.createImageData(size, size);
+    // Flip rows (GL origin is bottom-left) and un-premultiply nothing: the RT holds straight RGBA.
+    for (let y = 0; y < size; y++) img.data.set(P.buf.subarray((size - 1 - y) * size * 4, (size - y) * size * 4), y * size * 4);
+    g.putImageData(img, 0, 0);
+    return c;
+  }
+
+  return { create, update, fx, list, auto, stats, outfitFromEquipment, portrait };
 }

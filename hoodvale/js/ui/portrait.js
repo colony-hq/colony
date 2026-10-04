@@ -102,6 +102,11 @@ export function paintPortrait(g, look = {}, kind = 'npc') {
   g.restore();
 }
 
+// 3D chat heads: the actors module renders the real character (set by the UI at boot). The
+// painted portrait stays as the fallback and for the Oracle / narration.
+let render3d = null;
+export function setPortraitRenderer(fn) { render3d = fn; cache.clear(); }
+
 // Returns a data URL (cached per look).
 export function portraitURL(look, kind = 'npc') {
   const key = kind + ':' + JSON.stringify(look || {});
@@ -109,7 +114,25 @@ export function portraitURL(look, kind = 'npc') {
   if (url) return url;
   const c = document.createElement('canvas');
   c.width = c.height = 128;
-  try { paintPortrait(c.getContext('2d'), look || {}, kind); } catch (err) { console.warn('[ui] portrait', err); }
+  let done = false;
+  if (render3d && kind !== 'oracle' && kind !== 'narration' && look && look.body !== 'oracle') {
+    try {
+      const head = render3d(look, 192);
+      if (head) {
+        c.width = c.height = 192;
+        const g = c.getContext('2d');
+        g.save();
+        g.beginPath(); g.arc(96, 96, 93, 0, Math.PI * 2); g.clip();
+        const bg = g.createRadialGradient(96, 70, 8, 96, 96, 130);
+        bg.addColorStop(0, '#8a6a42'); bg.addColorStop(0.55, '#4a3420'); bg.addColorStop(1, '#1a120a');
+        g.fillStyle = bg; g.fillRect(0, 0, 192, 192);
+        g.drawImage(head, 0, 0);
+        g.restore();
+        done = true;
+      }
+    } catch (err) { console.warn('[ui] 3d portrait', err); }
+  }
+  if (!done) { try { paintPortrait(c.getContext('2d'), look || {}, kind); } catch (err) { console.warn('[ui] portrait', err); } }
   url = c.toDataURL();
   if (cache.size > 80) cache.clear();
   cache.set(key, url);

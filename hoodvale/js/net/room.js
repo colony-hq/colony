@@ -28,7 +28,8 @@ const ANIM_RE = /^[a-z][a-z0-9_-]{0,15}$/;
 // Player look fields the humanoid actor understands (a-humanoid normaliseLook); NPC-only extras
 // (glow, metal, weapon, staff) are not accepted from other players.
 const LOOK_KEYS = { body: 'id', build: 'id', skin: 'color', hair: 'id', hairColor: 'color', beard: 'id', hat: 'id', top: 'color', bottom: 'color', boots: 'color',
-  apron: 'color', cape: 'color', hood: 'color', tabard: 'color', scarf: 'color', eyes: 'color', sleeves: 'id', robe: 'bool' };
+  apron: 'color', cape: 'color', hood: 'color', tabard: 'color', scarf: 'color', eyes: 'color', sleeves: 'id', robe: 'bool',
+  expr: 'id', vest: 'color', dress: 'bool', satchel: 'bool', glasses: 'bool', bandana: 'bool', earrings: 'bool', necklace: 'bool', freckles: 'bool' };
 const EQ_SLOTS = ['head', 'cape', 'neck', 'ammo', 'weapon', 'body', 'shield', 'legs', 'hands', 'feet', 'ring'];
 const TERMINAL = new Set(['revoked', 'not_granted', 'capability_disabled', 'capability_removed', 'transform_error']);
 
@@ -270,7 +271,7 @@ export function createRoom(ctx) {
     const p = r.p;
     let actor = null;
     try {
-      actor = ctx.actors?.create?.({ kind: 'humanoid', look: { ...state.save.look, ...p.lk }, remote: true }) || null;
+      actor = ctx.actors?.create?.({ kind: 'humanoid', look: { ...p.lk }, remote: true }) || null;
       actor?.setEquipment?.(Object.fromEntries(Object.entries(p.eq).map(([k, v]) => [k, { id: v, qty: 1 }])));
     } catch (err) { console.warn('[net] remote actor failed', err); }
     const e = {
@@ -350,7 +351,7 @@ export function createRoom(ctx) {
         a.setPosition?.(s.x, h, s.z);
         a.setYaw?.(s.yaw);
         const ls = JSON.stringify(r.p.lk), es = JSON.stringify(r.p.eq);
-        if (ls !== r.lookSig) { r.lookSig = ls; try { a.setLook?.({ ...state.save.look, ...r.p.lk }); } catch { /* ignore */ } }
+        if (ls !== r.lookSig) { r.lookSig = ls; try { a.setLook?.({ ...r.p.lk }); } catch { /* ignore */ } }
         if (es !== r.eqSig) { r.eqSig = es; try { a.setEquipment?.(Object.fromEntries(Object.entries(r.p.eq).map(([k, v]) => [k, { id: v, qty: 1 }]))); } catch { /* ignore */ } }
         const last = r.samples[r.samples.length - 1];
         const settled = !last || tNow - INTERP_MS >= last.t;

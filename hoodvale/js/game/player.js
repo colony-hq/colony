@@ -3,6 +3,8 @@
 // API (DESIGN.md §7): entity, actor, x, z, pos, yaw, running, moving, hp/maxHp, walkTo(tx, tz,
 // opts), walkToEntity(e, goal, onArrive), stop(), teleport(tx, tz), face(entityOrTile),
 // setAnim(name|null), playOnce(name, seconds), toggleRun(on?), stun(ticks), stunned, region.
+// WASD walks tile by tile relative to the camera (8 directions, slides along walls, runs when
+// run is on); it cancels actions like a ground click does.
 // Events: player:move {x, z}, player:arrive {x, z}, player:teleport {x, z, region},
 //         player:path {steps, goal}, player:click {x, z, kind: 'walk'|'action'} (UI draws yellow /
 //         red crosses), player:stun {ticks}, run:change {on}, region:enter {region}.
@@ -25,6 +27,7 @@ export function createPlayer(ctx) {
   let renderYaw = 0;
   let stunnedUntil = 0;
   let lastRegion = null;
+  let keyWalking = false; // the current path came from WASD
 
   const entity = {
     uid: 'player', kind: 'player', name: state.save.name, x: 0, z: 0, w: 1, d: 1, yaw: 0, pos,
@@ -53,6 +56,7 @@ export function createPlayer(ctx) {
     // Player-issued walk (click on the ground): cancels any action unless opts.cancel === false.
     walkTo(tx, tz, { cancel = true, marker = true } = {}) {
       if (state.mode === 'dead') return false;
+      keyWalking = false;
       if (player.stunned) { events.emit('chat:game', { text: "You're stunned!", kind: 'warn' }); return false; }
       if (cancel) ctx.actions?.cancel();
       if (marker) events.emit('player:click', { x: tx + 0.5, z: tz + 0.5, kind: 'walk' });
@@ -61,6 +65,7 @@ export function createPlayer(ctx) {
     // Used by actions: walk until the goal is satisfied, then call cb.
     walkToEntity(e, goal, cb) {
       if (state.mode === 'dead' || player.stunned) return false;
+      keyWalking = false;
       const g = { x: e.x, z: e.z, w: e.w || 1, d: e.d || 1, ...(goal || { adjacent: true }) };
       if (g.onTile) {
         g.adjacent = false;
@@ -125,6 +130,11 @@ export function createPlayer(ctx) {
         pos.set(x + 0.5, map.heightAt(x + 0.5, z + 0.5), z + 0.5);
         if (a >= 1 && !path.length) moving = null;
       }
+      // WASD held while standing: turn right away (the step itself waits for the next tick).
+      if (!moving && !keyWalking) {
+        const d = keyDir();
+        if (d && !player.stunned) entity.yaw = Math.atan2(-d[0], -d[1]);
+      }
       // Smooth turning toward the logical yaw (shortest arc).
       const diff = wrap(entity.yaw - renderYaw);
       renderYaw = Math.abs(diff) < 0.002 ? entity.yaw : renderYaw + diff * (1 - Math.exp(-14 * dt));
@@ -153,6 +163,54 @@ export function createPlayer(ctx) {
     if (!path.length) { const f = onArrive; onArrive = null; f?.(); }
     return true;
   }
+
+  // ---- WASD ----
+  // Held direction relative to the camera, snapped to 8 directions: [dx, dz] or null.
+  const KEYS = { KeyW: [0, 1], KeyS: [0, -1], KeyA: [-1, 0], KeyD: [1, 0] };
+  function keyDir() {
+    const input = ctx.input;
+    if (!input || input.typing || state.mode !== 'play') return null;
+    let f = 0, r = 0;
+    for (const code in KEYS) if (input.down(code)) { r += KEYS[code][0]; f += KEYS[code][1]; }
+    if (!f && !r) return null;
+    const yaw = ctx.cameraRig?.yaw ?? 0;
+    // Camera sits at +(sin yaw, cos yaw) from the player, so forward is the opposite way.
+    const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+    const mx = fx * f - fz * r, mz = fz * f + fx * r;
+    const oct = Math.round(Math.atan2(mz, mx) / (Math.PI / 4));
+    const a = oct * (Math.PI / 4);
+    return [Math.round(Math.cos(a)), Math.round(Math.sin(a))];
+  }
+  // One step from (x, z) toward d, or the nearest of the two neighbouring directions (slide).
+  function stepToward(x, z, d) {
+    const [dx, dz] = d;
+    const tries = [[dx, dz]];
+    if (dx && dz) tries.push([dx, 0], [0, dz]);
+    else if (dx) tries.push([dx, 1], [dx, -1]);
+    else tries.push([1, dz], [-1, dz]);
+    for (const [sx, sz] of tries) if (map.canStep(x, z, x + sx, z + sz)) return { x: x + sx, z: z + sz };
+    return null;
+  }
+  // Intent (priority 5, before the movement tick): refresh a short WASD path every tick.
+  ctx.ticks.on(() => {
+    const d = state.mode === 'play' && !player.stunned ? keyDir() : null;
+    if (!d) {
+      if (keyWalking) { path = []; keyWalking = false; }
+      return;
+    }
+    const s1 = stepToward(entity.x, entity.z, d);
+    if (!s1) { if (keyWalking) path = []; return; }
+    if (!keyWalking) {
+      ctx.actions?.cancel();
+      anim = null;
+      keyWalking = true;
+      events.emit('player:path', { steps: 1, goal: null }); // walking away closes dialogue
+    }
+    const s2 = player.running ? stepToward(s1.x, s1.z, d) : null;
+    path = s2 ? [s1, s2] : [s1];
+    onArrive = null;
+    arriveGoal = null;
+  }, 5);
 
   function checkRegion() {
     const r = player.region;
@@ -192,7 +250,7 @@ export function createPlayer(ctx) {
     }
     state.markDirty();
     events.emit('player:move', { x: next.x, z: next.z, running: !!via });
-    if (!path.length) {
+    if (!path.length && !keyWalking) {
       const f = onArrive;
       onArrive = null;
       f?.();

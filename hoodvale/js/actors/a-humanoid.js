@@ -11,6 +11,10 @@ import {
   deform, rock, makeBones, TAU, rng, hashStr,
 } from './a-core.js';
 import { weaponParts, shieldParts, quiverParts, bowParts, tint, addParts } from './a-gear.js';
+import {
+  addTorsoH, addHemH, addBeltH, addBandH, addArmsH, addLegsH, addBootsH, addHeadH, addHairH, addBeardH, addPanelH, torsoAt,
+  addAccessoriesH, accessoryKey,
+} from './a-body.js';
 
 // ---------------------------------------------------------------------------------------------
 // Skeleton
@@ -42,27 +46,31 @@ const VARIANTS = {
   golem: { width: 1.65, limb: 1.9, leg: 0.68, head: 0.72, torso: 1.12, arm: 1.2, shoulder: 1.55, hunch: 0.55 },
 };
 export const HEAD_R = 0.198;
+const HEAD_R_HUMAN = 0.182;
 
 // Bind layout (offsets relative to parents) for a body spec.
 export function layoutFor(spec) {
   const b = spec.b;
   const thigh = 0.4 * b.leg, shin = 0.37 * b.leg, ankle = 0.075;
   const hipY = ankle + shin + thigh + 0.03;
-  const hr = HEAD_R * b.head;
+  const hr = (spec.variant === 'human' ? HEAD_R_HUMAN : HEAD_R) * b.head;
   const t = b.torso;
   const sh = b.shoulder * (spec.female ? 0.9 : 1);
   const hipW = spec.female ? 1.08 : 1;
   const arm = b.arm;
   const nock = spec.bow ? spec.bow.nockY : 0.1;
+  const human = spec.variant === 'human';
+  const hb = human ? 0.1 : 0.06; // head bone above the neck bone
+  const hcy = human ? 0.13 : 0.15 * b.head; // head centre above the head bone (= eye level)
   const off = [
     [0, 0, 0], // root
     [0, hipY, 0], // hips
     [0, 0.1, 0], // spine
     [0, 0.19 * t, 0], // chest
     [0, 0.2 * t, 0], // neck
-    [0, 0.06, 0], // head
-    [0, 0.15 * b.head, -hr * 0.84], // eyes
-    [0, 0.2 * b.head, 0.08], // hair
+    [0, hb, 0], // head
+    [0, hcy, -hr * 0.84], // eyes
+    human ? [0, hcy + 0.06, 0.1] : [0, 0.2 * b.head, 0.08], // hair
     [-0.2 * sh * b.width ** 0.5, 0.15 * t, 0], [0, -0.26 * arm, 0], [0, -0.24 * arm, 0], // left arm
     [0.2 * sh * b.width ** 0.5, 0.15 * t, 0], [0, -0.26 * arm, 0], [0, -0.24 * arm, 0], // right arm
     [-0.1 * hipW * b.width ** 0.7, -0.03, 0], [0, -thigh, 0], [0, -shin, 0], // left leg
@@ -77,7 +85,7 @@ export function layoutFor(spec) {
     [-0.06, 0.12 * t, 0.12 * b.width], [0.06, 0.12 * t, 0.12 * b.width], // wings
   ];
   const defs = off.map((o, i) => [Object.keys(HB)[i], PARENT[i], o[0], o[1], o[2]]);
-  return { defs, hipY, thigh, shin, hr, height: hipY + 0.1 + 0.39 * t + 0.06 + 0.15 * b.head + hr * 1.05 };
+  return { defs, hipY, thigh, shin, hr, hb, hcy, height: hipY + 0.1 + 0.39 * t + hb + hcy + hr * 1.05 };
 }
 export function createHumanoidBones(layout) { return makeBones(layout.defs); }
 
@@ -88,7 +96,7 @@ const HAIRS = ['short', 'long', 'braid', 'bun', 'bald', 'tonsure', 'slick', 'moh
 const HATS = ['cap', 'wide', 'straw', 'beanie', 'tricorn', 'feathered-hat', 'helmet-lamp', 'witch', 'bell', 'crown'];
 
 // outfit: { head, body, legs, hands, feet, cape, neck, weapon, shield, ammo } each { kind, tint, id?, face? }
-export function normaliseLook(look = {}, outfit = {}, variant = 'human') {
+export function normaliseLook(look = {}, outfit = {}, variant = 'human', opts = {}) {
   const v = VARIANTS[variant] ? variant : 'human';
   const female = look.body === 'female';
   const buildName = BUILDS[look.build] ? look.build : 'normal';
@@ -115,6 +123,9 @@ export function normaliseLook(look = {}, outfit = {}, variant = 'human') {
     scarf: look.scarf ? hexOf(look.scarf) : null,
     outfit: { ...outfit },
     bow: null,
+    lookRaw: look,
+    npc: !!opts.npc,
+    lids: v === 'human',
   };
   // NPC conveniences: look.staff (walking staff), look.weapon (kind).
   if (look.staff && !spec.outfit.weapon) spec.outfit.weapon = { kind: 'walking-staff', tint: null };
@@ -129,7 +140,8 @@ export function normaliseLook(look = {}, outfit = {}, variant = 'human') {
     spec.bow = { kind: w.kind, tint: w.tint, nockY: bp.nock[2] };
   }
   spec.key = JSON.stringify([v, female, buildName, spec.skin, hair, spec.hairColor, spec.beard, spec.top, spec.bottom, spec.boots,
-    spec.hat, spec.hood, spec.cape, spec.apron, spec.robe, spec.sleeves, spec.eyes, spec.glow, spec.metal, spec.tabard, spec.scarf, spec.outfit]);
+    spec.hat, spec.hood, spec.cape, spec.apron, spec.robe, spec.sleeves, spec.eyes, spec.glow, spec.metal, spec.tabard, spec.scarf, spec.outfit,
+    spec.npc, look.expr || null, !!look.freckles, !!look.scar, look.lip || null, !!look.tired, accessoryKey(look)]);
   return spec;
 }
 
@@ -188,7 +200,7 @@ function makeCtx(spec, L, bones, B) {
   const b = spec.b;
   const W = b.width, Lk = b.limb, hr = L.hr;
   const yHips = L.hipY, ySpine = yHips + 0.1, yChest = ySpine + 0.19 * b.torso, yNeck = yChest + 0.2 * b.torso;
-  const headC = [0, 0.15 * b.head, -0.004];
+  const headC = [0, L.hcy, -0.004];
   const o = spec.outfit;
   return {
     spec, L, bones, B, b, W, Lk, hr, yHips, ySpine, yChest, yNeck, headC, o,
@@ -220,6 +232,7 @@ function torsoProfile(ctx, extra = 0) {
 }
 
 function addTorso(ctx, color, o = {}) {
+  if (ctx.spec.variant === 'human') return addTorsoH(ctx, color, { extra: o.extra, colorFn: o.colorFn, shine: o.shine, glowFn: o.glowFn, flat: o.flat, noNeck: (o.extra || 0) > 0 });
   const { B } = ctx;
   const { prof, H } = torsoProfile(ctx, o.extra || 0);
   const g = lathe(prof, 14);
@@ -237,6 +250,7 @@ function addTorso(ctx, color, o = {}) {
 }
 
 function addHead(ctx, o = {}) {
+  if (ctx.spec.variant === 'human') return addHeadH(ctx, o);
   const { B, spec, hr, headC } = ctx;
   const skin = o.skin || spec.skin;
   B.add(new THREE.CylinderGeometry(0.05 * (o.neck || 1), 0.058 * (o.neck || 1), 0.13, 8), HB.neck, skin, { at: [0, 0.045, 0.005] });
@@ -291,6 +305,7 @@ function addEyes(ctx, o = {}) {
 }
 
 function addArms(ctx, o = {}) {
+  if (ctx.spec.variant === 'human') return addArmsH(ctx, { sleeve: o.sleeve, sleeves: o.sleeves, skin: o.skin, hand: o.hand, glove: o.gloves ? o.hand || o.gloves : null, handScale: o.handScale });
   const { B, spec, Lk } = ctx;
   const sleeveC = o.sleeve || spec.top;
   const long = (o.sleeves || spec.sleeves) !== 'short';
@@ -318,6 +333,7 @@ function addArms(ctx, o = {}) {
 }
 
 function addLegs(ctx, o = {}) {
+  if (ctx.spec.variant === 'human') { addLegsH(ctx, { pants: o.pants }); if (!o.barefoot) addBootsH(ctx, o.boots || ctx.spec.boots); return; }
   const { B, spec, Lk, L } = ctx;
   const pants = o.pants || spec.bottom;
   const boots = o.boots || spec.boots;
@@ -342,11 +358,13 @@ function addLegs(ctx, o = {}) {
 }
 
 function addPelvis(ctx, color) {
+  if (ctx.spec.variant === 'human') return undefined;
   const { B, W } = ctx;
   B.add(lathe([[0.03, -0.18], [0.1, -0.165], [0.14 * W, -0.1], [0.148 * W, -0.02], [0.144 * W, 0.05]], 12), HB.hips, color, { scale: [1, 1, 0.8] });
 }
 
 function addSkirt(ctx, color, hemY, o = {}) {
+  if (ctx.spec.variant === 'human') return addHemH(ctx, color, hemY, o);
   const { B, W, yHips } = ctx;
   const topY = yHips + (o.top ?? 0.06);
   const long = hemY < 0.4;
@@ -376,6 +394,7 @@ function addSkirt(ctx, color, hemY, o = {}) {
 }
 
 function addBelt(ctx, color = '#3a2616', buckle = '#c9a24a', y = 0.07) {
+  if (ctx.spec.variant === 'human') return addBeltH(ctx, color, buckle, ctx.yHips + y, { pouch: false });
   const { B, W, spec } = ctx;
   const r = 0.146 * W + spec.b.belly * 0.5 + 0.006;
   B.add(new THREE.TorusGeometry(r, 0.022, 4, 16), HB.hips, color, { at: [0, y, 0], rot: [Math.PI / 2, 0, 0], scale: [1, 0.78, 1] });
@@ -383,11 +402,13 @@ function addBelt(ctx, color = '#3a2616', buckle = '#c9a24a', y = 0.07) {
 }
 
 function addCollar(ctx, color) {
+  if (ctx.spec.variant === 'human') return void addBandH(ctx, color, ctx.yNeck - 0.006, 0.03, { extra: 0.01 });
   ctx.B.add(new THREE.TorusGeometry(0.07, 0.018, 4, 12), HB.chest, color, { at: [0, 0.2 * ctx.b.torso, 0.0], rot: [Math.PI / 2 + 0.25, 0, 0], scale: [1.1, 1, 0.9] });
 }
 
 // ---- hair, beards, hats -----------------------------------------------------------------------
 function addHair(ctx, covered) {
+  if (ctx.spec.variant === 'human') return addHairH(ctx, covered);
   const { B, spec, hr, headC } = ctx;
   const H = spec.hairColor;
   const [cx, cy, cz] = headC;
@@ -471,6 +492,7 @@ function addHair(ctx, covered) {
 }
 
 function addBeard(ctx) {
+  if (ctx.spec.variant === 'human') return addBeardH(ctx);
   const { B, spec, hr, headC } = ctx;
   const H = spec.hairColor;
   const [cx, cy, cz] = headC;
@@ -627,6 +649,12 @@ function addCape(ctx, color, o = {}) {
 }
 
 function addApron(ctx, color) {
+  if (ctx.spec.variant === 'human') {
+    const { yChest, L } = ctx;
+    addPanelH(ctx, color, yChest + 0.08, L.hipY - L.thigh * 0.78, (y) => (y > ctx.yHips + 0.12 ? 0.62 : 0.95));
+    addBandH(ctx, shade(color, 0.85), ctx.yHips + 0.1, 0.03, { extra: 0.024 });
+    return;
+  }
   const { B, b, W, yHips, yChest } = ctx;
   const bel = b.belly;
   const top = yChest + 0.08, bottom = ctx.L.hipY - ctx.L.thigh * 0.85;
@@ -691,6 +719,13 @@ function bandColor(c, c2, y0) {
 }
 
 function addPlatelegs(ctx, T) {
+  if (ctx.spec.variant === 'human') {
+    const { L, B, b } = ctx;
+    const c = C(T.color), hi = C(mix(T.color, '#ffffff', 0.15));
+    addLegsH(ctx, { pants: T.color, extra: 0.016, shine: 1, maxD: L.thigh + L.shin * 0.55, colorAt: (d) => (Math.abs(d - L.thigh) < 0.05 ? hi : c) });
+    for (const side of [-1, 1]) B.add(sphere(0.062 * b.limb, 10, 8), side < 0 ? HB.knL : HB.knR, mix(T.color, '#ffffff', 0.12), { at: [0, 0.0, -0.05], scale: [1, 0.85, 0.7], shine: 1 });
+    return;
+  }
   const { B, b, L } = ctx;
   const c = T.color, c2 = T.color2;
   for (const side of [-1, 1]) {
@@ -762,6 +797,13 @@ function addCoat(ctx, color, trim) {
 }
 
 function addTabard(ctx, color, metal) {
+  if (ctx.spec.variant === 'human') {
+    const { yChest, L, B, W } = ctx;
+    for (const back of [false, true]) addPanelH(ctx, color, yChest + 0.15, L.hipY - L.thigh * 0.62, 0.5, { back, trim: '#d8b04a' });
+    const r = torsoAt(ctx, yChest + 0.06, 0.03);
+    B.add(cyl(0.05, 0.05, 0.01, 12), HB.chest, '#d8b04a', { at: [0, 0.06, -r.rf], rot: [Math.PI / 2, 0, 0], shine: 1 });
+    return;
+  }
   const { B, b, W, yHips, yChest } = ctx;
   const top = yChest + 0.14, bottom = ctx.L.hipY - ctx.L.thigh * 0.7;
   const h = top - bottom;
@@ -820,43 +862,59 @@ function buildHuman(ctx) {
   const leatherLegs = legsK === 'leather_chaps';
   const pants = leatherLegs ? '#8a5a3a' : spec.bottom;
   const boots = o.feet?.kind === 'leather_boots' ? '#7a4a2a' : spec.boots;
-  addPelvis(ctx, pants);
-  // Torso / tunic.
+  const coatC = bodyK === 'coat' ? (o.body.tint?.[0] === '#' ? o.body.tint : spec.top) : null;
+  // Base body: clothes painted on one continuous surface (shirt with a V or scoop neck,
+  // trousers, bare neck).
+  const top = coatC || spec.top;
+  const skin = C(spec.skin), topC = C(top), lowC = C(pants);
+  const { yChest, yNeck } = ctx;
+  addTorsoH(ctx, top, {
+    colorAt: (row, a) => {
+      const [y, , , , , region] = row;
+      if (region === 'neck') return skin;
+      if (region === 'low') return lowC;
+      return topC;
+    },
+  });
+  // Torso layers.
   if (bodyK === 'chestplate') addChestplate(ctx, tint(o.body.tint));
   else if (bodyK === 'leather_body' || bodyK === 'hard_leather_body') addLeatherBody(ctx, bodyK === 'hard_leather_body');
   else if (bodyK === 'goblin_mail') addGoblinMail(ctx);
   else if (bodyK === 'wyrmscale_body') addWyrmscale(ctx);
-  else if (bodyK === 'coat') addCoat(ctx, o.body.tint?.[0] === '#' ? o.body.tint : spec.top, spec.metal || '#d8b04a');
+  else if (bodyK === 'coat') addCoat(ctx, coatC, spec.metal || '#d8b04a');
   else {
-    addTorso(ctx, spec.top);
-    if (spec.robe) addSkirt(ctx, spec.top, 0.12, { flare: 0.03 });
-    else if (!metalLegs) addSkirt(ctx, spec.top, ctx.yHips - 0.2, {});
-    addBelt(ctx, spec.robe ? '#d8c8a0' : '#3a2616', spec.robe ? '#d8c8a0' : '#c9a24a', 0.07);
-    addCollar(ctx, shade(spec.top, 0.65));
+    const trim = spec.robe ? shade(spec.top, 0.7) : mix(spec.top, '#f2e6c8', 0.18);
+    if (spec.robe) addHemH(ctx, spec.top, 0.1, { flare: 0.03, trim });
+    else if (!metalLegs && !spec.lookRaw.dress) addHemH(ctx, spec.top, ctx.yHips - (spec.female ? 0.2 : 0.165), { trim });
+    addBeltH(ctx, spec.robe ? '#d8c8a0' : '#3a2616', spec.robe ? '#d8c8a0' : '#c9a24a', null, { pouch: !spec.robe && !spec.apron });
+    // Neckline: a soft rolled collar in the trim colour.
+    addBandH(ctx, spec.robe ? shade(spec.top, 0.75) : trim, yNeck - 0.004, 0.03, { extra: 0.008 });
   }
   if (spec.tabard && (metalBody || bodyK === 'coat')) addTabard(ctx, spec.tabard, spec.metal);
-  if (b.belly > 0.04 && !bodyK) B.add(sphere(0.13 * b.width, 10, 8), HB.spine, spec.top, { at: [0, 0.03, -0.035 - b.belly * 0.55], scale: [1.05, 0.95, 0.78] });
   // Arms (sleeves match the body piece).
-  const sleeve = metalBody ? tint(o.body.tint).color2 : bodyK === 'leather_body' || bodyK === 'hard_leather_body' ? '#7a5034' : bodyK === 'goblin_mail' ? '#5a6a30' : bodyK === 'wyrmscale_body' ? '#4a4856' : bodyK === 'coat' ? (o.body.tint?.[0] === '#' ? o.body.tint : spec.top) : spec.top;
-  addArms(ctx, { sleeve, sleeves: bodyK ? 'long' : spec.sleeves, gloves: o.hands ? '#7a4a2a' : null, hand: o.hands ? '#8a5a3a' : (metalBody && o.hands ? tint(o.body.tint).color : null), bell: spec.robe });
+  const sleeve = metalBody ? tint(o.body.tint).color2 : bodyK === 'leather_body' || bodyK === 'hard_leather_body' ? '#7a5034' : bodyK === 'goblin_mail' ? '#5a6a30' : bodyK === 'wyrmscale_body' ? '#4a4856' : coatC || spec.top;
+  const glove = o.hands ? '#7a4a2a' : spec.lookRaw.gloves ? (typeof spec.lookRaw.gloves === 'string' ? spec.lookRaw.gloves : '#5a3a24') : null;
+  addArmsH(ctx, { sleeve, sleeves: bodyK ? 'long' : spec.sleeves, glove, hand: glove ? shade(glove, 1.1) : null });
   // Legs.
-  addLegs(ctx, { pants, boots, shinColor: pants });
+  addLegsH(ctx, { pants });
+  addBootsH(ctx, boots, { top: o.feet?.kind === 'leather_boots' ? 0.42 : 0.5 });
   if (metalLegs) addPlatelegs(ctx, tint(o.legs.tint));
-  if (leatherLegs) addBelt(ctx, '#4a2e1a', '#b89a5a', 0.02);
+  if (leatherLegs) addBeltH(ctx, '#4a2e1a', '#b89a5a', ctx.yHips + 0.03, { pouch: false });
   if (spec.apron) addApron(ctx, spec.apron);
   // Head.
-  addHead(ctx);
+  addHeadH(ctx);
   const helm = headK === 'helm';
   const hood = headK === 'hood' ? tint(o.head.tint).color : spec.hood;
   const covered = helm || !!hood || headK === 'leather_cowl' || !!spec.hat || headK === 'feathered-hat' || headK === 'bell';
-  if (!helm) addHair(ctx, covered);
-  addBeard(ctx);
+  if (!helm) addHairH(ctx, covered);
+  addBeardH(ctx);
   if (helm) addHelm(ctx, tint(o.head.tint));
   else if (headK === 'leather_cowl') addCowl(ctx);
   else if (hood) addHood(ctx, hood);
   else if (headK === 'feathered-hat' || headK === 'bell' || headK === 'crown') addHat(ctx, headK);
   else if (spec.hat) addHat(ctx, spec.hat);
   if (headK === 'mask') addMask(ctx);
+  addAccessoriesH(ctx);
   if (spec.scarf) addScarf(ctx, spec.scarf);
   if (o.neck?.kind === 'amulet') addAmulet(ctx, tint(o.neck.tint));
   const capeC = o.cape ? (o.cape.tint === 'hood' ? '#3f7f3a' : o.cape.tint === 'red' ? '#8a1a1a' : (o.cape.tint?.[0] === '#' ? o.cape.tint : tint(o.cape.tint).color)) : spec.cape;

@@ -5,6 +5,7 @@
 
 import * as THREE from 'three';
 import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
+import { faceTexture } from './a-face.js';
 
 export const TAU = Math.PI * 2;
 export const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -56,6 +57,9 @@ export const SHARED = {
   rim: { value: new THREE.Color(0.1, 0.11, 0.17) },
   glow: { value: 2.4 },
   time: { value: 0 },
+  // Painted decals (faces) in a premultiplied RGBA atlas; geometry without decals samples a
+  // transparent texel at uv (0, 0). Set by a-face.js.
+  decal: { value: null },
 };
 
 export function makeActorMaterial({ key = 'base', emissive = 0x000000, emissiveIntensity = 1, transparent = false, opacity = 1, side = THREE.FrontSide } = {}) {
@@ -66,26 +70,37 @@ export function makeActorMaterial({ key = 'base', emissive = 0x000000, emissiveI
   m.onBeforeCompile = (shader) => {
     shader.uniforms.uActorRim = SHARED.rim;
     shader.uniforms.uActorGlow = SHARED.glow;
+    shader.uniforms.uActorDecal = SHARED.decal;
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nattribute vec2 aMat;\nvarying vec2 vActorMat;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvActorMat = aMat;');
+      .replace('#include <common>', '#include <common>\nattribute vec2 aMat;\nattribute vec2 aUv;\nvarying vec2 vActorMat;\nvarying vec2 vActorUv;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvActorMat = aMat;\nvActorUv = aUv;');
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying vec2 vActorMat;\nuniform vec3 uActorRim;\nuniform float uActorGlow;')
+      .replace('#include <common>', '#include <common>\nvarying vec2 vActorMat;\nvarying vec2 vActorUv;\nuniform vec3 uActorRim;\nuniform float uActorGlow;\nuniform sampler2D uActorDecal;')
+      .replace('#include <color_fragment>', `#include <color_fragment>
+      {
+        vec4 dcl = texture2D(uActorDecal, vActorUv);
+        diffuseColor.rgb = diffuseColor.rgb * (1.0 - dcl.a) + dcl.rgb;${globalThis.__hvDecalDebug ? '\n        diffuseColor.rgb = vec3(fract(vActorUv * 8.0), dcl.a);' : ''}
+      }`)
       .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, 0.3, vActorMat.x);')
       .replace('#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\nmetalnessFactor = mix(metalnessFactor, 0.45, vActorMat.x);')
+      // Wrapped diffuse only (specular keeps the true N.L so silhouettes don't sparkle).
+      .replace('#include <lights_physical_pars_fragment>', THREE.ShaderChunk.lights_physical_pars_fragment.replace(
+        'reflectedLight.directDiffuse += irradiance * BRDF_Lambert( material.diffuseColor );',
+        'reflectedLight.directDiffuse += saturate( ( dot( geometryNormal, directLight.direction ) + 0.35 ) / 1.35 ) * directLight.color * BRDF_Lambert( material.diffuseColor );'))
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
       {
         float rimF = 1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0);
         totalEmissiveRadiance += uActorRim * pow(rimF, 2.6) + diffuseColor.rgb * vActorMat.y * uActorGlow;
       }`);
   };
-  m.customProgramCacheKey = () => 'hvActor_' + key;
+  m.customProgramCacheKey = () => 'hvActor_' + key + (globalThis.__hvDecalDebug ? '_dbg' : '');
   return m;
 }
 
 let MATS = null;
 export function materials() {
   if (MATS) return MATS;
+  SHARED.decal.value = faceTexture();
   MATS = {
     body: makeActorMaterial({ key: 'body' }),
     flash: makeActorMaterial({ key: 'flash', emissive: 0xff2a1a, emissiveIntensity: 0.55 }),
@@ -95,6 +110,28 @@ export function materials() {
   MATS.crystal.depthWrite = false;
   return MATS;
 }
+// Ink outline (inverted hull): back faces pushed out along the skinned normal by a constant
+// screen width (uActorOutline = world units per unit of view depth, set per frame).
+SHARED.outline = { value: 0.002 };
+let OUTLINE = null;
+export function outlineMaterial() {
+  if (OUTLINE) return OUTLINE;
+  OUTLINE = new THREE.MeshBasicMaterial({ color: 0x1c130d, side: THREE.BackSide });
+  OUTLINE.onBeforeCompile = (shader) => {
+    shader.uniforms.uActorOutline = SHARED.outline;
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nuniform float uActorOutline;')
+      .replace('#include <project_vertex>', `#include <project_vertex>
+      #ifdef USE_SKINNING
+        // objectNormal is the skinned normal (transformedNormal is flipped for BackSide).
+        mvPosition.xyz += normalize(normalMatrix * objectNormal) * uActorOutline * clamp(-mvPosition.z, 1.5, 60.0);
+        gl_Position = projectionMatrix * mvPosition;
+      #endif`);
+  };
+  OUTLINE.customProgramCacheKey = () => 'hvActorOutline';
+  return OUTLINE;
+}
+
 export function fadeMaterial() {
   return makeActorMaterial({ key: 'fade', transparent: true, opacity: 1 });
 }
@@ -226,6 +263,12 @@ export class Builder {
   //      flat, shade, ao (default true), shine (0..1), glow (0..1), matrix (extra Matrix4) }
   add(geo, bone, color, o = {}) {
     let g = geo;
+    if (o.uvFn) {
+      // Decal UVs from the primitive's own (pre-transform) coordinates.
+      const p0 = g.attributes.position, uv = new Float32Array(p0.count * 2);
+      for (let i = 0; i < p0.count; i++) { const r = o.uvFn(p0.getX(i), p0.getY(i), p0.getZ(i)); uv[i * 2] = r[0]; uv[i * 2 + 1] = r[1]; }
+      g.setAttribute('aUv', new THREE.BufferAttribute(uv, 2));
+    }
     if (g.attributes.uv) g.deleteAttribute('uv');
     if (g.attributes.uv1) g.deleteAttribute('uv1');
     if (g.attributes.color && !o.keepColor) g.deleteAttribute('color');
@@ -246,11 +289,14 @@ export class Builder {
       const idx = new Uint32Array(n);
       for (let i = 0; i < n; i++) idx[i] = i;
       g.setIndex(new THREE.BufferAttribute(idx, 1));
+    } else if (o.keepNormals && g.attributes.normal) {
+      // Normals supplied by the caller (patches cut from one smooth surface stay seamless).
     } else {
       if (g.attributes.normal) g.deleteAttribute('normal');
       g = mergeVertices(g, 1e-5);
       g.computeVertexNormals();
     }
+    if (!g.attributes.aUv) g.setAttribute('aUv', new THREE.BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2));
     const pos = g.attributes.position;
     const n = pos.count;
     const base = C(color);
@@ -303,7 +349,7 @@ export class Builder {
       g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sw, 4));
     }
     for (const k of Object.keys(g.attributes)) {
-      if (!['position', 'normal', 'color', 'aMat', 'skinIndex', 'skinWeight'].includes(k)) g.deleteAttribute(k);
+      if (!['position', 'normal', 'color', 'aMat', 'aUv', 'skinIndex', 'skinWeight'].includes(k)) g.deleteAttribute(k);
     }
     this.geos.push(g);
     return g;
@@ -497,4 +543,91 @@ export function shadowTexture() {
   g.fillRect(0, 0, s, s);
   SHADOW_TEX = new THREE.CanvasTexture(c);
   return SHADOW_TEX;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Loft: smooth skinned surface through rings (model space, bind pose). Used for one-piece bodies
+// (torso, limbs, hands, boots) so joints read as anatomy instead of stacked capsules.
+// rings: [{ p: Vector3 centre, rx (side radius), rf (front), rb (back), w: [[bone, w], ...] }]
+// Ring frame: tangent t along the centre line; side = normalize(t x ref), front = side x t.
+// With ref = (0, 0, -1) a vertical line gets side = +x and front = -z (the character's front).
+// opts: radial, ref, sq (superellipse exponent; < 1 boxier), mod(u, a, i) -> radius multiplier,
+//       color(u, a, i, out) -> Color, caps [start, end]. Angle a: 0 = side, PI/2 = front.
+// ---------------------------------------------------------------------------------------------
+export function loft(rings, { radial = 16, ref = new THREE.Vector3(0, 0, -1), sq = 1, mod = null, color = null, caps = [true, true] } = {}) {
+  const n = rings.length, per = radial + 1;
+  const pos = new Float32Array((n * per + 2) * 3), col = new Float32Array((n * per + 2) * 3);
+  const si = new Uint16Array((n * per + 2) * 4), sw = new Float32Array((n * per + 2) * 4);
+  const t = new THREE.Vector3(), side = new THREE.Vector3(), front = new THREE.Vector3(), tc = new THREE.Color(1, 1, 1);
+  const sp = (v, e) => Math.sign(v) * Math.pow(Math.abs(v), e);
+  const setW = (vi, w) => {
+    let sum = 0;
+    const m = Math.min(4, w.length);
+    for (let k = 0; k < m; k++) sum += w[k][1];
+    for (let k = 0; k < 4; k++) {
+      si[vi * 4 + k] = k < m ? w[k][0] : 0;
+      sw[vi * 4 + k] = k < m ? (sum > 0 ? w[k][1] / sum : (k === 0 ? 1 : 0)) : 0;
+    }
+  };
+  for (let i = 0; i < n; i++) {
+    const R = rings[i];
+    const a0 = rings[Math.max(0, i - 1)].p, a1 = rings[Math.min(n - 1, i + 1)].p;
+    t.subVectors(a1, a0);
+    if (t.lengthSq() < 1e-10) t.set(0, -1, 0);
+    t.normalize();
+    const rf = R.ref || ref;
+    side.crossVectors(t, rf);
+    if (side.lengthSq() < 1e-8) side.set(1, 0, 0);
+    side.normalize();
+    front.crossVectors(side, t).normalize();
+    const u = n > 1 ? i / (n - 1) : 0;
+    for (let j = 0; j <= radial; j++) {
+      const a = (j / radial) * TAU;
+      const ca = Math.cos(a), sa = Math.sin(a);
+      const k = mod ? mod(u, a, i) : 1;
+      const e = R.sq ?? sq;
+      const ox = sp(ca, e) * R.rx * k, oy = sp(sa, e) * (sa > 0 ? R.rf : R.rb) * k;
+      const vi = i * per + j;
+      pos[vi * 3] = R.p.x + side.x * ox + front.x * oy;
+      pos[vi * 3 + 1] = R.p.y + side.y * ox + front.y * oy;
+      pos[vi * 3 + 2] = R.p.z + side.z * ox + front.z * oy;
+      if (color) color(u, a, i, tc);
+      col[vi * 3] = tc.r; col[vi * 3 + 1] = tc.g; col[vi * 3 + 2] = tc.b;
+      setW(vi, R.w);
+    }
+  }
+  const index = [];
+  for (let i = 0; i < n - 1; i++) for (let j = 0; j < radial; j++) {
+    const a = i * per + j, b = a + 1, d = a + per, e = d + 1;
+    index.push(a, b, d, b, e, d);
+  }
+  let vc = n * per;
+  for (const [end, on] of [[0, caps[0]], [1, caps[1]]]) {
+    if (!on) continue;
+    const ri = end ? n - 1 : 0, R = rings[ri], vi = vc++;
+    pos[vi * 3] = R.p.x; pos[vi * 3 + 1] = R.p.y; pos[vi * 3 + 2] = R.p.z;
+    for (let k = 0; k < 3; k++) col[vi * 3 + k] = col[(ri * per) * 3 + k];
+    setW(vi, R.w);
+    for (let j = 0; j < radial; j++) {
+      const a = ri * per + j, b = a + 1;
+      if (end) index.push(vi, a, b); else index.push(vi, b, a);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos.subarray(0, vc * 3), 3));
+  g.setAttribute('color', new THREE.BufferAttribute(col.subarray(0, vc * 3), 3));
+  g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(si.subarray(0, vc * 4), 4));
+  g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sw.subarray(0, vc * 4), 4));
+  g.setIndex(index);
+  // Outward winding check (flip if the middle ring's normal points inward).
+  g.computeVertexNormals();
+  const nr = g.attributes.normal, mid = Math.floor(n / 2) * per + Math.floor(radial / 4);
+  const c = rings[Math.floor(n / 2)].p;
+  const vx = pos[mid * 3] - c.x, vy = pos[mid * 3 + 1] - c.y, vz = pos[mid * 3 + 2] - c.z;
+  if (vx * nr.getX(mid) + vy * nr.getY(mid) + vz * nr.getZ(mid) < 0) {
+    const ia = g.index.array;
+    for (let i = 0; i < ia.length; i += 3) { const tmp = ia[i + 1]; ia[i + 1] = ia[i + 2]; ia[i + 2] = tmp; }
+  }
+  g.deleteAttribute('normal');
+  return g;
 }

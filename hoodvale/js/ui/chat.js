@@ -230,5 +230,6 @@ export function createChat(U) {
   refreshTabs();
   if (cfg.collapsed) el.classList.add('collapsed');
   push('Welcome to <b>Hoodvale</b>. Robinhood Chain here is <i>simulated</i>: no real value moves.', 'system', { tabId: 'game' });
+  if (U.layout !== 'phone') push('Controls: <b>WASD</b> to walk, click to walk or interact, right-click for options, arrow keys or middle-drag to turn the camera.', 'system', { tabId: 'game' });
   return chat;
 }

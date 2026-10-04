@@ -1,4 +1,4 @@
-// RuneScape-style camera: orbits the player; arrow keys / WASD / middle-drag / one-finger drag
+// RuneScape-style camera: orbits the player; arrow keys / middle-drag / one-finger drag
 // rotate, wheel / pinch zoom. Smoothed yaw / pitch / zoom, terrain collision along the whole
 // sight line, automatic zoom-in indoors and in dungeons, screen shake.
 // Modes: 'follow' (play), 'login' (slow scenic orbit), 'debug' (hands off), 'focus' (look at a
@@ -31,10 +31,11 @@ export function createCamera(ctx) {
       const typing = input.typing;
       const sp = (state.settings.cameraSpeed || 1) * dt;
       if (!typing) {
-        if (input.down('ArrowLeft') || input.down('KeyA')) rig.yaw += 1.9 * sp;
-        if (input.down('ArrowRight') || input.down('KeyD')) rig.yaw -= 1.9 * sp;
-        if (input.down('ArrowUp') || input.down('KeyW')) rig.pitch += 1.1 * sp;
-        if (input.down('ArrowDown') || input.down('KeyS')) rig.pitch -= 1.1 * sp;
+        // WASD walks (game/player.js); arrows turn the camera.
+        if (input.down('ArrowLeft')) rig.yaw += 1.9 * sp;
+        if (input.down('ArrowRight')) rig.yaw -= 1.9 * sp;
+        if (input.down('ArrowUp')) rig.pitch += 1.1 * sp;
+        if (input.down('ArrowDown')) rig.pitch -= 1.1 * sp;
       }
       rig.yaw += input.orbit.yaw;
       rig.pitch += input.orbit.pitch;

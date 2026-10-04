@@ -11,7 +11,13 @@ import { portraitURL } from './portrait.js';
 import { esc, fmtDuration, safe } from './util.js';
 
 const SKINS = ['#f2d0b0', '#e8b896', '#e0b48a', '#c8956b', '#a8754f', '#8a5a3a', '#6a4028', '#4a2c1a'];
-const HAIRS = [['short', 'Short'], ['long', 'Long'], ['bun', 'Bun'], ['braid', 'Braid'], ['slick', 'Slick'], ['bald', 'Bald']];
+const HAIRS = [['short', 'Short'], ['long', 'Long'], ['ponytail', 'Ponytail'], ['bun', 'Bun'], ['braid', 'Braid'], ['slick', 'Slick'], ['mohawk', 'Mohawk'], ['bald', 'Bald']];
+const EYES = ['#5a3a22', '#3d2616', '#3f6488', '#4f7a44', '#6b6250', '#7a5a2a'];
+const FACES = [['neutral', 'Calm'], ['smile', 'Cheerful'], ['stern', 'Fierce'], ['sly', 'Sly']];
+const BEARDS = [[null, 'None'], ['stubble', 'Stubble'], ['short', 'Short'], ['full', 'Full'], ['long', 'Long'], ['moustache', 'Moustache']];
+const OUTFITS = [['tunic', 'Tunic'], ['jerkin', 'Jerkin'], ['dress', 'Dress'], ['robe', 'Robe']];
+const EXTRAS = [[null, 'None'], ['satchel', 'Satchel'], ['glasses', 'Glasses'], ['bandana', 'Bandana'], ['earrings', 'Earrings'], ['necklace', 'Pendant'], ['freckles', 'Freckles']];
+const EXTRA_KEYS = EXTRAS.map((e) => e[0]).filter(Boolean);
 const HAIR_COLORS = ['#1a1a1a', '#3a2a1a', '#4a3020', '#6a3a1a', '#8a4a2a', '#a87a3a', '#c9a46a', '#e8e0d0', '#8a3a5a'];
 const TOPS = ['#7a5a3a', '#3f7f3a', '#2e6f8e', '#7a2a2a', '#5a2a6a', '#a87a2a', '#2a2a3a', '#d8cbb0', '#4a6a4a', '#1f3a5a'];
 const BOTTOMS = ['#4a3a2a', '#2a2a2a', '#3a4a6a', '#5a4a2a', '#3a3a4a', '#6a5a3a', '#2a3a2a', '#7a6a5a'];
@@ -130,7 +136,12 @@ export function createLogin(U) {
   function randomLook() {
     const pick = (a) => a[Math.floor(Math.random() * a.length)];
     const body = Math.random() < 0.5 ? 'male' : 'female';
-    return { body, skin: pick(SKINS), hair: pick(HAIRS.slice(0, body === 'male' ? 6 : 5))[0], hairColor: pick(HAIR_COLORS), top: pick(TOPS), bottom: pick(BOTTOMS), boots: pick(BOOTS) };
+    const hair = pick(body === 'male' ? ['short', 'short', 'slick', 'long', 'mohawk', 'bald'] : ['long', 'ponytail', 'bun', 'braid', 'short'])
+    const out = { body, skin: pick(SKINS), hair, hairColor: pick(HAIR_COLORS.slice(0, 8)), eyes: pick(EYES), expr: pick(['neutral', 'smile', 'smile', 'stern']), top: pick(TOPS), bottom: pick(BOTTOMS), boots: pick(BOOTS), beard: null, vest: null, dress: null, robe: false };
+    for (const k of EXTRA_KEYS) out[k] = null;
+    if (body === 'male' && Math.random() < 0.45) out.beard = pick(['stubble', 'short', 'full', 'moustache']);
+    if (Math.random() < 0.35) out[pick(['satchel', 'earrings', 'freckles', 'bandana'])] = true;
+    return out;
   }
 
   function creator(existing) {
@@ -175,13 +186,27 @@ export function createLogin(U) {
       sections.push(() => { for (const [c, b] of btns) b.classList.toggle('on', look[key] === c); });
       body.append(h('div.u-fld', {}, [h('label', { text: label }), wrap]));
     };
+    // Chips whose value maps onto several look fields.
+    const chipsFn = (label, opts, get, set) => {
+      const wrap = h('div.u-chips');
+      const btns = opts.map(([v, t]) => { const b = h('button', { text: t, onclick: () => { set(v); refresh(); } }); wrap.append(b); return [v, b]; });
+      sections.push(() => { const cur = get(); for (const [v, b] of btns) b.classList.toggle('on', cur === v); });
+      body.append(h('div.u-fld', {}, [h('label', { text: label }), wrap]));
+    };
     chips('Body', 'body', [['male', 'Broad'], ['female', 'Slight']]);
     swatches('Skin', 'skin', SKINS);
+    chipsFn('Face', FACES, () => look.expr || 'neutral', (v) => { look.expr = v; });
+    swatches('Eyes', 'eyes', EYES);
     chips('Hair', 'hair', HAIRS);
     swatches('Hair colour', 'hairColor', HAIR_COLORS);
+    chipsFn('Beard', BEARDS, () => look.beard || null, (v) => { look.beard = v; });
+    chipsFn('Outfit', OUTFITS, () => (look.robe ? 'robe' : look.dress ? 'dress' : look.vest ? 'jerkin' : 'tunic'), (v) => {
+      look.robe = v === 'robe'; look.dress = v === 'dress' ? true : null; look.vest = v === 'jerkin' ? '#4a3424' : null;
+    });
     swatches('Tunic', 'top', TOPS);
     swatches('Trousers', 'bottom', BOTTOMS);
     swatches('Boots', 'boots', BOOTS);
+    chipsFn('Extra', EXTRAS, () => EXTRA_KEYS.find((k) => look[k]) || null, (v) => { for (const k of EXTRA_KEYS) look[k] = null; if (v) look[v] = true; });
     if (existing) body.append(h('p', { style: { margin: '4px 0 0', font: 'italic 12.5px var(--font-body)', color: '#ffb09f' }, text: `Starting anew replaces ${existing.name} in this browser.` }));
 
     const back = h('button.u-btn', { text: 'Back', onclick: title });
@@ -213,7 +238,7 @@ export function createLogin(U) {
     const y = safe(() => ctx.map.heightAt(x, z), 0);
     let actor = null;
     try { actor = ctx.actors?.create?.({ kind: 'humanoid', look, player: true, preview: true }) || null; } catch (err) { console.warn('[ui] preview actor', err); }
-    preview = { actor, x, y, z, yaw: 0.35, idle: 0 };
+    preview = { actor, x, y, z, yaw: Math.PI - 0.4, idle: 0 }; // the camera sits south (+z); actors face -z at yaw 0
     ctx.cameraRig?.setMode?.('debug');
   }
   function applyLook() {

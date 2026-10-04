@@ -96,6 +96,23 @@ fx.chips(at, 'wood'|'rock'|'anvil'|'water'); fx.flash(pos, color, size, life); f
   table drops if you want the beam).
 - `skillFx`: impact chips/sparks during skilling loops.
 
+## Character redesign (round 2)
+Humans are now one continuous sculpted surface (`a-body.js`): lofted torso / arms / legs / hands /
+boots with anatomical cross-sections skinned across the joints, a shaped head whose front carries a
+painted face from the shared decal atlas (`a-face.js`, 2048x1024, 32 cells painted on demand per
+recipe: iris, brows, lips, expression, age lines, blush, stubble, freckles, scar), sculpted hair
+shells with lock ridges (long hair = fanned locks), beard shells, skin eyelids on the eyes bone for
+blinks, and an ink outline (inverted hull, `outlineMaterial()`, ~1.6 px; off on low quality, 30 m
+on medium, 55 m on high). Goblins, trolls, imps, skeletons and golems keep the original builders.
+Chat-head portraits for dialogue / creator / title are rendered from the real actor
+(`ctx.actors.portrait(look, size)` -> canvas; hooked into `ui/portrait.js`).
+
+New look fields: `expr` ('neutral' | 'smile' | 'stern' | 'sly' | 'kind' | 'grumpy' | 'worried'),
+`eyes` (iris colour), `freckles`, `scar`, `tired`, `lip`, and garments / accessories: `vest`,
+`bodice`, `dress`, `shawl`, `satchel`, `sash`, `necklace`, `glasses`, `eyepatch`, `earrings`,
+`bandana`, `flower`, `pipe`, `gloves` (each `true` or a colour). NPCs without `expr` get a stable
+pseudo-random expression; remote players and the local player use what they chose.
+
 ## Looks
 `look`: `{ body: 'male'|'female', build: 'slim'|'normal'|'stout'|'old', skin, hair: 'short'|'long'|
 'braid'|'bun'|'bald'|'tonsure'|'slick'|'ponytail'|'mohawk', hairColor, beard: 'short'|'full'|'long'|
