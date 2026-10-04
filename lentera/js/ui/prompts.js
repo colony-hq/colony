@@ -255,6 +255,8 @@ export function createPrompts(ctx) {
   }
 
   events.on('hint', (p = {}) => hint(p.text, p.seconds ?? 5, { priority: true }));
+  // A new quest step makes step-specific hints stale.
+  events.on('quest:step', () => clearHints());
   events.on('mode:change', ({ mode, prev }) => {
     if (mode === 'play' && (prev === 'intro' || prev === 'title' || prev === 'cinematic') && !seen.move) moveTimer = 1.6;
     if (mode === 'title') { queue.length = 0; current = null; hintEl.classList.remove('on'); }

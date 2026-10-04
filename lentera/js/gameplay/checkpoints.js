@@ -203,7 +203,9 @@ export function createCheckpoints(ctx) {
     // Trying the kampung fire before meeting Sarni: point the player to her once.
     if (!arriveHintShown && prog().quest === 'arrive' && state.mode === 'play' && ctx.player) {
       const k = camps.kampung, pp = ctx.player.position;
-      if (Math.hypot(pp.x - k.base.x, pp.z - k.base.z) < 3.5) {
+      const sarni = ctx.npcs?.get?.('sarni')?.position;
+      const nearSarni = sarni && Math.hypot(pp.x - sarni.x, pp.z - sarni.z) < 3;
+      if (!nearSarni && Math.hypot(pp.x - k.base.x, pp.z - k.base.z) < 2.6) {
         arriveHintShown = true;
         events.emit('hint', { text: 'Apinya nanti dulu. Sapa Mbah Sarni yang duduk di dekat api.', seconds: 4 });
       }

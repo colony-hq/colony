@@ -147,6 +147,13 @@ async function boot() {
     requestAnimationFrame(frame);
     const dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
     last = now;
+    step(dt);
+    governor.update(dt);
+    engine.render();
+  }
+
+  // One simulation + UI step (no rendering). Also used by the debug fast-forward.
+  function step(dt) {
     const paused = state.mode === 'pause' || state.mode === 'loading';
     const sdt = paused ? 0 : dt;
     simTime += sdt;
@@ -164,9 +171,8 @@ async function boot() {
     ctx.interact.update();
     for (const m of uiModules) safe(m, dt, simTime);
     safe(ctx.audio, dt, simTime);
-    governor.update(dt);
-    engine.render();
   }
+  ctx.step = step;
 
   const failed = new Set();
   function safe(mod, dt, t) {
@@ -213,6 +219,11 @@ function installDebug(ctx) {
       ctx.camera.lookAt(target[0], target[1], target[2]);
     },
     follow() { ctx.cameraRig?.setMode?.('follow'); },
+    // Run the simulation for `seconds` without rendering (cinematics on slow test machines).
+    fastForward(seconds, dt = 1 / 30) {
+      for (let t = 0; t < seconds; t += dt) ctx.step(dt);
+      return ctx.state.mode;
+    },
   };
   console.info('[lentera] debug hooks on window.__lentera');
 }

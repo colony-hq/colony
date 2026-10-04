@@ -1,0 +1,143 @@
+[
+ {
+  "wait": 1500
+ },
+ {
+  "eval": "window.__T = { sleep: (ms) => new Promise((r) => setTimeout(r, ms)), L: () => __lentera.ctx, focus() { const f = __lentera.ctx.interact.focus; return f ? { id: f.id, label: typeof f.label === 'function' ? f.label() : f.label } : null; }, async at(x, z, fx, fz, y) { __lentera.teleport(x, z, y); if (fx !== undefined) __lentera.ctx.player.faceToward(fx, fz); __lentera.fastForward(0.6); await __T.sleep(900); return __T.focus(); }, async use() { __lentera.ctx.input.tap('interact'); await __T.sleep(700); __lentera.fastForward(0.3); await __T.sleep(400); return __T.focus(); }, prog() { const L = __lentera.ctx; const p = L.state.progress; return { mode: L.state.mode, quest: p.quest, flames: p.flames, cps: p.checkpoints, nyala: Math.round(p.nyala), credit: +p.credit.balance.toFixed(3), clues: p.clues.map((c) => c.id), kilau: p.kilau.length, flags: Object.keys(p.flags) }; }, near(a, d = 1.6) { const p = __lentera.ctx.player.position; const dx = p.x - a.x, dz = p.z - a.z; const l = Math.hypot(dx, dz) || 1; return [a.x + (dx / l) * d, a.z + (dz / l) * d]; } }; 1"
+ },
+ {
+  "eval": "__lentera.play(); __lentera.ctx.quest.setStep('seek'); __lentera.fastForward(1); 1"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "log": "__T.prog()"
+ },
+ {
+  "eval": "(() => { const a = __lentera.ctx.structures.anchors['flame:tirta']; return [a.x, a.y, a.z]; })()"
+ },
+ {
+  "eval": "__T.at(-143, -33, -140.5, -33)"
+ },
+ {
+  "log": "__T.focus()"
+ },
+ {
+  "shot": "f01-cave"
+ },
+ {
+  "eval": "__T.use()"
+ },
+ {
+  "eval": "__lentera.fastForward(3); 1"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "log": "__T.prog()"
+ },
+ {
+  "shot": "f02-tirta-taken"
+ },
+ {
+  "eval": "(() => { const P = __lentera.ctx.structures.pelita; return Object.fromEntries(Object.entries(P).map(([k, v]) => [k, [+v.position.x.toFixed(1), +v.position.y.toFixed(1), +v.position.z.toFixed(1)]])); })()"
+ },
+ {
+  "eval": "(async () => { const p = __lentera.ctx.structures.pelita['utara'].position; const g = __lentera.ctx.collision.groundAt(p.x, p.z + ((p.z < -138) ? 1.4 : (p.z > -138 ? -1.4 : 0)), 99); const dx = p.x > 31 ? -1.4 : (p.x < 29 ? 1.4 : 0); const dz = p.z < -139 ? 1.4 : (p.z > -137 ? -1.4 : 0); const gx = p.x + dx, gz = p.z + dz; const gy = __lentera.ctx.collision.groundAt(gx, gz, p.y + 1).y; return __T.at(gx, gz, p.x, p.z, gy + 0.05); })()"
+ },
+ {
+  "log": "__T.focus()"
+ },
+ {
+  "eval": "__T.use()"
+ },
+ {
+  "eval": "__lentera.fastForward(1.5); 1"
+ },
+ {
+  "log": "__lentera.ctx.state.progress.pelita"
+ },
+ {
+  "eval": "(async () => { const p = __lentera.ctx.structures.pelita['timur'].position; const g = __lentera.ctx.collision.groundAt(p.x, p.z + ((p.z < -138) ? 1.4 : (p.z > -138 ? -1.4 : 0)), 99); const dx = p.x > 31 ? -1.4 : (p.x < 29 ? 1.4 : 0); const dz = p.z < -139 ? 1.4 : (p.z > -137 ? -1.4 : 0); const gx = p.x + dx, gz = p.z + dz; const gy = __lentera.ctx.collision.groundAt(gx, gz, p.y + 1).y; return __T.at(gx, gz, p.x, p.z, gy + 0.05); })()"
+ },
+ {
+  "log": "__T.focus()"
+ },
+ {
+  "eval": "__T.use()"
+ },
+ {
+  "eval": "__lentera.fastForward(1.5); 1"
+ },
+ {
+  "log": "__lentera.ctx.state.progress.pelita"
+ },
+ {
+  "eval": "(async () => { const p = __lentera.ctx.structures.pelita['selatan'].position; const g = __lentera.ctx.collision.groundAt(p.x, p.z + ((p.z < -138) ? 1.4 : (p.z > -138 ? -1.4 : 0)), 99); const dx = p.x > 31 ? -1.4 : (p.x < 29 ? 1.4 : 0); const dz = p.z < -139 ? 1.4 : (p.z > -137 ? -1.4 : 0); const gx = p.x + dx, gz = p.z + dz; const gy = __lentera.ctx.collision.groundAt(gx, gz, p.y + 1).y; return __T.at(gx, gz, p.x, p.z, gy + 0.05); })()"
+ },
+ {
+  "log": "__T.focus()"
+ },
+ {
+  "eval": "__T.use()"
+ },
+ {
+  "eval": "__lentera.fastForward(1.5); 1"
+ },
+ {
+  "log": "__lentera.ctx.state.progress.pelita"
+ },
+ {
+  "eval": "(async () => { const p = __lentera.ctx.structures.pelita['barat'].position; const g = __lentera.ctx.collision.groundAt(p.x, p.z + ((p.z < -138) ? 1.4 : (p.z > -138 ? -1.4 : 0)), 99); const dx = p.x > 31 ? -1.4 : (p.x < 29 ? 1.4 : 0); const dz = p.z < -139 ? 1.4 : (p.z > -137 ? -1.4 : 0); const gx = p.x + dx, gz = p.z + dz; const gy = __lentera.ctx.collision.groundAt(gx, gz, p.y + 1).y; return __T.at(gx, gz, p.x, p.z, gy + 0.05); })()"
+ },
+ {
+  "log": "__T.focus()"
+ },
+ {
+  "eval": "__T.use()"
+ },
+ {
+  "eval": "__lentera.fastForward(1.5); 1"
+ },
+ {
+  "log": "__lentera.ctx.state.progress.pelita"
+ },
+ {
+  "eval": "__lentera.fastForward(4); 1"
+ },
+ {
+  "log": "({door: __lentera.ctx.structures.candiDoorOpen, flags: Object.keys(__lentera.ctx.state.progress.flags)})"
+ },
+ {
+  "eval": "__lentera.lookFrom([30, 44, -116], [30, 40, -136]); 1"
+ },
+ {
+  "wait": 1500
+ },
+ {
+  "shot": "f03-candi-open"
+ },
+ {
+  "eval": "__lentera.follow(); __T.at(30, -135.6, 30, -138, 40.05)"
+ },
+ {
+  "log": "__T.focus()"
+ },
+ {
+  "eval": "__T.use()"
+ },
+ {
+  "eval": "__lentera.fastForward(3); 1"
+ },
+ {
+  "log": "__T.prog()"
+ },
+ {
+  "eval": "(() => { const a = __lentera.ctx.structures.anchors['flame:samudra']; return [a.x, a.y, a.z]; })()"
+ },
+ {
+  "eval": "(() => { const a = __lentera.ctx.structures.anchors['flame:samudra']; const t = __lentera.ctx.structures.anchors['wreck:table']; return t ? [t.x, t.y, t.z] : null; })()"
+ }
+]

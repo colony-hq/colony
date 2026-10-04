@@ -54,7 +54,7 @@ export const LANDMARKS = {
       { id: 'rumah-darto', x: 16, z: 136, yaw: 2.513, w: 6.5, d: 6 },
       { id: 'rumah-3', x: -26, z: 162, yaw: -1.418, w: 6, d: 5.5 },
       { id: 'rumah-4', x: 27, z: 160, yaw: 1.497, w: 6, d: 5.5 },
-      { id: 'rumah-5', x: 2, z: 124, yaw: 3.083, w: 8, d: 6.5 },
+      { id: 'rumah-5', x: -6, z: 124, yaw: -2.967, w: 8, d: 6.5 }, // west of the candi path
     ],
     warung: { x: 14, z: 176, yaw: 0.661 }, // Bu Ratih's food stall (ground level, open front faces plaza)
     campfire: { x: 0, z: 158 }, // = checkpoint 'kampung'

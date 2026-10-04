@@ -1,0 +1,152 @@
+[
+ {
+  "wait": 1500
+ },
+ {
+  "eval": "window.__T = { sleep: (ms) => new Promise((r) => setTimeout(r, ms)), L: () => __lentera.ctx, focus() { const f = __lentera.ctx.interact.focus; return f ? { id: f.id, label: typeof f.label === 'function' ? f.label() : f.label } : null; }, async at(x, z, fx, fz, y) { __lentera.teleport(x, z, y); if (fx !== undefined) __lentera.ctx.player.faceToward(fx, fz); __lentera.fastForward(0.6); await __T.sleep(900); return __T.focus(); }, async use() { __lentera.ctx.input.tap('interact'); await __T.sleep(700); __lentera.fastForward(0.3); await __T.sleep(400); return __T.focus(); }, prog() { const L = __lentera.ctx; const p = L.state.progress; return { mode: L.state.mode, quest: p.quest, flames: p.flames, cps: p.checkpoints, nyala: Math.round(p.nyala), credit: +p.credit.balance.toFixed(3), clues: p.clues.map((c) => c.id), kilau: p.kilau.length, flags: Object.keys(p.flags) }; }, near(a, d = 1.6) { const p = __lentera.ctx.player.position; const dx = p.x - a.x, dz = p.z - a.z; const l = Math.hypot(dx, dz) || 1; return [a.x + (dx / l) * d, a.z + (dz / l) * d]; } }; 1"
+ },
+ {
+  "eval": "__lentera.play(); __lentera.ctx.quest.setStep('seek'); __lentera.fastForward(1); 1"
+ },
+ {
+  "eval": "__T.at(-142.2, -33, -140.5, -33, 1.45)"
+ },
+ {
+  "log": "__T.focus()"
+ },
+ {
+  "log": "(() => { const p = __lentera.ctx.player.position; return [p.x, p.y, p.z]; })()"
+ },
+ {
+  "shot": "g01-cave"
+ },
+ {
+  "eval": "__T.use()"
+ },
+ {
+  "eval": "__lentera.fastForward(3); 1"
+ },
+ {
+  "log": "__T.prog()"
+ },
+ {
+  "eval": "(async () => { const t = __lentera.ctx.structures.anchors['wreck:table'] || __lentera.ctx.structures.anchors['flame:samudra']; const a = __lentera.ctx.structures.anchors['flame:samudra']; const gy = __lentera.ctx.collision.groundAt(a.x + 1.3, a.z, a.y + 0.5).y; return __T.at(a.x + 1.3, a.z, a.x, a.z, gy + 0.05); })()"
+ },
+ {
+  "log": "__T.focus()"
+ },
+ {
+  "log": "(() => { const p = __lentera.ctx.player.position; return [p.x, p.y, p.z]; })()"
+ },
+ {
+  "shot": "g02-wreck-cabin"
+ },
+ {
+  "eval": "__T.use()"
+ },
+ {
+  "eval": "__lentera.fastForward(3); 1"
+ },
+ {
+  "log": "__T.prog()"
+ },
+ {
+  "eval": "__lentera.ctx.state.progress.flames.bumi = 'carried'; 1"
+ },
+ {
+  "eval": "(() => { const S = __lentera.ctx.structures.sockets; return Object.fromEntries(Object.entries(S).map(([k, v]) => [k, [+v.position.x.toFixed(1), +v.position.y.toFixed(1), +v.position.z.toFixed(1)]])); })()"
+ },
+ {
+  "eval": "(async () => { const p = __lentera.ctx.structures.sockets['tirta'].position; const m = { x: 200, z: 40 }; const dx = p.x - m.x, dz = p.z - m.z; const l = Math.hypot(dx, dz); const gx = p.x + dx / l * 1.5, gz = p.z + dz / l * 1.5; const gy = __lentera.ctx.collision.groundAt(gx, gz, 25).y; return __T.at(gx, gz, p.x, p.z, gy + 0.05); })()"
+ },
+ {
+  "log": "__T.focus()"
+ },
+ {
+  "eval": "__T.use()"
+ },
+ {
+  "eval": "__lentera.fastForward(2); 1"
+ },
+ {
+  "log": "__T.prog()"
+ },
+ {
+  "eval": "(async () => { const p = __lentera.ctx.structures.sockets['bumi'].position; const m = { x: 200, z: 40 }; const dx = p.x - m.x, dz = p.z - m.z; const l = Math.hypot(dx, dz); const gx = p.x + dx / l * 1.5, gz = p.z + dz / l * 1.5; const gy = __lentera.ctx.collision.groundAt(gx, gz, 25).y; return __T.at(gx, gz, p.x, p.z, gy + 0.05); })()"
+ },
+ {
+  "log": "__T.focus()"
+ },
+ {
+  "eval": "__T.use()"
+ },
+ {
+  "eval": "__lentera.fastForward(2); 1"
+ },
+ {
+  "log": "__T.prog()"
+ },
+ {
+  "eval": "(async () => { const p = __lentera.ctx.structures.sockets['samudra'].position; const m = { x: 200, z: 40 }; const dx = p.x - m.x, dz = p.z - m.z; const l = Math.hypot(dx, dz); const gx = p.x + dx / l * 1.5, gz = p.z + dz / l * 1.5; const gy = __lentera.ctx.collision.groundAt(gx, gz, 25).y; return __T.at(gx, gz, p.x, p.z, gy + 0.05); })()"
+ },
+ {
+  "log": "__T.focus()"
+ },
+ {
+  "eval": "__T.use()"
+ },
+ {
+  "eval": "__lentera.fastForward(2); 1"
+ },
+ {
+  "log": "__T.prog()"
+ },
+ {
+  "wait": 1000
+ },
+ {
+  "shot": "g03-finale-a"
+ },
+ {
+  "eval": "__lentera.fastForward(12); 1"
+ },
+ {
+  "wait": 1500
+ },
+ {
+  "shot": "g04-finale-b"
+ },
+ {
+  "eval": "__lentera.fastForward(14); 1"
+ },
+ {
+  "wait": 1500
+ },
+ {
+  "shot": "g05-finale-c"
+ },
+ {
+  "log": "__T.prog()"
+ },
+ {
+  "eval": "__lentera.fastForward(20); 1"
+ },
+ {
+  "wait": 1500
+ },
+ {
+  "shot": "g06-finale-d"
+ },
+ {
+  "eval": "__lentera.fastForward(25); 1"
+ },
+ {
+  "wait": 2000
+ },
+ {
+  "shot": "g07-credits"
+ },
+ {
+  "log": "__T.prog()"
+ }
+]
