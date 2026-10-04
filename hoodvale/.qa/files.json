@@ -1,7 +1,7 @@
 {
   "page": "index.html",
-  "count": 148,
-  "bytes": 2279699,
+  "count": 151,
+  "bytes": 2763279,
   "files": {
     "js/actors/a-anim.js": "js/actors/a-anim.js",
     "js/actors/a-body.js": "js/actors/a-body.js",
@@ -11,6 +11,7 @@
     "js/actors/a-fx.js": "js/actors/a-fx.js",
     "js/actors/a-gear.js": "js/actors/a-gear.js",
     "js/actors/a-humanoid.js": "js/actors/a-humanoid.js",
+    "js/actors/a-model.js": "js/actors/a-model.js",
     "js/actors/actors.js": "js/actors/actors.js",
     "js/audio/ambience.js": "js/audio/ambience.js",
     "js/audio/audio.js": "js/audio/audio.js",
@@ -150,6 +151,8 @@
     "js/world/w-flora.js": "js/world/w-flora.js",
     "js/world/w-fx.js": "js/world/w-fx.js",
     "js/world/w-scatter.js": "js/world/w-scatter.js",
-    "js/world/water.js": "js/world/water.js"
+    "js/world/water.js": "js/world/water.js",
+    "assets/chars/player_m.jpg": "assets/chars/player_m.jpg",
+    "assets/chars/player_m.json": "assets/chars/player_m.json"
   }
 }

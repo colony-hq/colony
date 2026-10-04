@@ -27,7 +27,7 @@ export const EMOTES = ['wave', 'cheer', 'bow', 'dance', 'clap', 'laugh', 'cry', 
 const ANIM_RE = /^[a-z][a-z0-9_-]{0,15}$/;
 // Player look fields the humanoid actor understands (a-humanoid normaliseLook); NPC-only extras
 // (glow, metal, weapon, staff) are not accepted from other players.
-const LOOK_KEYS = { body: 'id', build: 'id', skin: 'color', hair: 'id', hairColor: 'color', beard: 'id', hat: 'id', top: 'color', bottom: 'color', boots: 'color',
+const LOOK_KEYS = { model: 'id', body: 'id', build: 'id', skin: 'color', hair: 'id', hairColor: 'color', beard: 'id', hat: 'id', top: 'color', bottom: 'color', boots: 'color',
   apron: 'color', cape: 'color', hood: 'color', tabard: 'color', scarf: 'color', eyes: 'color', sleeves: 'id', robe: 'bool',
   expr: 'id', vest: 'color', dress: 'bool', satchel: 'bool', glasses: 'bool', bandana: 'bool', earrings: 'bool', necklace: 'bool', freckles: 'bool' };
 const EQ_SLOTS = ['head', 'cape', 'neck', 'ammo', 'weapon', 'body', 'shield', 'legs', 'hands', 'feet', 'ring'];

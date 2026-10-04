@@ -52,7 +52,12 @@ export function createUI(ctx) {
   const { events, input, state } = ctx;
   injectStyle('ui-theme', THEME_CSS);
   // Chat heads from the real 3D characters when the actors module is up.
-  if (ctx.actors?.portrait) setPortraitRenderer((look, size) => ctx.actors.portrait(look, size));
+  if (ctx.actors?.portrait) {
+    const render = (look, size) => ctx.actors.portrait(look, size);
+    setPortraitRenderer(render);
+    // A generated model finished loading: drop portraits painted with the stand-in body.
+    ctx.actors.onModel?.(() => setPortraitRenderer(render));
+  }
   const roots = {};
   for (const id of ['overlay', 'hud', 'windows', 'menus', 'toasts']) {
     roots[id] = document.getElementById(id) || document.body.appendChild(h('div#' + id));

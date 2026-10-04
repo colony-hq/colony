@@ -17,6 +17,13 @@ export const DEFAULT_SETTINGS = {
   acceptAid: false, autoRetaliate: true, runDefault: true,
 };
 
+// Saves from before hero models (no `model` key at all): broad-bodied adventurers move to the
+// generated Ranger model; anyone can switch back by making a custom character.
+function migrateLook(look) {
+  if (!look || typeof look !== 'object' || 'model' in look) return look;
+  return { ...look, model: look.body === 'female' ? null : 'player_m' };
+}
+
 export function freshSave(name = 'Adventurer', look = null) {
   const skills = {};
   for (const id of SKILL_IDS) skills[id] = START_XP[id] || 0;
@@ -24,7 +31,7 @@ export function freshSave(name = 'Adventurer', look = null) {
     v: SAVE_VERSION,
     created: Date.now(),
     name,
-    look: look || { body: 'male', skin: '#e0b48a', hair: 'short', hairColor: '#4a3020', top: '#7a5a3a', bottom: '#4a3a2a', boots: '#3a2a1a' },
+    look: look || { model: 'player_m', body: 'male', skin: '#e0b48a', hair: 'short', hairColor: '#4a3020', top: '#7a5a3a', bottom: '#4a3a2a', boots: '#3a2a1a' },
     pos: { x: SPAWN.x, z: SPAWN.z },
     skills,
     hp: 10,
@@ -65,13 +72,13 @@ export function createState(events) {
     loadLocal() {
       const s = loadJSON('save', null);
       if (!s || s.v !== SAVE_VERSION) return false;
-      state.save = { ...freshSave(s.name, s.look), ...s };
+      state.save = { ...freshSave(s.name, s.look), ...s, ...(s.look ? { look: migrateLook(s.look) } : {}) };
       events.emit('save:loaded', { source: 'local' });
       return true;
     },
     // Replace the save (cloud restore). Emits save:loaded so modules refresh.
     replace(s, source = 'cloud') {
-      state.save = { ...freshSave(s.name, s.look), ...s };
+      state.save = { ...freshSave(s.name, s.look), ...s, ...(s.look ? { look: migrateLook(s.look) } : {}) };
       events.emit('save:loaded', { source });
     },
     newCharacter(name, look) {

@@ -433,19 +433,31 @@ export function hbJoints(J, H) {
 
 const b64 = (arr) => { const u = new Uint8Array(arr.buffer, arr.byteOffset, arr.byteLength); let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); };
 
+// Asset v2: positions and uvs quantised to Uint16 (positions over the bounding box), normals
+// Int8, skin indices / weights Uint8 (weights sum to 255), index Uint16 / Uint32.
 export function exportAsset(id, geo, sk, joints, H, extra = {}) {
   const p = geo.attributes.position, nr = geo.attributes.normal, uv = geo.attributes.uv;
-  const pos = new Float32Array(p.array), nrm = new Int8Array(p.count * 3), uvs = new Float32Array(uv.array);
-  for (let i = 0; i < p.count; i++) for (let k = 0; k < 3; k++) nrm[i * 3 + k] = Math.round(Math.max(-1, Math.min(1, nr.array[i * 3 + k])) * 127);
+  geo.computeBoundingBox();
+  const bb = geo.boundingBox;
+  const lo = [bb.min.x, bb.min.y, bb.min.z], span = [bb.max.x - bb.min.x, bb.max.y - bb.min.y, bb.max.z - bb.min.z].map((v) => v || 1);
+  const pos = new Uint16Array(p.count * 3), nrm = new Int8Array(p.count * 3), uvs = new Uint16Array(p.count * 2);
+  for (let i = 0; i < p.count; i++) {
+    for (let k = 0; k < 3; k++) {
+      pos[i * 3 + k] = Math.round(((p.array[i * 3 + k] - lo[k]) / span[k]) * 65535);
+      nrm[i * 3 + k] = Math.round(Math.max(-1, Math.min(1, nr.array[i * 3 + k])) * 127);
+    }
+    for (let k = 0; k < 2; k++) uvs[i * 2 + k] = Math.round(Math.max(0, Math.min(1, uv.array[i * 2 + k])) * 65535);
+  }
   const sw = new Uint8Array(p.count * 4);
   for (let i = 0; i < p.count; i++) {
     let rem = 255;
     for (let k = 0; k < 4; k++) { const w = k < 3 ? Math.round(sk.SW[i * 4 + k] * 255) : rem; sw[i * 4 + k] = Math.max(0, Math.min(255, w)); rem -= sw[i * 4 + k]; }
   }
   const index = geo.index ? (p.count < 65536 ? new Uint16Array(geo.index.array) : new Uint32Array(geo.index.array)) : null;
+  const r4 = (v) => +v.toFixed(4);
   return {
-    v: 1, id, height: H, verts: p.count, tris: index ? index.length / 3 : p.count / 3,
-    joints, ...extra,
+    v: 2, id, height: H, verts: p.count, tris: index ? index.length / 3 : p.count / 3,
+    bbox: [...lo, ...span].map(r4), joints: joints.map((j) => j.map(r4)), ...extra,
     pos: b64(pos), nrm: b64(nrm), uv: b64(uvs), si: b64(sk.SI), sw: b64(sw),
     index: index ? b64(index) : null, index32: index instanceof Uint32Array,
   };
@@ -469,6 +481,6 @@ export async function processCharacter(url, { id, height = 1.78, skirt = false, 
   const sk = skin(geo, J, height);
   if (!raw) armsDown(geo, J, sk, outward);
   const joints = hbJoints(J, height);
-  const asset = exportAsset(id, geo, sk, joints, height, { skirt: J.skirt, headR: (J.topY - J.neckY) / 2, headC: [J.headC.x, J.headC.y, J.headC.z] });
+  const asset = exportAsset(id, geo, sk, joints, height, { skirt: J.skirt, top: +J.topY.toFixed(4), headR: +((J.topY - J.neckY) / 2).toFixed(4), headC: [J.headC.x, J.headC.y, J.headC.z].map((v) => +v.toFixed(4)) });
   return { asset, geo, map, J, sk, info };
 }

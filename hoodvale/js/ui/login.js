@@ -57,6 +57,7 @@ const CSS = `
 .u-cre .hd h2 { margin: 0; font: 700 19px var(--font-display); color: var(--brass); }
 .u-cre .hd p { margin: 2px 0 0; font: 12.5px var(--font-body); color: var(--parch-dim); }
 .u-cre .bd { flex: 1; min-height: 0; overflow-y: auto; padding: 0 16px 8px; display: flex; flex-direction: column; gap: 10px; scrollbar-width: thin; }
+.u-cre .u-custom { display: flex; flex-direction: column; gap: 10px; }
 .u-cre .ft { display: flex; gap: 8px; padding: 10px 16px 14px; border-top: 1px solid rgba(201,162,74,.22); }
 .u-cre .ft .u-btn { flex: 1; padding: 10px 8px; }
 .u-cre .ft .u-btn.primary { flex: 1.6; }
@@ -147,7 +148,8 @@ export function createLogin(U) {
   function creator(existing) {
     creating = true;
     root.innerHTML = '';
-    look = { body: 'male', skin: SKINS[2], hair: 'short', hairColor: HAIR_COLORS[2], top: TOPS[0], bottom: BOTTOMS[0], boots: BOOTS[0], ...randomLook() };
+    const heroes = ctx.actors?.heroes?.() || [];
+    look = { body: 'male', skin: SKINS[2], hair: 'short', hairColor: HAIR_COLORS[2], top: TOPS[0], bottom: BOTTOMS[0], boots: BOOTS[0], ...randomLook(), model: heroes[0]?.id || null };
     const por = h('img', { alt: '' });
     const panel = h('div.u-cre.u-frame', { role: 'dialog', 'aria-label': 'Create your adventurer' });
     const head = h('div.hd', {}, [por, h('div', {}, [h('h2', { text: 'A new adventurer' }), h('p', { text: 'Who walks into Brightwater today?' })])]);
@@ -193,6 +195,9 @@ export function createLogin(U) {
       sections.push(() => { const cur = get(); for (const [v, b] of btns) b.classList.toggle('on', cur === v); });
       body.append(h('div.u-fld', {}, [h('label', { text: label }), wrap]));
     };
+    // Hero: a hand-crafted (generated) model, or a custom body built from the options below.
+    if (heroes.length) chips('Hero', 'model', [...heroes.map((m) => [m.id, m.name]), [null, 'Custom']]);
+    const customFrom = body.children.length;
     chips('Body', 'body', [['male', 'Broad'], ['female', 'Slight']]);
     swatches('Skin', 'skin', SKINS);
     chipsFn('Face', FACES, () => look.expr || 'neutral', (v) => { look.expr = v; });
@@ -207,10 +212,15 @@ export function createLogin(U) {
     swatches('Trousers', 'bottom', BOTTOMS);
     swatches('Boots', 'boots', BOOTS);
     chipsFn('Extra', EXTRAS, () => EXTRA_KEYS.find((k) => look[k]) || null, (v) => { for (const k of EXTRA_KEYS) look[k] = null; if (v) look[v] = true; });
+    // Custom options only apply without a hero model.
+    const customBox = h('div.u-custom');
+    customBox.append(...[...body.children].slice(customFrom));
+    body.append(customBox);
+    sections.push(() => { customBox.style.display = look.model ? 'none' : ''; });
     if (existing) body.append(h('p', { style: { margin: '4px 0 0', font: 'italic 12.5px var(--font-body)', color: '#ffb09f' }, text: `Starting anew replaces ${existing.name} in this browser.` }));
 
     const back = h('button.u-btn', { text: 'Back', onclick: title });
-    const rnd = h('button.u-btn', { text: 'Randomise', onclick: () => { Object.assign(look, randomLook()); refresh(); } });
+    const rnd = h('button.u-btn', { text: 'Randomise', onclick: () => { Object.assign(look, randomLook(), { model: null }); refresh(); } });
     go.addEventListener('click', submit);
     panel.append(head, body, h('div.ft', {}, [back, rnd, go]));
     const rot = h('div.u-rot', {}, [h('div.hint', { text: 'DRAG TO TURN' })]);

@@ -97,6 +97,8 @@ async function boot() {
       make('objectViews', () => createObjectViews(ctx));
     }],
     ['Waking the folk…', () => { make('actors', () => createActors(ctx)); }],
+    // Generated character models load in the background; boot waits a few seconds at most.
+    ['Fitting the heroes…', () => ctx.actors?.preload?.(undefined, 6000)],
     ['Opening the Ledger…', () => {
       make('chain', () => createChain(ctx));
       make('wallet', () => createWallet(ctx));
@@ -136,7 +138,7 @@ async function boot() {
   for (let i = 0; i < steps.length; i++) {
     loading.set(0.12 + (0.76 * i) / steps.length, steps[i][0]);
     await nextFrame();
-    steps[i][1]();
+    try { await steps[i][1](); } catch (err) { console.warn('[hoodvale] boot step', steps[i][0], err); }
   }
 
   loading.set(0.92, 'Warming the shaders…');

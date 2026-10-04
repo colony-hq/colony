@@ -23,7 +23,8 @@ import {
   materials, fadeMaterial, outlineMaterial, acquireGeometry, releaseGeometry, geometryCacheStats, damp, clamp, smooth01, env, wrapAngle,
   newPose, hexOf, shade, SHARED, makeBones, shadowTexture,
 } from './a-core.js';
-import { HB, HB_COUNT, HB_UPPER, normaliseLook, buildHumanoid, layoutFor, createHumanoidBones } from './a-humanoid.js';
+import { HB, HB_COUNT, HB_UPPER, normaliseLook, buildHumanoid, layoutFor, createHumanoidBones, buildHeldGeometry } from './a-humanoid.js';
+import { modelReady, requestModel, preloadModels, onModelLoaded, HERO_MODELS, MODELS } from './a-model.js';
 import { setFaceRenderer } from './a-face.js';
 import * as AN from './a-anim.js';
 import { CREATURE_RIGS, creatureSpec, buildWisp, buildOracle } from './a-creatures.js';
@@ -117,13 +118,38 @@ class HumanDriver {
   outfit() { return { ...this.baseOutfit, ...(this.equip || {}) }; }
   build() {
     const spec = normaliseLook(this.look, this.outfit(), this.variant, { npc: !this.a.player && !this.a.spec?.remote });
+    // Generated model (look.model): textured body + held items on the model's own skeleton. Until
+    // it has loaded the procedural body stands in, then the actor rebuilds.
+    const mid = this.look.model || null;
+    const M = mid ? modelReady(mid) : null;
+    if (mid && !M && this.waiting !== mid) {
+      this.waiting = mid;
+      requestModel(mid).then(() => { if (!this.disposed && this.look.model === mid) this.build(); }, () => {});
+    }
+    if (M) {
+      spec.model = mid; spec.lids = false; spec.old = false;
+      spec.b = { ...spec.b, leg: M.joints[HB.hips][1] / 0.875, width: 1, hunch: 0, scale: 1 };
+      spec.key = 'model:' + mid + '|' + JSON.stringify([spec.outfit, spec.bow]);
+    }
     if (spec.key === this.key) return;
     const a = this.a;
-    const geo = acquireGeometry(spec.key, () => buildHumanoid(spec).geo);
-    const layout = layoutFor(spec);
+    const layout = M ? M.layoutFor(spec) : layoutFor(spec);
+    // Geometry: procedural bodies are cached per look; a model body is shared and never released,
+    // its held items are cached per outfit.
+    let geo, heldGeo = null, relKey = null;
+    if (M) {
+      geo = M.geo;
+      heldGeo = acquireGeometry('held:' + spec.key, () => buildHeldGeometry(spec, layout) || new THREE.BufferGeometry());
+      relKey = 'held:' + spec.key;
+      if (!heldGeo.attributes.position) heldGeo = null;
+    } else {
+      geo = acquireGeometry(spec.key, () => buildHumanoid(spec).geo);
+      relKey = spec.key;
+    }
     const bones = createHumanoidBones(layout);
     const skeleton = new THREE.Skeleton(bones);
-    const mesh = new THREE.SkinnedMesh(geo, materials().body);
+    const mats = M ? M.mats : null;
+    const mesh = new THREE.SkinnedMesh(geo, (mats || materials()).body);
     mesh.name = 'actor-body';
     mesh.castShadow = true;
     mesh.receiveShadow = false;
@@ -138,16 +164,31 @@ class HumanDriver {
     outline.bind(skeleton, IDENTITY);
     outline.boundingSphere = mesh.boundingSphere;
     a.body.add(outline);
+    if (heldGeo) {
+      // Children of the body / outline meshes so hiding or fading them takes the items along.
+      const held = new THREE.SkinnedMesh(heldGeo, materials().body);
+      held.name = 'actor-held';
+      held.castShadow = true;
+      held.bind(skeleton, IDENTITY);
+      held.boundingSphere = mesh.boundingSphere;
+      mesh.add(held);
+      const ho = new THREE.SkinnedMesh(heldGeo, outlineMaterial());
+      ho.castShadow = false;
+      ho.bind(skeleton, IDENTITY);
+      ho.boundingSphere = mesh.boundingSphere;
+      outline.add(ho);
+    }
     // Swap in.
     if (this.mesh) {
       this.detachTools();
       a.body.remove(this.mesh);
       if (a.outline) a.body.remove(a.outline);
       a.body.remove(this.bones[0]);
-      releaseGeometry(this.key);
+      if (this.relKey) releaseGeometry(this.relKey);
     }
     a.outline = outline;
     this.mesh = mesh; this.bones = bones; this.skeleton = skeleton; this.spec = spec; this.layout = layout; this.key = spec.key;
+    this.relKey = relKey; this.mats = mats; this.model = M;
     this.bindHips = bones[HB.hips].position.clone();
     this.nockRest = bones[HB.nock].position.clone();
     const w = spec.outfit.weapon;
@@ -155,13 +196,14 @@ class HumanDriver {
     this.hold = !w ? 'none' : (w.kind === 'shortbow' || w.kind === 'longbow') ? 'bow' : w.kind === 'greatsword' ? '2h'
       : w.kind === 'staff' ? 'staff' : w.kind === 'walking-staff' ? 'walkstaff' : '1h';
     this.shield = !!spec.outfit.shield;
-    const sc = (this.look.scale || 1) * (spec.b.scale || 1) * (spec.female && spec.variant === 'human' ? 0.96 : 1);
+    const sc = M ? (this.look.scale || 1) : (this.look.scale || 1) * (spec.b.scale || 1) * (spec.female && spec.variant === 'human' ? 0.96 : 1);
     a.body.scale.setScalar(sc);
     a.headHeight = layout.height * sc * a.scale;
     a.blob = 0.36 * sc * Math.max(1, spec.b.width * 0.9);
     a.mesh = mesh;
     a._materialRestore = null;
-    if (a.state.dead && a._fadeMat) { mesh.material = a._fadeMat; }
+    if (a._fadeMat) { a._fadeMat.dispose(); a._fadeMat = null; }
+    if (a.state.dead && a.state.faded > 0) { a._fadeMat = this.fadeMaterial(); a._fadeMat.opacity = 1 - a.state.faded; mesh.material = a._fadeMat; }
     this.c = {
       t: Math.random() * 100, ph: 0, seed: Math.random() * 10, old: spec.old ? 1 : 0, hunch: (spec.b.hunch || 0), stride: 1, armSwing: 1,
       wide: spec.buildName === 'stout' || spec.variant === 'troll' || spec.variant === 'golem' ? 1 : 0, hold: this.hold, shield: this.shield,
@@ -169,6 +211,9 @@ class HumanDriver {
     if (this.hold === '2h' || this.hold === 'staff' || this.hold === 'walkstaff') this.c.armSwing = 0.6;
     this.evaluate(0);
   }
+  bodyMaterial() { return (this.mats || materials()).body; }
+  flashMaterial() { return (this.mats || materials()).flash; }
+  fadeMaterial() { return this.mats ? this.mats.fade() : fadeMaterial(); }
   setLook(look) { this.look = look || {}; this.build(); }
   setEquipment(eq) { this.equip = outfitFromEquipment(eq); this.build(); }
   resolve(name) {
@@ -416,8 +461,9 @@ class HumanDriver {
     }
   }
   dispose() {
+    this.disposed = true;
     this.detachTools();
-    if (this.mesh) { this.mesh.removeFromParent(); releaseGeometry(this.key); }
+    if (this.mesh) { this.mesh.removeFromParent(); if (this.relKey) releaseGeometry(this.relKey); }
     this.mesh = null;
   }
 }
@@ -727,7 +773,7 @@ class Actor {
     st.hurtT = 0;
     st.hurtK = Math.max(st.hurtK, 0.6);
     st.readyT = Math.max(st.readyT, 4);
-    if (this.mesh && !this._fadeMat) { this.mesh.material = materials().flash; this.flashT = 0.12; }
+    if (this.mesh && !this._fadeMat) { this.mesh.material = this.drv.flashMaterial ? this.drv.flashMaterial() : materials().flash; this.flashT = 0.12; }
   }
   die(o = {}) {
     const st = this.state;
@@ -740,7 +786,7 @@ class Actor {
   revive() {
     const st = this.state;
     st.dead = false; st.deadT = 0; st.dieW = 0; st.faded = 0; st.hurtK = 0; st.shot = null; st.shotDef = null; st.base = 'idle';
-    if (this.mesh) { this.mesh.visible = true; this.mesh.material = materials().body; }
+    if (this.mesh) { this.mesh.visible = true; this.mesh.material = this.drv.bodyMaterial ? this.drv.bodyMaterial() : materials().body; }
     if (this._fadeMat) { this._fadeMat.dispose(); this._fadeMat = null; }
     if (this.drv.obj) this.drv.obj.root.visible = true;
     this.body.scale.multiplyScalar(1); // keep
@@ -781,7 +827,7 @@ class Actor {
     st.hurtT += dt;
     st.hurtK = st.hurtT < 0.06 ? st.hurtK : st.hurtK * Math.exp(-dt * 7);
     if (st.readyT > 0) st.readyT -= dt;
-    if (this.flashT > 0) { this.flashT -= dt; if (this.flashT <= 0 && this.mesh && !this._fadeMat) this.mesh.material = materials().body; }
+    if (this.flashT > 0) { this.flashT -= dt; if (this.flashT <= 0 && this.mesh && !this._fadeMat) this.mesh.material = this.drv.bodyMaterial ? this.drv.bodyMaterial() : materials().body; }
     if (st.dead) {
       st.deadT += dt;
       const hold = this.player ? 2.6 : 1.6;
@@ -789,7 +835,7 @@ class Actor {
         if (!st.smoked) { st.smoked = true; if (dist < 60) this.sys.fx.deathSmoke(this, { scale: Math.max(0.6, this.headHeight / 1.8) }); }
         st.faded = clamp((st.deadT - hold) / 0.7, 0, 1);
         if (this.mesh) {
-          if (!this._fadeMat) { this._fadeMat = fadeMaterial(); this.mesh.material = this._fadeMat; }
+          if (!this._fadeMat) { this._fadeMat = this.drv.fadeMaterial ? this.drv.fadeMaterial() : fadeMaterial(); this.mesh.material = this._fadeMat; }
           this._fadeMat.opacity = 1 - st.faded;
           if (st.faded >= 1) this.mesh.visible = false;
         }
@@ -1029,5 +1075,11 @@ export function createActors(ctx) {
     return c;
   }
 
-  return { create, update, fx, list, auto, stats, outfitFromEquipment, portrait };
+  // Generated models: preload (boot waits on this, bounded by the timeout), hero list for the
+  // creator, and a hook for UI caches (portraits) to refresh once a model arrives.
+  const preload = (ids = [...MODELS], timeout = 8000) => preloadModels(ids, timeout);
+  const onModel = (fn) => onModelLoaded(fn);
+  const heroes = () => HERO_MODELS.slice();
+
+  return { create, update, fx, list, auto, stats, outfitFromEquipment, portrait, preload, onModel, heroes };
 }

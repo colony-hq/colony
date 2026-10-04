@@ -62,9 +62,10 @@ export const SHARED = {
   decal: { value: null },
 };
 
-export function makeActorMaterial({ key = 'base', emissive = 0x000000, emissiveIntensity = 1, transparent = false, opacity = 1, side = THREE.FrontSide } = {}) {
+// map: textured actors (generated models) use the texture instead of vertex colours.
+export function makeActorMaterial({ key = 'base', emissive = 0x000000, emissiveIntensity = 1, transparent = false, opacity = 1, side = THREE.FrontSide, map = null } = {}) {
   const m = new THREE.MeshStandardMaterial({
-    vertexColors: true, roughness: 0.8, metalness: 0, emissive, emissiveIntensity, transparent, opacity, side,
+    vertexColors: !map, map, roughness: map ? 0.86 : 0.8, metalness: 0, emissive, emissiveIntensity, transparent, opacity, side,
   });
   if (transparent) m.depthWrite = true;
   m.onBeforeCompile = (shader) => {

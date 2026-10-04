@@ -1103,6 +1103,16 @@ function buildGolem(ctx) {
 // ---------------------------------------------------------------------------------------------
 // Held items (merged): weapon (right palm / left palm for bows), shield (forearm), quiver (back).
 // ---------------------------------------------------------------------------------------------
+// Held items alone, for generated models (a-model.js) whose body comes from a textured mesh:
+// layout = the model's bind layout. Returns null when nothing is held.
+export function buildHeldGeometry(spec, layout) {
+  const o = spec.outfit;
+  if (!o.weapon && !o.shield && !(o.ammo && o.ammo.kind === 'quiver')) return null;
+  const bones = createHumanoidBones(layout);
+  const B = new Builder(bones, { aoTop: layout.height * 0.85, aoBottom: 0.02, aoMin: 0.85 });
+  buildHeld({ B, o, spec, bones });
+  return B.build();
+}
 function buildHeld(ctx) {
   const { B, o, spec, bones } = ctx;
   const w = o.weapon;

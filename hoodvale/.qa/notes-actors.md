@@ -16,6 +16,7 @@ share one geometry; each actor owns its skeleton). One shared `MeshStandardMater
 | `a-gear.js` | Weapons, shields, bows, staves, quivers, tools; tints from METALS / WOODS |
 | `a-creatures.js` | Quadruped (rodent/cow/boar/wolf/bear), bird, spider, slime, wyrm (drake + Ashen Wyrm boss), shard wisp, the Orbio Oracle |
 | `a-fx.js` | Particles (2 draw calls total), projectiles, bursts, fireworks, swirls, smoke, splashes, sparkles |
+| `a-model.js` | Generated character models (Higgsfield concept -> Tripo mesh -> `.qa/lab` auto-rig): loader, textured materials, bind layout from the model's joints |
 
 ## Actor API (all baseline methods kept)
 ```js
@@ -112,6 +113,15 @@ New look fields: `expr` ('neutral' | 'smile' | 'stern' | 'sly' | 'kind' | 'grump
 `bodice`, `dress`, `shawl`, `satchel`, `sash`, `necklace`, `glasses`, `eyepatch`, `earrings`,
 `bandana`, `flower`, `pipe`, `gloves` (each `true` or a colour). NPCs without `expr` get a stable
 pseudo-random expression; remote players and the local player use what they chose.
+
+## Generated models (round 3)
+`look.model = '<id>'` swaps the procedural body for a generated, textured model rigged to the same
+HB skeleton (`assets/chars/<id>.json` + `.jpg`, same-origin fetch). Until the files arrive the
+procedural body stands in and the actor rebuilds when they land (`actors.onModel` lets UI caches
+such as portraits refresh). Held weapons / shields / quivers are a second skinned mesh on the same
+skeleton; armour pieces are not drawn on generated bodies. No blinking or painted face (the face
+is in the texture). Boot waits up to 6 s for `actors.preload()`. Hero list for the creator:
+`actors.heroes()`. How to add models: `.qa/lab/README.md`.
 
 ## Looks
 `look`: `{ body: 'male'|'female', build: 'slim'|'normal'|'stout'|'old', skin, hair: 'short'|'long'|
