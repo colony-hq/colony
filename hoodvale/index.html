@@ -1,0 +1,115 @@
+<title>Hoodvale</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Spectral:ital,wght@0,400;0,600;0,700;1,400&family=Spline+Sans+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one full-bleed WebGL canvas; UI layers are absolutely positioned roots on top
+   (HUD frame, panels, windows, menus). The game commits to one look (dark carved wood + parchment
+   + brass), so there is no light theme. Shared UI kit classes (.hv-*) are used by every module. */
+:root {
+  color-scheme: dark;
+  --wood-0: #120d0a;      /* deepest frame */
+  --wood-1: #1d1510;      /* panel ground */
+  --wood-2: #2a1f17;      /* raised panel */
+  --wood-3: #3a2b1f;      /* hover / slot */
+  --brass: #c9a24a;       /* accent: brass trim, focus, highlights */
+  --brass-dim: #8a6d2e;
+  --parch: #efe2c4;       /* primary text on wood */
+  --parch-dim: #b9a888;   /* secondary text */
+  --ink: #2a1d12;         /* text on parchment */
+  --paper: #e9dcbc;       /* parchment surfaces (dialogue, books) */
+  --hood: #5f9a3e;        /* the Hood's green: positive, success, run */
+  --blood: #c0392b;       /* damage, danger, HP */
+  --mana: #8e7cff;        /* arcana, Orbio, CREDIT thought */
+  --chain: #3ad6a0;       /* Robinhood Chain: wallet, tx, blocks */
+  --sky: #7fb8e6;         /* links, info */
+  --yellow: #ffd34d;      /* RuneScape-style yellow names (NPCs) */
+  --cyan: #5fe1ff;        /* object names */
+  --font-display: 'Cinzel Decorative', 'Georgia', serif;
+  --font-body: 'Spectral', 'Georgia', 'Times New Roman', serif;
+  --font-mono: 'Spline Sans Mono', ui-monospace, Menlo, Consolas, monospace;
+  --fs-xs: 11px; --fs-s: 13px; --fs-m: 15px; --fs-l: 18px; --fs-xl: 24px;
+  --radius: 6px;
+  --gutter: 10px;
+  --frame: 0 0 0 1px #000, inset 0 0 0 1px rgba(201, 162, 74, 0.35), 0 8px 24px rgba(0, 0, 0, 0.5);
+  --ease: cubic-bezier(.2, .7, .2, 1);
+}
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--wood-0); color: var(--parch);
+  font-family: var(--font-body); font-size: var(--fs-m);
+  overflow: hidden; -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
+  user-select: none; -webkit-user-select: none; touch-action: none;
+}
+#app { position: fixed; inset: 0; overflow: hidden; background: var(--wood-0); }
+#gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; outline: none; }
+#ui { position: absolute; inset: 0; pointer-events: none; }
+#ui > * { position: absolute; inset: 0; }
+#ui [data-interactive], #ui button, #ui input, #ui select, #ui textarea, #ui a { pointer-events: auto; }
+:focus-visible { outline: 2px solid var(--brass); outline-offset: 1px; }
+
+/* ---------- Shared UI kit (used by every builder) ---------- */
+.hv-panel { background: linear-gradient(180deg, var(--wood-2), var(--wood-1)); border-radius: var(--radius); box-shadow: var(--frame); color: var(--parch); }
+.hv-paper { background: var(--paper); color: var(--ink); border-radius: var(--radius); box-shadow: 0 0 0 1px #000, inset 0 0 40px rgba(120, 80, 30, 0.25); }
+.hv-title { font-family: var(--font-display); color: var(--brass); letter-spacing: 0.04em; font-size: var(--fs-l); margin: 0; }
+.hv-btn { font: 600 var(--fs-s)/1 var(--font-body); color: var(--parch); background: linear-gradient(180deg, #4a3826, #2c2117); border: 1px solid #000; box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), inset 0 0 0 1px rgba(201,162,74,0.3); border-radius: 4px; padding: 7px 12px; cursor: pointer; }
+.hv-btn:hover { background: linear-gradient(180deg, #5a4430, #35281c); color: #fff; }
+.hv-btn:active { transform: translateY(1px); }
+.hv-btn[disabled] { opacity: 0.45; cursor: default; }
+.hv-btn.primary { background: linear-gradient(180deg, #6b5320, #3f3012); color: #fff3cf; box-shadow: inset 0 0 0 1px var(--brass); }
+.hv-btn.chain { background: linear-gradient(180deg, #1f5a48, #123a2e); box-shadow: inset 0 0 0 1px var(--chain); }
+.hv-close { position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; border-radius: 4px; border: 1px solid #000; background: #5a1f17; color: #ffd9c9; font: 700 14px/1 var(--font-body); cursor: pointer; }
+.hv-tabs { display: flex; gap: 2px; }
+.hv-tab { flex: 1; padding: 6px 4px; background: var(--wood-1); border: 1px solid #000; color: var(--parch-dim); font: 600 var(--fs-xs)/1 var(--font-body); cursor: pointer; }
+.hv-tab.on { background: var(--wood-3); color: var(--brass); box-shadow: inset 0 -2px 0 var(--brass); }
+.hv-slot { position: relative; width: 40px; height: 36px; background: rgba(0,0,0,0.25); border-radius: 3px; }
+.hv-slot:hover { background: rgba(201,162,74,0.15); }
+.hv-qty { position: absolute; left: 2px; top: 0; font: 600 11px/1.2 var(--font-mono); color: #ffff00; text-shadow: 1px 1px 0 #000; }
+.hv-list { list-style: none; margin: 0; padding: 0; }
+.hv-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.hv-scroll { overflow: auto; scrollbar-width: thin; scrollbar-color: var(--brass-dim) transparent; }
+.hv-window { position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); pointer-events: auto; }
+.hv-yellow { color: var(--yellow); } .hv-cyan { color: var(--cyan); } .hv-green { color: #4cd137; } .hv-red { color: #ff6b5b; } .hv-orange { color: #ff9f43; }
+.hv-text-shadow { text-shadow: 1px 1px 0 #000, 0 0 3px rgba(0,0,0,0.8); }
+
+/* ---------- Loading ---------- */
+#loading { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding-inline: 16px;
+  background: radial-gradient(120% 90% at 50% 40%, #2a2016 0%, var(--wood-0) 70%); transition: opacity 0.8s var(--ease); }
+#loading.done { opacity: 0; pointer-events: none; }
+#loading .wrap { display: grid; justify-items: center; gap: 16px; text-align: center; max-width: 560px; }
+#loading h1 { font-family: var(--font-display); font-size: clamp(40px, 9vw, 86px); margin: 0; color: var(--brass);
+  text-shadow: 0 2px 0 #000, 0 0 30px rgba(201, 162, 74, 0.35); letter-spacing: 0.02em; }
+#loading .sub { color: var(--parch-dim); letter-spacing: 0.2em; text-transform: uppercase; font-size: var(--fs-s); }
+#loading .bar { width: min(340px, 72vw); height: 10px; border-radius: 3px; background: #000; box-shadow: inset 0 0 0 1px var(--brass-dim); overflow: hidden; }
+#loading .bar > i { display: block; height: 100%; background: linear-gradient(90deg, #7a1f17, #c0392b); transform-origin: left; transform: scaleX(0.02); transition: transform 0.35s var(--ease); }
+#loading [data-label] { color: var(--parch-dim); font-size: var(--fs-s); min-height: 1.4em; }
+#loading.error [data-label] { color: #ff6b5b; }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+<div id="app">
+  <canvas id="gl" tabindex="0" aria-label="Hoodvale game world"></canvas>
+  <div id="ui">
+    <div id="overlay"></div>
+    <div id="hud"></div>
+    <div id="windows"></div>
+    <div id="menus"></div>
+    <div id="toasts"></div>
+  </div>
+  <div id="loading" role="status" aria-live="polite">
+    <div class="wrap">
+      <h1>Hoodvale</h1>
+      <div class="sub">An Orbio realm on Robinhood Chain</div>
+      <div class="bar"><i data-bar></i></div>
+      <div data-label>Loading…</div>
+      <noscript>Hoodvale needs JavaScript.</noscript>
+    </div>
+  </div>
+</div>
+<script type="module" src="js/main.js"></script>
