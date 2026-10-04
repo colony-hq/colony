@@ -12,16 +12,25 @@ const pick = (K, arr) => arr[Math.floor(K.rnd() * arr.length)];
 const V = (m, x, y, z) => new THREE.Vector3(x, y, z).applyMatrix4(m);
 
 // ---- furniture sets ------------------------------------------------------------------------------
+// Hearth stack below the cut is static; the part above the cut fades with the roof.
+function hearthStack(K, m, w = 1.6) {
+  const top = K.cut - 0.04;
+  K.R.box(w * 0.7, K.H + 0.3 - top, 0.4, m.clone().multiply(M(0, top + (K.H + 0.3 - top) / 2, 0.2)), { tile: TILE.STONE, color: '#a49c90', uvScale: 1.2 });
+  return top - 1.5;
+}
 function hearthItem(K, sides = null) {
   return K.wallItem(1.6, (B, m) => {
-    const f = P.hearth(B, m, { chimney: K.H - 1.5 });
+    const f = P.hearth(B, m, { chimney: hearthStack(K, m) });
     const p = V(m, f[0], f[1], f[2]);
     K.fx.push({ t: 'flame', p: [p.x, p.y, p.z], w: 0.6, h: 0.55, heat: 0.85 });
     K.fx.push({ t: 'halo', p: [p.x, p.y + 0.35, p.z], size: 1.8, color: [0.7, 0.32, 0.08] });
   }, { sides, prefer: 'centre' });
 }
 function shelves(K, n, goods = 'books') {
-  for (let i = 0; i < n; i++) K.wallItem(1.5, (B, m) => P.shelf(B, m, { w: 1.4, h: 1.85, goods: i % 2 && goods === 'mixed' ? 'bottles' : goods === 'mixed' ? 'books' : goods }));
+  for (let i = 0; i < n; i++) {
+    const g = i % 2 && goods === 'mixed' ? 'bottles' : goods === 'mixed' ? 'books' : goods;
+    if (!K.wallItem(1.5, (B, m) => P.shelf(B, m, { w: 1.4, h: 1.85, goods: g }))) K.wallItem(0.95, (B, m) => P.shelf(B, m, { w: 0.85, h: 1.75, goods: g }));
+  }
 }
 function lowStuff(K, n) {
   const fns = [
@@ -51,7 +60,7 @@ function bedItem(K, blanket) {
 function rugItem(K, w, d, tile = TILE.CARPET) {
   const ix0 = K.x0 + 1, ix1 = K.x1 - 1, iz0 = K.z0 + 1, iz1 = K.z1 - 1;
   const W = Math.min(w, ix1 - ix0 - 0.4), D = Math.min(d, iz1 - iz0 - 0.4);
-  P.rug(K.S, M((ix0 + ix1) / 2, K.fy + 0.065, (iz0 + iz1) / 2, (iz1 - iz0) > (ix1 - ix0) ? Math.PI / 2 : 0), { w: Math.max(W, D), d: Math.min(W, D), tile });
+  P.rug(K.I, M((ix0 + ix1) / 2, K.fy + 0.065, (iz0 + iz1) / 2, (iz1 - iz0) > (ix1 - ix0) ? Math.PI / 2 : 0), { w: Math.max(W, D), d: Math.min(W, D), tile });
 }
 function wallBanner(K, tile, n = 2) {
   for (let i = 0; i < n; i++) K.wallItem(0.9, (B, m) => P.banner(B, at2(m, 0, Math.min(K.H - 0.3, 2.6), 0.18, Math.PI), { tile, w: 0.75, h: 1.5, sway: 0.0 }), { depth: 0.1 });
@@ -133,7 +142,7 @@ function stoneBuilding(K, o) {
 export const STYLES = {
   'timber-hall'(K) {
     K.H = 3.4;
-    timberBuilding(K, { plaster: '#efe2c4', timber: '#47301f', shutters: '#3f6a3a', boxes: true, winSpacing: 2.0 });
+    timberBuilding(K, { plaster: '#efe2c4', timber: '#47301f', shutters: '#3f6a3a', boxes: true, winSpacing: 2.7, winSkip: (s, u) => s === 'N' && Math.abs(u - K.cx) < 1.6 });
     const r = K.gableRoof({ pitch: 46, mat: { tile: TILE.SHINGLES, color: '#9a6440' }, gable: MAT.plaster('#efe2c4'), gableTimber: '#47301f', barge: '#47301f' });
     // ridge bell-cote
     const top = V(r.F, 0, r.Hr, 0);
@@ -146,10 +155,11 @@ export const STYLES = {
     K.wallLantern(d.side, d.u - 1.0); K.wallLantern(d.side, d.u + 1.0);
     hearthItem(K, ['N']);
     shelves(K, 2, 'books');
-    K.wallItem(1.4, (B, m) => P.weaponRack(B, m, { w: 1.3 }));
-    wallBanner(K, TILE.BANNER_HOOD, 1);
-    lowStuff(K, 2);
+    if (!K.wallItem(1.4, (B, m) => P.weaponRack(B, m, { w: 1.3 }))) K.wallItem(0.95, (B, m) => P.weaponRack(B, m, { w: 0.85 }));
+    wallBanner(K, TILE.BANNER_HOOD, 2);
+    lowStuff(K, 3);
     tableSet(K, { tiles: [2, 1] });
+    K.centerItem(1, 1, (B, m) => { P.table(B, m, { w: 0.9, d: 0.7 }); B.box(0.7, 0.01, 0.5, at2(m, 0, 0.79, 0, 0.2), { tile: TILE.NOTICES, uv: 'own', color: '#e8dcc0' }); });
     rugItem(K, 3, 1.4);
     interiorLantern(K, 2);
     // notice board outside
@@ -261,7 +271,9 @@ export const STYLES = {
     const gm = K.b.zone === 'gildmoor';
     const plaster = gm ? '#e9dcc0' : '#f0e2c8';
     const timber = '#42291a';
-    timberBuilding(K, { plaster, timber, shutters: gm ? '#7a2a24' : '#3f6a3a', boxes: true, winSpacing: 1.9, floor: '#9a6e46' });
+    const OPP = { N: 'S', S: 'N', E: 'W', W: 'E' };
+    const back = OPP[K.doors[0]?.side || 'S'];
+    timberBuilding(K, { plaster, timber, shutters: gm ? '#7a2a24' : '#3f6a3a', boxes: true, winSpacing: 1.9, floor: '#9a6e46', winSkip: (s) => s === back });
     upperStorey(K, { y0: 2.9, y1: 5.2, jetty: 0.28, plaster, timber });
     const r = K.gableRoof({ H: 5.2, pitch: 46, mat: gm ? { tile: TILE.CLAY, color: '#b0563a' } : { tile: TILE.THATCH, color: '#b4965a' }, thatch: !gm, gable: MAT.plaster(plaster), gableTimber: timber, hsOverride: K.dims(K.b.w >= K.b.d ? 'x' : 'z').hs + 0.28, lenOverride: K.dims(K.b.w >= K.b.d ? 'x' : 'z').L + 0.56 });
     // chimneys
@@ -282,9 +294,11 @@ export const STYLES = {
       P.table(B, m, { w: 2.3, d: 0.45, h: 1.0, color: '#6a4a2e' });
       for (let i = 0; i < 4; i++) P.cylinder(B, at2(m, -0.9 + i * 0.5, 1.0, 0), 0.05, 0.055, 0.14, { tile: TILE.PLANKS, color: '#a07a50' }, 7);
     }, { tall: false, prefer: 'centre' });
-    shelves(K, 2, 'bottles');
+    hearthItem(K, [back]);
+    for (let i = 0; i < 2; i++) K.wallItem(1.5, (B, m) => P.shelf(B, m, { w: 1.4, h: 1.85, goods: 'bottles' }), { sides: [back] });
     K.wallItem(1.2, (B, m) => { P.barrel(B, at2(m, -0.3, 0, 0), { r: 0.26, h: 0.8 }); P.barrel(B, at2(m, 0.3, 0, 0), { r: 0.26, h: 0.8 }); P.barrel(B, at2(m, 0, 0.8, 0, 0, Math.PI / 2), { r: 0.24, h: 0.7 }); }, { tall: true });
-    hearthItem(K);
+    shelves(K, 1, 'bottles');
+    rugItem(K, 2.6, 1.3);
     tableSet(K, { tiles: [1, 1] });
     tableSet(K, { tiles: [1, 1] });
     tableSet(K, { tiles: [2, 1] });
@@ -296,19 +310,20 @@ export const STYLES = {
     K.H = 2.8;
     const plaster = pick(K, ['#efe4cc', '#ead2a6', '#f2dcd0', '#e8e4d6', '#e6d8b8']);
     const shutters = pick(K, ['#3f6a3a', '#3a5f8a', '#8a3a2e', '#6a4a7a', '#2f6a6a']);
-    timberBuilding(K, { plaster, timber: '#4a3222', shutters, boxes: true, winSpacing: 2.0 });
+    const axisX0 = K.b.w >= K.b.d;
+    let gs = axisX0 ? (K.rnd() < 0.5 ? 'W' : 'E') : (K.rnd() < 0.5 ? 'N' : 'S');
+    if (K.doors.some((d) => d.side === gs)) gs = { W: 'E', E: 'W', N: 'S', S: 'N' }[gs];
+    timberBuilding(K, { plaster, timber: '#4a3222', shutters, boxes: true, winSpacing: 2.0, winSkip: (s) => s === gs });
     const farm = K.b.zone === 'farms';
     const r = K.gableRoof({ pitch: 47, mat: { tile: TILE.THATCH, color: farm ? '#bc9c5a' : pick(K, ['#b89a58', '#a88c52', '#c2a462']) }, thatch: true, gable: MAT.plaster(plaster), gableTimber: '#4a3222' });
-    // exterior chimney on a gable end
-    const axisX = K.b.w >= K.b.d;
-    const gs = axisX ? (K.rnd() < 0.5 ? 'W' : 'E') : (K.rnd() < 0.5 ? 'N' : 'S');
+    // exterior chimney on the window-free gable end
     const gsd = K.side(gs);
     if (!K.doors.some((d) => d.side === gs)) K.chimney(gs, (gsd.i0 + gsd.i1) / 2, r.Hr + 0.7);
     const d = K.doors[0];
     K.wallLantern(d.side, d.u + 0.85);
     bedItem(K, pick(K, ['#7a3a34', '#3a5a7a', '#5a7a3a', '#7a6a3a']));
     tableSet(K, { tiles: [1, 1] });
-    K.wallItem(1.6, (B, m) => { const f = P.hearth(B, m, { w: 1.3, chimney: K.H - 1.5 }); const p = V(m, f[0], f[1], f[2]); K.fx.push({ t: 'flame', p: [p.x, p.y, p.z], w: 0.5, h: 0.45, heat: 0.8 }); K.fx.push({ t: 'halo', p: [p.x, p.y + 0.3, p.z], size: 1.5, color: [0.6, 0.28, 0.07] }); }, { sides: [gs], prefer: 'centre' });
+    K.wallItem(1.6, (B, m) => { const f = P.hearth(B, m, { w: 1.3, chimney: hearthStack(K, m, 1.3) }); const p = V(m, f[0], f[1], f[2]); K.fx.push({ t: 'flame', p: [p.x, p.y, p.z], w: 0.5, h: 0.45, heat: 0.8 }); K.fx.push({ t: 'halo', p: [p.x, p.y + 0.3, p.z], size: 1.5, color: [0.6, 0.28, 0.07] }); }, { sides: [gs], prefer: 'centre' });
     shelves(K, 1, pick(K, ['books', 'bottles']));
     lowStuff(K, 2);
     rugItem(K, 2, 1.2, TILE.CARPET);
@@ -749,7 +764,7 @@ function openSpot(K, fn) {
     if (seen.size !== free.size) continue;
     K.blocked.add(k);
     const yaw = x === K.x0 ? -Math.PI / 2 : x === K.x1 - 1 ? Math.PI / 2 : z === K.z0 ? Math.PI : 0;
-    fn(K.S, M(x + 0.5, K.fy + 0.03, z + 0.5, yaw + Math.PI));
+    fn(K.I, M(x + 0.5, K.fy + 0.03, z + 0.5, yaw + Math.PI));
     return true;
   }
   return false;

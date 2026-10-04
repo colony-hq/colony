@@ -33,6 +33,7 @@ export class BKit {
     this.rnd = mulberry32(seed);
     this.S = new Builder(seed);
     this.R = new Builder(seed + 7);
+    this.I = new Builder(seed + 11); // interior furniture: own mesh, drawn only near the camera
     this.cut = opts.cut ?? 2.0;
     this.H = opts.H ?? 3.0;
     this.wi = 0.3; this.wt = 0.4;
@@ -43,7 +44,7 @@ export class BKit {
     this.windows = { N: [], E: [], S: [], W: [] };
     this.reserved = { N: [], E: [], S: [], W: [] };
     // occupancy from spawns (NPC tiles, object footprints)
-    this.npcTiles = new Set((ctx.spawns?.npcs || []).map((n) => n.x + ',' + n.z));
+    this.npcTiles = new Set([...(ctx.spawns?.npcs || []), ...(ctx.spawns?.monsters || [])].map((n) => n.x + ',' + n.z));
     this.objTiles = new Set();
     for (const o of ctx.spawns?.objects || []) {
       const def = OBJECTS[o.def];
@@ -220,7 +221,7 @@ export class BKit {
         const m = M(p.x, p.y, p.z, YAW_OUT[s]);
         this.S.box(w, y1 - y0, 0.05, m, glassOpts || { tile: TILE.WINDOW, uv: 'own', color: glass, glow: '#ffb45a', glowMode: 'night', glowK: 1, jit: 0 });
         // frame + sill (outer face) and inner frame
-        for (const nn of [this.wt / 2 + 0.02, -this.wt / 2 - 0.02]) {
+        for (const nn of this.wt > 0.5 ? [this.wt / 2 + 0.02] : [this.wt / 2 + 0.02, -this.wt / 2 - 0.02]) {
           this.sideBox(sd, u - w / 2 - 0.07, u - w / 2, y0, y1, fr, 0.08, nn);
           this.sideBox(sd, u + w / 2, u + w / 2 + 0.07, y0, y1, fr, 0.08, nn);
           this.sideBox(sd, u - w / 2 - 0.07, u + w / 2 + 0.07, y1, y1 + 0.07, fr, 0.08, nn);
@@ -494,7 +495,7 @@ export class BKit {
       else u = cands[Math.floor(this.rnd() * cands.length)];
       this.reserved[s].push([u - width / 2, u + width / 2]);
       const m = this.frame(sd, u, 0.06, -(this.wt / 2 + depth / 2 + 0.01), true);
-      fn(this.S, m, s, u);
+      fn(this.I, m, s, u);
       return true;
     }
     return false;
@@ -553,7 +554,7 @@ export class BKit {
       if (!this.connected(extra)) continue;
       for (const k of extra) this.blocked.add(k);
       const m = M(x + tw / 2, this.fy + 0.06, z + td / 2, 0);
-      fn(this.S, m, x, z);
+      fn(this.I, m, x, z);
       return true;
     }
     return false;

@@ -54,6 +54,14 @@ export function createBuildings(ctx) {
       group.add(entry.mesh);
       entry.near = true;
     }
+    if (!K.I.isEmpty()) {
+      const im = new THREE.Mesh(K.I.build(), kit.mat);
+      im.name = 'interior:' + b.id;
+      im.castShadow = shadows;
+      im.receiveShadow = true;
+      group.add(im);
+      kit.cull(im, 38, { shadowDist: 30, cast: shadows });
+    }
     // effects
     for (const f of K.fx) {
       let h = null;
@@ -76,6 +84,7 @@ export function createBuildings(ctx) {
       entry.anims.push(an);
     }
     // furniture tiles block movement
+    entry.blocked = [...K.blocked].concat((K.extBlocks || []).map(([x, z]) => x + ',' + z));
     for (const k of K.blocked) {
       const [x, z] = k.split(',').map(Number);
       ctx.map.block(x, z);

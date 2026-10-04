@@ -8,7 +8,7 @@
 // walkable land block their tile (map.block) only when all 8 neighbours stay walkable.
 
 import * as THREE from 'three';
-import { BRIDGES, FENCES, ZONES, ROADS } from '../data/zones.js';
+import { BRIDGES, FENCES, ZONES, ROADS, SPAWN, RESPAWN } from '../data/zones.js';
 import { BUILDINGS } from '../data/buildings.js';
 import { OBJECTS } from '../data/objects.js';
 import { T_BLOCK, T_WATER, T_ROAD, T_BRIDGE, T_INDOOR, T_WALL } from '../world/mapgen.js';
@@ -49,6 +49,8 @@ export function createStructures(ctx) {
     void d;
   }
   for (const n of ctx.spawns?.npcs || []) occ.add(n.x + ',' + n.z);
+  for (const n of ctx.spawns?.monsters || []) occ.add(n.x + ',' + n.z);
+  for (const p of [SPAWN, RESPAWN]) occ.add(Math.floor(p.x) + ',' + Math.floor(p.z));
   for (const b of BUILDINGS) for (const d of b.doors || []) for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) occ.add((d.x + dx) + ',' + (d.z + dz));
   const blockedHere = new Set();
   function freeTile(x, z, { road = false } = {}) {

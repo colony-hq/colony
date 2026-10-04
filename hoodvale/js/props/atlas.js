@@ -135,10 +135,10 @@ P[TILE.PLANKS] = (g, S, r) => {
     }
     // knot
     if (r() < 0.6) {
-      const kx = r() * S, ky = y + h * (0.3 + r() * 0.4);
+      const kx = r() * S, ky = y + h * (0.3 + r() * 0.4), kr = 5 + r() * 3;
       wrap(S, (dx) => {
         g.fillStyle = 'rgba(60,35,15,0.35)';
-        g.beginPath(); g.ellipse(kx + dx, ky, 5 + r() * 3, 2.5, 0, 0, Math.PI * 2); g.fill();
+        g.beginPath(); g.ellipse(kx + dx, ky, kr, 2.5, 0, 0, Math.PI * 2); g.fill();
         g.strokeStyle = 'rgba(60,35,15,0.18)'; g.lineWidth = 1;
         g.beginPath(); g.ellipse(kx + dx, ky, 9, 4, 0, 0, Math.PI * 2); g.stroke();
       });
@@ -191,6 +191,7 @@ function blocks(g, S, r, rows, minW, maxW, mortarV, baseV, varV, chips = true) {
       const w = Math.min(minW + r() * (maxW - minW), start + S - x);
       const v = baseV + (r() - 0.5) * varV;
       const hue = r();
+      const chip = chips && r() < 0.35, c1 = 6 + r() * 6, c2 = 5 + r() * 5;
       wrap(S, (dx) => {
         const bx = x + dx + 1.5, by = y + 1.5, bw = w - 3, bh = h - 3;
         g.fillStyle = hue < 0.33 ? wn(v, 1, 1.6) : hue < 0.66 ? wn(v, 1, 0.2) : wn(v);
@@ -199,9 +200,9 @@ function blocks(g, S, r, rows, minW, maxW, mortarV, baseV, varV, chips = true) {
         grd.addColorStop(0, 'rgba(255,250,240,0.22)'); grd.addColorStop(0.25, 'rgba(255,250,240,0)');
         grd.addColorStop(0.7, 'rgba(0,0,0,0)'); grd.addColorStop(1, 'rgba(20,14,8,0.28)');
         g.fillStyle = grd; roundRect(g, bx, by, bw, bh, 3); g.fill();
-        if (chips && r() < 0.35) {
+        if (chip) {
           g.fillStyle = 'rgba(30,22,14,0.3)';
-          g.beginPath(); g.moveTo(bx + bw, by + bh); g.lineTo(bx + bw - 6 - r() * 6, by + bh); g.lineTo(bx + bw, by + bh - 5 - r() * 5); g.fill();
+          g.beginPath(); g.moveTo(bx + bw, by + bh); g.lineTo(bx + bw - c1, by + bh); g.lineTo(bx + bw, by + bh - c2); g.fill();
         }
       });
       x += w;
@@ -265,13 +266,14 @@ function shingleRows(g, S, r, rows, minW, maxW, baseV, varV, rounded = 0, grain 
     while (x < start + S) {
       const w = Math.min(minW + r() * (maxW - minW), start + S - x);
       const v = baseV + (r() - 0.5) * varV;
+      const gr = [0, 1, 2].map(() => [r(), (r() - 0.5) * 3]);
       wrap(S, (dx, dy) => {
         const bx = x + dx + 1, by = y + dy - h * 0.25, bw = w - 2, bh = h * 1.25 - 1;
         g.fillStyle = wn(v, 1, 0.8);
         roundRect(g, bx, by, bw, bh, rounded); g.fill();
         if (grain) {
           g.strokeStyle = 'rgba(40,25,10,0.12)'; g.lineWidth = 0.8;
-          for (let k = 0; k < 3; k++) { const gx = bx + 3 + r() * (bw - 6); g.beginPath(); g.moveTo(gx, by + 2); g.lineTo(gx + (r() - 0.5) * 3, by + bh - 2); g.stroke(); }
+          for (let k = 0; k < 3; k++) { const gx = bx + 3 + gr[k][0] * (bw - 6); g.beginPath(); g.moveTo(gx, by + 2); g.lineTo(gx + gr[k][1], by + bh - 2); g.stroke(); }
         }
         const grd = g.createLinearGradient(0, by, 0, by + bh);
         grd.addColorStop(0, 'rgba(20,12,6,0.35)'); grd.addColorStop(0.35, 'rgba(0,0,0,0)');
@@ -317,9 +319,9 @@ P[TILE.BARK] = (g, S, r) => {
   }
   // horizontal fissures
   for (let i = 0; i < 18; i++) {
-    const x = r() * S, y = r() * S;
+    const x = r() * S, y = r() * S, l1 = 6 + r() * 8, l2 = (r() - 0.5) * 3;
     g.strokeStyle = 'rgba(25,15,8,0.35)'; g.lineWidth = 1.2;
-    wrap(S, (dx, dy) => { g.beginPath(); g.moveTo(x + dx, y + dy); g.lineTo(x + dx + 6 + r() * 8, y + dy + (r() - 0.5) * 3); g.stroke(); });
+    wrap(S, (dx, dy) => { g.beginPath(); g.moveTo(x + dx, y + dy); g.lineTo(x + dx + l1, y + dy + l2); g.stroke(); });
   }
   speckle(g, S, r, 400, 0.12, 2);
 };
@@ -361,12 +363,13 @@ P[TILE.RUBBLE] = (g, S, r) => {
   g.fillStyle = wn(0.42); g.fillRect(0, 0, S, S);
   for (let i = 0; i < 70; i++) {
     const x = r() * S, y = r() * S, rx = 12 + r() * 16, ry = 9 + r() * 10, rot = (r() - 0.5) * 0.6;
-    const v = 0.66 + r() * 0.26;
+    const v = 0.66 + r() * 0.26, warm = r() * 2;
+    const rrs = Array.from({ length: 7 }, () => 0.82 + r() * 0.25);
     wrap(S, (dx, dy) => {
-      g.fillStyle = wn(v, 1, r() * 2);
+      g.fillStyle = wn(v, 1, warm);
       g.beginPath();
       for (let k = 0; k < 7; k++) {
-        const a = (k / 7) * Math.PI * 2, rr = 0.82 + r() * 0.25;
+        const a = (k / 7) * Math.PI * 2, rr = rrs[k];
         const px = x + dx + Math.cos(a + rot) * rx * rr, py = y + dy + Math.sin(a + rot) * ry * rr;
         k ? g.lineTo(px, py) : g.moveTo(px, py);
       }
@@ -384,9 +387,9 @@ P[TILE.COBBLE] = (g, S, r) => {
   const n = 8, c = S / n;
   for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
     const x = i * c + (j % 2) * c * 0.5 + (r() - 0.5) * 4, y = j * c + (r() - 0.5) * 4;
-    const v = 0.68 + r() * 0.24;
+    const v = 0.68 + r() * 0.24, warm = r() * 2;
     wrap(S, (dx, dy) => {
-      g.fillStyle = wn(v, 1, r() * 2);
+      g.fillStyle = wn(v, 1, warm);
       roundRect(g, x + dx + 2, y + dy + 2, c - 4, c - 4, c * 0.4); g.fill();
       const grd = g.createRadialGradient(x + dx + c * 0.4, y + dy + c * 0.35, 1, x + dx + c / 2, y + dy + c / 2, c * 0.6);
       grd.addColorStop(0, 'rgba(255,250,240,0.25)'); grd.addColorStop(1, 'rgba(15,10,5,0.25)');
@@ -515,12 +518,13 @@ P[TILE.CRYSTAL] = (g, S, r) => {
   for (let i = 0; i < 40; i++) {
     const x = r() * S;
     g.fillStyle = `rgba(255,255,255,${r() * 0.2})`;
-    wrap(S, (dx) => g.fillRect(x + dx, 0, 2 + r() * 10, S));
+    const sw = 2 + r() * 10;
+    wrap(S, (dx) => g.fillRect(x + dx, 0, sw, S));
   }
   for (let i = 0; i < 10; i++) {
     g.strokeStyle = 'rgba(255,255,255,0.35)'; g.lineWidth = 1;
-    const x = r() * S;
-    wrap(S, (dx, dy) => { g.beginPath(); g.moveTo(x + dx, dy); g.lineTo(x + dx + (r() - 0.5) * 60, dy + S); g.stroke(); });
+    const x = r() * S, off = (r() - 0.5) * 60;
+    wrap(S, (dx, dy) => { g.beginPath(); g.moveTo(x + dx, dy); g.lineTo(x + dx + off, dy + S); g.stroke(); });
   }
 };
 

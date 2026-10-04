@@ -241,12 +241,12 @@ export const SPECIAL = {
     if (!K.isTaken(...throneT)) {
       K.blocked.add(throneT.join(','));
       const tm = M(throneT[0] + 0.5, fy + 0.07, throneT[1] + 0.5, Math.PI);
-      K.S.box(1.4, 0.25, 1.3, tm.clone().multiply(M(0, 0.12, 0)), MAT.stone(light));
-      K.S.box(0.8, 0.5, 0.7, tm.clone().multiply(M(0, 0.5, 0)), { tile: TILE.PLANKS, color: '#5a2a1a' });
-      K.S.box(0.8, 0.12, 0.7, tm.clone().multiply(M(0, 0.78, 0)), { tile: TILE.CANVAS, color: '#8e1f22' });
-      K.S.box(0.9, 1.5, 0.12, tm.clone().multiply(M(0, 1.3, 0.32)), { tile: TILE.PLANKS, color: '#5a2a1a' });
-      K.S.box(0.7, 1.1, 0.04, tm.clone().multiply(M(0, 1.35, 0.25)), { tile: TILE.CANVAS, color: '#8e1f22' });
-      for (const k of [-1, 1]) { K.S.box(0.12, 0.35, 0.65, tm.clone().multiply(M(k * 0.42, 0.95, 0)), { tile: TILE.PLANKS, color: '#5a2a1a' }); P.sphere(K.S, tm.clone().multiply(M(k * 0.42, 2.1, 0.32)), 0.09, { tile: TILE.METAL, color: '#e8bf4a' }, 8, 6); }
+      K.I.box(1.4, 0.25, 1.3, tm.clone().multiply(M(0, 0.12, 0)), MAT.stone(light));
+      K.I.box(0.8, 0.5, 0.7, tm.clone().multiply(M(0, 0.5, 0)), { tile: TILE.PLANKS, color: '#5a2a1a' });
+      K.I.box(0.8, 0.12, 0.7, tm.clone().multiply(M(0, 0.78, 0)), { tile: TILE.CANVAS, color: '#8e1f22' });
+      K.I.box(0.9, 1.5, 0.12, tm.clone().multiply(M(0, 1.3, 0.32)), { tile: TILE.PLANKS, color: '#5a2a1a' });
+      K.I.box(0.7, 1.1, 0.04, tm.clone().multiply(M(0, 1.35, 0.25)), { tile: TILE.CANVAS, color: '#8e1f22' });
+      for (const k of [-1, 1]) { K.I.box(0.12, 0.35, 0.65, tm.clone().multiply(M(k * 0.42, 0.95, 0)), { tile: TILE.PLANKS, color: '#5a2a1a' }); P.sphere(K.I, tm.clone().multiply(M(k * 0.42, 2.1, 0.32)), 0.09, { tile: TILE.METAL, color: '#e8bf4a' }, 8, 6); }
     }
     for (let i = 0; i < 3; i++) K.wallItem(1.1, (B, m) => P.banner(B, at2(m, 0, 3.6, 0.0, Math.PI), { tile: TILE.BANNER_SHERIFF, w: 0.9, h: 2.2, sway: 0 }), { depth: 0.05, sides: ['N', 'W', 'E'] });
     for (let i = 0; i < 2; i++) K.wallItem(1.0, (B, m) => { P.chestBox(B, m, { w: 0.85, d: 0.42, h: 0.42, color: '#3a2216', lock: '#e8bf4a' }); P.coins(B, at2(m, 0, 0.62, 0), { n: 10, r: 0.2, rnd: K.rnd, glint: true }); }, { tall: false });

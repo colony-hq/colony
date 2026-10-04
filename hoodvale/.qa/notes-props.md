@@ -46,3 +46,11 @@
   (fraction of `preset.drawDistance`, never beyond fog) and only cast shadows within ~40-60 m.
 - One shared hand-painted atlas (2048², CanvasTexture) + one patched Lambert material family
   (`kit.js`): atlas cell tiling, night-glow windows (`ctx.sky.hour`), sway, alpha-hashed roof fade.
+
+## Data observations (not caused by props)
+
+- Two `fish_cage_harpoon` spots at (203,297) and (203,302), east of `pier-east`, are unreachable
+  from the spawn even with all props blockers removed (checked with `map.findPath` adjacent goals,
+  150k nodes). Every other NPC and overworld object is reachable with the props blockers in place.
+- `gm-stables` (256..263 x 184..188) overlaps the town-wall ring (tiles 259..261,188 / 262..263,187
+  / 263,186 are ring wall tiles). The stables art shrinks its footprint to stay inside the wall.
