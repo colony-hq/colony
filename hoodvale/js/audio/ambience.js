@@ -217,6 +217,8 @@ export function createAmbience(kit, out, sfx, ctx) {
     if (chance((w.oracle || 0) * 0.28 * (ov.crystal ?? 1))) play('amb-crystal', rand(0.3, 0.8) * k);
     if (chance((w.hoodwood || 0) * 0.03)) play('amb-leaves', rand(0.5, 1) * k);
     if (chance((w.farms || 0) * 0.025)) play('amb-creak', 0.4 * k);
+    if (chance((w.brightwater || 0) * (0.2 + 0.8 * day) * 0.025)) play('amb-call', rand(0.25, 0.5) * k);
+    if (chance((w.brightwater || 0) * day * 0.008)) play('amb-hammer', 0.2 * k, { pan: rand(-0.9, 0.9) });
     if (chance(env.fire * 2.5)) play('fire-crackle', env.fire * 0.5 * k, { pan: rand(-0.3, 0.3) });
   }
 
@@ -278,10 +280,10 @@ export function createAmbience(kit, out, sfx, ctx) {
       const dun = env.dungeon ? 1 : 0;
       // Wind (always a faint breath outdoors, strong on the heights).
       const gust = (0.5 + 0.5 * Math.sin(now * 0.37)) * (0.5 + 0.5 * Math.sin(now * 0.23 + 1));
-      const wind = (ov.wind ?? (0.035 + 0.3 * env.wind + 0.06 * env.coast + 0.08 * (w.oracle || 0)) * (1 - dun)) * out * k;
+      const wind = (ov.wind ?? (0.03 + 0.17 * env.wind + 0.05 * env.coast + 0.06 * (w.oracle || 0)) * (1 - dun)) * out * k;
       set(windG.gain, wind * (0.5 + 0.5 * gust), now);
       set(windBp.frequency, 300 + 600 * gust + 300 * env.wind, now, 0.4);
-      set(whistleG.gain, (ov.wind != null ? ov.wind * 0.4 : 0.22 * env.wind) * gust * out * k * (1 - dun), now, 0.4);
+      set(whistleG.gain, (ov.wind != null ? ov.wind * 0.4 : 0.13 * env.wind) * gust * out * k * (1 - dun), now, 0.4);
       set(whistleBp.frequency, 1100 + 600 * gust, now, 0.5);
       // Sea.
       const s = clamp(0.5 + 0.32 * Math.sin((TAU * now) / 7.3) + 0.22 * Math.sin((TAU * now) / 11.9 + 1.7), 0, 1);
@@ -299,10 +301,10 @@ export function createAmbience(kit, out, sfx, ctx) {
       // Swamp.
       const fen = (ov.swamp ?? (w.mistfen || 0)) * k * (1 - dun);
       set(buzzG.gain, fen * 0.012 * (0.5 + 0.5 * env.day) * out, now, 0.6);
-      set(bogG.gain, fen * 0.25, now, 0.6);
+      set(bogG.gain, fen * 0.15, now, 0.6);
       // Town murmur.
       const crowd = (ov.town ?? (w.gildmoor || 0) * (0.35 + 0.65 * env.day)) * k * (1 - dun);
-      set(crowdG.gain, crowd * 0.5 * (env.indoor ? 0.5 : 1), now, 0.6);
+      set(crowdG.gain, crowd * 0.7 * (env.indoor ? 0.5 : 1), now, 0.6);
       for (const f of formants) {
         set(f.g.gain, rand(0.05, 0.4), now, 0.06);
         set(f.bp.frequency, f.base * rand(0.8, 1.25), now, 0.08);
@@ -311,8 +313,8 @@ export function createAmbience(kit, out, sfx, ctx) {
       set(crystalG.gain, (ov.crystal ?? (w.oracle || 0)) * 0.035 * k * (1 - dun), now, 0.8);
       // Cave.
       const cave = (ov.cave ?? dun) * k;
-      set(caveG.gain, cave * 0.35, now, 0.8);
-      set(humG.gain, cave * 0.05, now, 0.8);
+      set(caveG.gain, cave * 0.2, now, 0.8);
+      set(humG.gain, cave * 0.035, now, 0.8);
       // Fire / furnace.
       set(fireG.gain, ((ov.fire ?? env.fire) * 0.16 + env.furnace * 0.25) * k, now, 0.4);
       // Forest leaves.

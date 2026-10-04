@@ -344,6 +344,26 @@ export class Builder {
     return this;
   }
 
+  // Append an already-built prop geometry (this file's attribute layout) transformed by m.
+  addBuilt(g, m) {
+    const P = g.attributes.position, N = g.attributes.normal, UV = g.attributes.uv, C = g.attributes.color, MI = g.attributes.aMisc, GL = g.attributes.aGlow;
+    const e = m.elements;
+    const nm = _m3.getNormalMatrix(m).elements;
+    for (let i = 0; i < P.count; i++) {
+      const x = P.getX(i), y = P.getY(i), z = P.getZ(i);
+      this.pos.push(e[0] * x + e[4] * y + e[8] * z + e[12], e[1] * x + e[5] * y + e[9] * z + e[13], e[2] * x + e[6] * y + e[10] * z + e[14]);
+      const nx = N.getX(i), ny = N.getY(i), nz = N.getZ(i);
+      let tx = nm[0] * nx + nm[3] * ny + nm[6] * nz, ty = nm[1] * nx + nm[4] * ny + nm[7] * nz, tz = nm[2] * nx + nm[5] * ny + nm[8] * nz;
+      const l = Math.hypot(tx, ty, tz) || 1;
+      this.nor.push(tx / l, ty / l, tz / l);
+      this.uv.push(UV.getX(i), UV.getY(i));
+      this.col.push(C.getX(i), C.getY(i), C.getZ(i));
+      this.misc.push(MI.getX(i), MI.getY(i));
+      this.glow.push(GL.getX(i), GL.getY(i), GL.getZ(i), GL.getW(i));
+    }
+    return this;
+  }
+
   merge(other) {
     this.pos.push(...other.pos); this.nor.push(...other.nor); this.uv.push(...other.uv);
     this.col.push(...other.col); this.misc.push(...other.misc); this.glow.push(...other.glow);
@@ -379,16 +399,20 @@ export function M(x = 0, y = 0, z = 0, ry = 0, rx = 0, rz = 0, sx = 1, sy = sx, 
 }
 
 // ---------------------------------------------------------------------------------------------
-// Instance pools
+// Instance pools. Visible instances are packed densely at the front of the InstancedMesh and
+// mesh.count = number of visible instances, so hidden ones cost nothing (no triangles, and the
+// mesh is not drawn at all when nothing is visible). Callers keep stable logical slot ids.
 // ---------------------------------------------------------------------------------------------
 const _mat4 = new THREE.Matrix4();
 export class Pool {
   constructor(parent, geometry, material, { capacity = 32, castShadow = true, receiveShadow = true, name = 'pool', colors = true } = {}) {
     this.parent = parent; this.geometry = geometry; this.material = material;
     this.opts = { castShadow, receiveShadow, name, colors };
-    this.cap = 0; this.used = 0; this.free = [];
-    this.mats = []; // per-slot Matrix4 (visible transform)
-    this.hidden = [];
+    this.cap = 0; this.total = 0; this.visible = 0;
+    this.mats = []; this.cols = []; this.hidden = []; // per logical slot
+    this.dense = []; // logical -> dense index
+    this.owner = []; // dense index -> logical
+    this.freeIds = [];
     this.dirty = true;
     this.mesh = null;
     this._grow(capacity);
@@ -400,67 +424,83 @@ export class Pool {
     mesh.castShadow = this.opts.castShadow;
     mesh.receiveShadow = this.opts.receiveShadow;
     mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    if (this.opts.colors) {
-      mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(cap * 3).fill(1), 3);
-    }
+    if (this.opts.colors) mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(cap * 3).fill(1), 3);
     if (old) {
       mesh.instanceMatrix.array.set(old.instanceMatrix.array.subarray(0, this.cap * 16));
       if (old.instanceColor && mesh.instanceColor) mesh.instanceColor.array.set(old.instanceColor.array.subarray(0, this.cap * 3));
+      mesh.frustumCulled = old.frustumCulled;
+      mesh.renderOrder = old.renderOrder;
       this.parent.remove(old);
       old.dispose();
     }
-    mesh.count = this.used;
     this.parent.add(mesh);
     this.mesh = mesh;
     this.cap = cap;
+    this._sync();
+  }
+  _write(d) {
+    const l = this.owner[d];
+    this.mesh.setMatrixAt(d, this.mats[l]);
+    if (this.mesh.instanceColor) { const c = this.cols[l]; this.mesh.instanceColor.setXYZ(d, c[0], c[1], c[2]); this.mesh.instanceColor.needsUpdate = true; }
+    this.mesh.instanceMatrix.needsUpdate = true;
+  }
+  _swap(a, b) {
+    if (a === b) return;
+    const la = this.owner[a], lb = this.owner[b];
+    this.owner[a] = lb; this.owner[b] = la;
+    this.dense[lb] = a; this.dense[la] = b;
+    this._write(a); this._write(b);
+  }
+  _sync() {
+    this.mesh.count = this.visible;
+    this.mesh.visible = this.visible > 0;
+    this.dirty = true;
   }
   add(matrix, color = null) {
-    let slot;
-    if (this.free.length) slot = this.free.pop();
-    else {
-      if (this.used >= this.cap) this._grow(this.cap * 2);
-      slot = this.used++;
-      this.mesh.count = this.used;
-    }
-    this.mats[slot] = matrix.clone();
-    this.hidden[slot] = false;
-    this.mesh.setMatrixAt(slot, matrix);
-    if (color && this.mesh.instanceColor) this.setColor(slot, color);
-    else if (this.mesh.instanceColor) this.mesh.instanceColor.setXYZ(slot, 1, 1, 1), (this.mesh.instanceColor.needsUpdate = true);
-    this.mesh.instanceMatrix.needsUpdate = true;
-    this.dirty = true;
-    return slot;
+    if (this.total >= this.cap) this._grow(this.cap * 2);
+    const l = this.freeIds.length ? this.freeIds.pop() : this.mats.length;
+    this.mats[l] = matrix.clone();
+    this.cols[l] = color ? lin(color).slice() : [1, 1, 1];
+    this.hidden[l] = false;
+    const d = this.total++;
+    this.owner[d] = l; this.dense[l] = d;
+    this._write(d);
+    this._swap(d, this.visible); // into the visible region
+    this.visible++;
+    this._sync();
+    return l;
   }
-  setMatrix(slot, matrix) {
-    this.mats[slot].copy(matrix);
-    if (!this.hidden[slot]) { this.mesh.setMatrixAt(slot, matrix); this.mesh.instanceMatrix.needsUpdate = true; this.dirty = true; }
-  }
-  setColor(slot, c) {
-    const [r, g, b] = lin(c);
-    this.mesh.instanceColor.setXYZ(slot, r, g, b);
-    this.mesh.instanceColor.needsUpdate = true;
-  }
-  setVisible(slot, v) {
-    if (this.hidden[slot] === !v) return;
-    this.hidden[slot] = !v;
-    const m = this.mats[slot];
-    if (v) this.mesh.setMatrixAt(slot, m);
-    else {
-      _mat4.makeScale(0, 0, 0);
-      _mat4.elements[12] = m.elements[12]; _mat4.elements[13] = m.elements[13]; _mat4.elements[14] = m.elements[14];
-      this.mesh.setMatrixAt(slot, _mat4);
-    }
-    this.mesh.instanceMatrix.needsUpdate = true;
+  setMatrix(l, matrix) {
+    this.mats[l].copy(matrix);
+    this._write(this.dense[l]);
     this.dirty = true;
   }
-  remove(slot) {
-    this.setVisible(slot, false);
-    this.free.push(slot);
+  setColor(l, c) {
+    this.cols[l] = lin(c).slice();
+    this._write(this.dense[l]);
+  }
+  setVisible(l, v) {
+    if (this.hidden[l] === !v || this.dense[l] == null) return;
+    this.hidden[l] = !v;
+    const d = this.dense[l];
+    if (v) { this._swap(d, this.visible); this.visible++; }
+    else { this.visible--; this._swap(d, this.visible); }
+    this._sync();
+  }
+  remove(l) {
+    if (this.dense[l] == null) return;
+    this.setVisible(l, false);
+    const d = this.dense[l];
+    this.total--;
+    this._swap(d, this.total);
+    this.dense[l] = null;
+    this.freeIds.push(l);
+    this._sync();
   }
   refresh() {
     if (!this.dirty) return;
     this.dirty = false;
-    this.mesh.computeBoundingSphere();
+    if (this.visible > 0) this.mesh.computeBoundingSphere();
   }
 }
 

@@ -256,22 +256,19 @@ MAKERS.well = () => {
 export function wheatGeometry(kind) {
   const b = new Builder(kind === 'flax' ? 21 : 20);
   const rnd = mulberry32(kind === 'flax' ? 5 : 3);
-  const n = kind === 'flax' ? 14 : 18;
+  const n = kind === 'flax' ? 11 : 13;
+  const stalk = new THREE.CylinderGeometry(0.014, 0.02, 1, 3, 1, true);
+  stalk.translate(0, 0.5, 0);
+  const sw = (wx, wy) => Math.max(0, wy) * 0.07;
   for (let i = 0; i < n; i++) {
-    const x = (rnd() - 0.5) * 0.8, z = (rnd() - 0.5) * 0.8;
+    const x = (rnd() - 0.5) * 0.82, z = (rnd() - 0.5) * 0.82;
     const h = (kind === 'flax' ? 0.75 : 0.95) + rnd() * 0.25;
-    const lean = (rnd() - 0.5) * 0.2, ry = rnd() * 6;
-    const m = M(x, 0, z, ry, lean, (rnd() - 0.5) * 0.2);
-    const stalkC = kind === 'flax' ? '#6f9150' : '#c9a646';
-    b.box(0.025, h, 0.025, m.clone().multiply(M(0, h / 2, 0)), { color: stalkC, sway: (wx, wy) => Math.max(0, wy) * 0.08 });
+    const m = M(x, 0, z, rnd() * 6, (rnd() - 0.5) * 0.2, (rnd() - 0.5) * 0.2);
+    b.geo(stalk, m.clone().multiply(M(0, 0, 0, 0, 0, 0, 1, h, 1)), { color: kind === 'flax' ? '#6f9150' : '#c9a646', sway: sw });
     if (kind === 'flax') {
-      const fl = new THREE.OctahedronGeometry(0.055, 0);
-      b.geo(fl, m.clone().multiply(M(0, h, 0, 0, 0, 0, 1, 0.6, 1)), { color: rnd() < 0.8 ? '#6f8fe0' : '#9aa8f0', flat: true, sway: (wx, wy) => Math.max(0, wy) * 0.08 });
-      b.box(0.1, 0.012, 0.03, m.clone().multiply(M(0, h * 0.6, 0, rnd() * 3)), { color: '#6f9150', sway: 0.03 });
+      b.geo(new THREE.OctahedronGeometry(0.06, 0), m.clone().multiply(M(0, h, 0, 0, 0, 0, 1, 0.55, 1)), { color: rnd() < 0.8 ? '#6f8fe0' : '#9aa8f0', flat: true, sway: sw });
     } else {
-      const ear = new THREE.OctahedronGeometry(0.045, 0);
-      b.geo(ear, m.clone().multiply(M(0, h + 0.07, 0, 0, 0, 0, 1, 3.2, 1)), { color: '#e2c25a', flat: true, sway: (wx, wy) => Math.max(0, wy) * 0.08 });
-      b.box(0.12, 0.012, 0.025, m.clone().multiply(M(0.04, h * 0.5, 0, rnd() * 3, 0, -0.4)), { color: '#b8a040', sway: 0.03 });
+      b.geo(new THREE.OctahedronGeometry(0.05, 0), m.clone().multiply(M(0, h + 0.08, 0, 0, 0, 0, 1, 3.0, 1)), { color: '#e2c25a', flat: true, sway: sw });
     }
   }
   return b.build();

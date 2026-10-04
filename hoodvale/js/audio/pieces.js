@@ -420,7 +420,7 @@ export const PIECES = {
         mel: ['0:4 4:4 | 5:3 4:1 3:2 4:2 | 5:4 7:4 | 6:4 4:4 | 7:4 9:4 | 8:3 7:1 5:2 7:2 | 5:2 4:2 5:2 7:2 | 6:6 r:2'],
         play: { lead: 'mel', ost: ['ost1', 'ost2'], bass: 'bassA', tim: 'timA', perc: 'drA' },
       },
-      B: { bars: 8, chords: [0, 5, 2, '4M', 3, 5, '4M', '4M'], play: { choir: 'pad', brass: 'stab', ost: 'ost1', bass: 'bassA', tim: 'timA', perc: 'drB' } },
+      B: { bars: 8, chords: [0, 5, 3, '4M', 0, 5, '4M', '4M'], play: { choir: 'pad', brass: 'stab', ost: 'ost1', bass: 'bassA', tim: 'timA', perc: 'drB' } },
     },
     forms: [['A', 'B'], ['A', 'A', 'B'], ['B', 'A']],
     combat: { play: { cperc: 'cdr' } },

@@ -84,7 +84,7 @@ for (const s of STALLS) {
 
 // ---- Utilities -------------------------------------------------------------
 def('bank_booth', { name: 'Bank booth', examine: 'Your items, safe on the Ledger.', options: ['Bank', 'Collect', 'Examine'], model: { kind: 'bank-booth' } });
-def('exchange_desk', { name: 'Exchange desk', examine: 'Buy and sell with every adventurer in the Vale.', options: ['Exchange', 'History', 'Examine'], model: { kind: 'exchange-desk' } });
+def('exchange_desk', { name: 'Exchange desk', examine: 'Buy and sell with every adventurer in the Vale.', options: ['Exchange', 'Collect', 'History', 'Examine'], model: { kind: 'exchange-desk' } });
 def('furnace', { name: 'Furnace', examine: 'Hot enough to melt ore.', options: ['Smelt', 'Examine'], size: [2, 2], model: { kind: 'furnace' } });
 def('anvil', { name: 'Anvil', examine: 'Bring a hammer and some bars.', options: ['Smith', 'Examine'], model: { kind: 'anvil' } });
 def('range', { name: 'Cooking range', examine: 'Burns less than a campfire.', options: ['Cook', 'Examine'], model: { kind: 'range' }, burnBonus: 3 });

@@ -137,7 +137,7 @@ export function applyHold(P, c, k = 1, moving = 0) {
   if (h === '1h') {
     // Blade forward and a little down.
     sw(B.elR, 0.55 + mv * 0.3, 0, 0, w * 0.8);
-    sw(B.haR, -0.55, 0, 0, w);
+    sw(B.haR, -0.95, 0, 0, w);
   } else if (h === '2h') {
     // Greatsword resting on the right shoulder.
     sw(B.shR, 0.5, 0, 0.18, w);
@@ -570,10 +570,10 @@ def('fish_net', {
 });
 def('fish_rod', {
   dur: 3.2, loop: true, tools: { R: 'rod' }, hideWeapon: true, line: true, keys: [
-    k(0, { spine: [-0.05, 0, 0], head: [-0.15, 0, 0], shR: [0.75, 0, 0.0], elR: [0.75, 0, 0], haR: [-0.25, 0, 0], shL: [0.65, 0, 0.35], elL: [1.05, 0, 0], ...STANCE }),
-    k(1.4, { shR: [0.78, 0, 0.02], elR: [0.72, 0, 0], shL: [0.68, 0, 0.36] }),
-    k(1.7, { shR: [0.95, 0, 0.02], elR: [0.95, 0, 0], haR: [-0.05, 0, 0], head: [-0.1, 0, 0] }, 'o'),
-    k(2.2, { shR: [0.75, 0, 0.0], elR: [0.75, 0, 0], haR: [-0.25, 0, 0], head: [-0.15, 0, 0] }),
+    k(0, { spine: [-0.05, 0, 0], head: [-0.15, 0, 0], shR: [0.65, 0, 0.0], elR: [0.85, 0, 0], haR: [-1.05, 0, 0], shL: [0.65, 0, 0.35], elL: [1.05, 0, 0], ...STANCE }),
+    k(1.4, { shR: [0.68, 0, 0.02], elR: [0.82, 0, 0], shL: [0.68, 0, 0.36] }),
+    k(1.7, { shR: [0.85, 0, 0.02], elR: [1.05, 0, 0], haR: [-0.85, 0, 0], head: [-0.1, 0, 0] }, 'o'),
+    k(2.2, { shR: [0.65, 0, 0.0], elR: [0.85, 0, 0], haR: [-1.05, 0, 0], head: [-0.15, 0, 0] }),
   ],
 });
 def('harpoon', {

@@ -184,6 +184,14 @@ export function createInstruments(kit, { prerender = true } = {}) {
   // ---------------------------------------------------------------- bowed
   function fiddle(dest, t, midi, dur, vel = 1, o = {}) {
     const f = mtof(midi);
+    if (dur < 0.3 && !o.from) { // staccato: one bowed saw through the body filter
+      const a = kit.osc('sawtooth', f);
+      const lp = kit.filter('lowpass', 2000 + 900 * vel, 0.9);
+      const amp = kit.gain(0);
+      a.connect(lp); lp.connect(amp); amp.connect(dest);
+      const end = sustainEnv(amp.gain, t, 0.03, 0.1 * vel, dur, 0.08, 0.8);
+      return part([a], [lp, amp], end);
+    }
     const a = kit.osc('sawtooth', f), b = kit.osc('sawtooth', f);
     a.detune.value = -5; b.detune.value = 5;
     const lp = kit.filter('lowpass', 2400 + 900 * vel, 0.7);
@@ -403,7 +411,7 @@ export function createInstruments(kit, { prerender = true } = {}) {
       (drumBufs[l] = drumBufs[l] || []).push(b);
     }
   }
-  if (prerender) prerenderDrums().catch((err) => console.warn('[audio] drum prerender skipped', err));
+  const ready = prerender ? prerenderDrums().catch((err) => console.warn('[audio] drum prerender skipped', err)) : Promise.resolve();
 
   function drumSynth(letter, dest, t, vel = 1, o = {}) {
     const v = vel;
@@ -481,7 +489,7 @@ export function createInstruments(kit, { prerender = true } = {}) {
   };
 
   return {
-    INST, LEGATO, RANGE, drum,
+    INST, LEGATO, RANGE, drum, ready,
     play(name, dest, t, midi, dur, vel, o) {
       const fn = INST[name];
       const p = fn ? fn(dest, t, midi, dur, vel, o || {}) : null;

@@ -44,8 +44,11 @@ export function createSettingsPanel(U) {
   function slider(label, key, min, max, step, fmt = (v) => Math.round(v * 100)) {
     const v = h('span.v', { text: String(fmt(S[key] ?? min)) });
     const r = h('input', { type: 'range', min: String(min), max: String(max), step: String(step), value: String(S[key] ?? min), 'aria-label': label });
-    r.addEventListener('input', () => { S[key] = +r.value; v.textContent = String(fmt(+r.value)); });
-    r.addEventListener('change', save);
+    let pend = 0;
+    r.addEventListener('input', () => {
+      S[key] = +r.value; v.textContent = String(fmt(+r.value));
+      if (!pend) pend = requestAnimationFrame(() => { pend = 0; save(); }); // live (audio volumes, camera speed)
+    });
     return h('div.u-row', {}, [h('label', { text: label }), r, v]);
   }
   function toggle(label, key, def = true, onChange = null) {

@@ -11,6 +11,8 @@ import { createAmbience } from './ambience.js';
 import { PIECES } from './pieces.js';
 
 const SR = 32000;
+let drumsOn = true;
+export function setDrumPrerender(on) { drumsOn = on; }
 const db = (v) => (v > 0 ? +(20 * Math.log10(v)).toFixed(1) : -120);
 
 function measure(buf, from = 0) {
@@ -43,7 +45,7 @@ function measure(buf, from = 0) {
 function graph(ac) {
   const counters = { nodes: 0, voices: 0 };
   const kit = createKit(ac, counters);
-  const inst = createInstruments(kit);
+  const inst = createInstruments(kit, { prerender: drumsOn });
   const out = kit.gain(1);
   out.connect(ac.destination);
   const reverb = ac.createConvolver();
@@ -61,6 +63,7 @@ export async function renderMusic(key, seconds = 16, { combat = 0, queue = null 
   musicWet.connect(g.reverb);
   const dry = g.kit.gain(1);
   dry.connect(g.out); dry.connect(musicWet);
+  await g.inst.ready;
   const music = createMusic(g.kit, g.inst, { dry }, g.counters);
   if (combat) music.setCombat(combat);
   music.setPiece(key, { fade: 0.05, queue });

@@ -14,7 +14,7 @@ import { itemGeometry, itemShadowTexture } from './m-items.js';
 import { T_WALL, T_BLOCK, T_ROAD, T_WATER } from '../world/mapgen.js';
 import { BUILDINGS } from '../data/buildings.js';
 
-const CHUNK = 64;
+const CHUNK = 80;
 const ROCK_TONE = { copperhollow: '#c2a684', highlands: '#9a958e', mistfen: '#8f9488', oracle: '#9a90a8' };
 
 export function createObjectViews(ctx) {
@@ -352,7 +352,12 @@ export function createObjectViews(ctx) {
       g.add(mesh);
       return mesh;
     };
-    mk(model.base);
+    g.updateMatrixWorld(true);
+    // During world creation static bases are merged per chunk (one draw call per chunk);
+    // objects created later (player fires) get their own mesh.
+    let batchId = null;
+    if (!started) batchId = batchAdd(cx, cz, model.base, g.matrixWorld.clone());
+    else mk(model.base);
     const act = model.active ? mk(model.active) : null;
     const dep = model.depleted ? mk(model.depleted) : null;
     if (dep) dep.visible = false;
@@ -380,10 +385,44 @@ export function createObjectViews(ctx) {
       dispose() {
         root.remove(g);
         for (const h of fxh) fx.remove(h);
+        if (batchId) batchRemove(batchId);
       },
     };
     view._lastDepleted = false;
     return view;
+  }
+
+  // ---------------------------------------------------------------- chunk batches (static uniques)
+  let started = false;
+  let batchSeq = 0;
+  const batches = new Map(); // chunk key -> { items: Map(id -> {geo, m}), mesh, dirty }
+  function batchAdd(x, z, geom, m) {
+    const key = `${Math.floor(x / CHUNK)},${Math.floor(z / CHUNK)}`;
+    let bt = batches.get(key);
+    if (!bt) batches.set(key, (bt = { key, items: new Map(), mesh: null, dirty: true }));
+    const id = key + '#' + batchSeq++;
+    bt.items.set(id, { geom, m });
+    bt.dirty = true;
+    return id;
+  }
+  function batchRemove(id) {
+    const key = id.split('#')[0];
+    const bt = batches.get(key);
+    if (bt && bt.items.delete(id)) bt.dirty = true;
+  }
+  function batchRebuild() {
+    for (const bt of batches.values()) {
+      if (!bt.dirty) continue;
+      bt.dirty = false;
+      const b = new Builder(1);
+      for (const { geom, m } of bt.items.values()) b.addBuilt(geom, m);
+      if (bt.mesh) { root.remove(bt.mesh); bt.mesh.geometry.dispose(); bt.mesh = null; }
+      if (b.isEmpty()) continue;
+      bt.mesh = new THREE.Mesh(b.build(), kit.mat);
+      bt.mesh.name = 'objects:' + bt.key;
+      bt.mesh.castShadow = shadows; bt.mesh.receiveShadow = true;
+      root.add(bt.mesh);
+    }
   }
 
   function create(e) {
@@ -456,6 +495,8 @@ export function createObjectViews(ctx) {
     create,
     createItem,
     update(dt) {
+      started = true;
+      batchRebuild();
       kit.tick(ctx);
     },
   };

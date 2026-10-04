@@ -94,7 +94,15 @@ export function createQuestTracker(U) {
   el.addEventListener('click', () => { if (id) U.ui.openJournal(id); });
   function paint(flash = false) {
     const on = state.settings.questTracker !== false;
-    const t = on ? safe(() => ctx.quests?.tracked?.(), null) : null;
+    let t = on ? safe(() => ctx.quests?.tracked?.(), null) : null;
+    if (on && !t && safe(() => ctx.quests.points(), 1) === 0) {
+      // Brand-new adventurer: point at the first quest's giver.
+      const first = QUESTS[0];
+      if (questStatus(ctx, first.id) === 'not_started') {
+        const line = (safe(() => ctx.quests.journal(first.id), []) || []).find((l) => l.current)?.text;
+        if (line) t = { id: first.id, name: first.name, text: line };
+      }
+    }
     id = t?.id || null;
     const html = t ? `<b>${esc(t.name)}</b>${esc(t.text || '')}` : '';
     el.classList.toggle('u-hidden', !t);

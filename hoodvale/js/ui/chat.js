@@ -163,7 +163,7 @@ export function createChat(U) {
   }
   input.addEventListener('keydown', (e) => {
     e.stopPropagation();
-    if (e.key === 'Enter') { e.preventDefault(); const t = input.value; input.value = ''; send(t); if (!t.trim() || U.layout === 'phone') input.blur(); }
+    if (e.key === 'Enter') { e.preventDefault(); const t = input.value; input.value = ''; send(t); input.blur(); }
     else if (e.key === 'Escape') { e.preventDefault(); input.value = ''; input.blur(); }
   });
   input.addEventListener('keyup', (e) => e.stopPropagation());
