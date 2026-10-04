@@ -1,0 +1,196 @@
+[
+ {
+  "eval": "__lentera.play()"
+ },
+ {
+  "eval": "(()=>{const e=__lentera.ctx.engine; e.preset={...e.preset,pixelRatio:0.4}; e.resize(); return e.size})()"
+ },
+ {
+  "eval": "__lentera.teleport(-1,157)"
+ },
+ {
+  "wait": 600
+ },
+ {
+  "eval": "__lentera.ctx.dialogue.open('sarni')"
+ },
+ {
+  "wait": 1500
+ },
+ {
+  "shot": "a1-greeting-typing"
+ },
+ {
+  "waitFor": "__lentera.ctx.dialogue.state==='topics'",
+  "timeout": 20000
+ },
+ {
+  "wait": 400
+ },
+ {
+  "shot": "a2-topics"
+ },
+ {
+  "key": "Digit2"
+ },
+ {
+  "waitFor": "__lentera.ctx.dialogue.state==='tiers'"
+ },
+ {
+  "wait": 500
+ },
+ {
+  "shot": "a3-tiers"
+ },
+ {
+  "key": "Digit1"
+ },
+ {
+  "wait": 300
+ },
+ {
+  "shot": "a4-thinking-redup"
+ },
+ {
+  "waitFor": "__lentera.ctx.dialogue.state==='answer'",
+  "timeout": 20000
+ },
+ {
+  "waitFor": "!__lentera.ctx.dialogue.speaking",
+  "timeout": 30000
+ },
+ {
+  "wait": 600
+ },
+ {
+  "shot": "a5-answer-redup"
+ },
+ {
+  "key": "Digit2"
+ },
+ {
+  "waitFor": "__lentera.ctx.dialogue.state==='tiers'"
+ },
+ {
+  "wait": 300
+ },
+ {
+  "key": "Digit2"
+ },
+ {
+  "waitFor": "__lentera.ctx.dialogue.state==='answer'",
+  "timeout": 20000
+ },
+ {
+  "waitFor": "!__lentera.ctx.dialogue.speaking",
+  "timeout": 30000
+ },
+ {
+  "wait": 600
+ },
+ {
+  "shot": "a6-answer-sedang"
+ },
+ {
+  "key": "Digit2"
+ },
+ {
+  "waitFor": "__lentera.ctx.dialogue.state==='tiers'"
+ },
+ {
+  "key": "Digit3"
+ },
+ {
+  "wait": 1200
+ },
+ {
+  "shot": "a7-thinking-terang"
+ },
+ {
+  "waitFor": "__lentera.ctx.dialogue.state==='answer'",
+  "timeout": 20000
+ },
+ {
+  "waitFor": "!__lentera.ctx.dialogue.speaking",
+  "timeout": 30000
+ },
+ {
+  "wait": 700
+ },
+ {
+  "shot": "a8-answer-terang"
+ },
+ {
+  "key": "Enter"
+ },
+ {
+  "waitFor": "__lentera.ctx.dialogue.state==='topics'"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "shot": "a9-topics-after"
+ },
+ {
+  "key": "Escape"
+ },
+ {
+  "waitFor": "__lentera.ctx.state.mode==='play'",
+  "timeout": 20000
+ },
+ {
+  "wait": 300
+ },
+ {
+  "key": "KeyJ"
+ },
+ {
+  "wait": 900
+ },
+ {
+  "shot": "b1-journal-petunjuk"
+ },
+ {
+  "key": "KeyD"
+ },
+ {
+  "wait": 600
+ },
+ {
+  "shot": "b2-journal-warga"
+ },
+ {
+  "key": "KeyD"
+ },
+ {
+  "wait": 600
+ },
+ {
+  "shot": "b3-journal-pikiran"
+ },
+ {
+  "key": "KeyD"
+ },
+ {
+  "wait": 2500
+ },
+ {
+  "shot": "b4-journal-peta"
+ },
+ {
+  "key": "Escape"
+ },
+ {
+  "wait": 400
+ },
+ {
+  "log": "__lentera.ctx.state.mode"
+ },
+ {
+  "log": "__lentera.ctx.state.progress.clues.map(c=>c.id+':'+c.tier)"
+ },
+ {
+  "log": "__lentera.ctx.state.progress.asked"
+ }
+]
