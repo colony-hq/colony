@@ -344,7 +344,7 @@ export function beringin(seed) {
       const t = 0.3 + r() * 0.65;
       const p = le.mid.clone().lerp(le.end, t);
       const reach = r() < 0.4 ? p.y + 0.4 : 2 + r() * 5;
-      tube(trunk, [p, p.clone().add(V(r() * 0.3 - 0.15, -reach * 0.5, r() * 0.3 - 0.15)), p.clone().add(V(r() * 0.4 - 0.2, -reach, r() * 0.4 - 0.2))], (t2) => 0.05 + (1 - t2) * 0.03, 3, 3, (t2) => 0.25 * t2, [0.55, 0.48, 0.4]);
+      tube(trunk, [p, p.clone().add(V(r() * 0.3 - 0.15, -reach * 0.5, r() * 0.3 - 0.15)), p.clone().add(V(r() * 0.4 - 0.2, -reach, r() * 0.4 - 0.2))], (t2) => 0.028 + (1 - t2) * 0.022, 3, 3, (t2) => 0.25 * t2, [0.36, 0.31, 0.27]);
     }
   }
   // Canopy: wide dome of dense cards.

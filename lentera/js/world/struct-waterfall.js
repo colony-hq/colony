@@ -9,8 +9,8 @@ import { surfaceGeo, latheGeo, orient } from './props-kit.js';
 import { campfirePit, sittingLog, canang } from './props-common.js';
 import { tileNoise } from './props-textures.js';
 
-const MOSS_GLOW = [0.35, 1.9, 1.15];
-const CRYSTAL = [0.55, 2.3, 2.7];
+const MOSS_GLOW = [0.18, 1.35, 0.75];
+const CRYSTAL = [0.16, 1.15, 1.6];
 
 export function buildWaterfall(kit, api, scene, updaters) {
   const A = LANDMARKS.airTerjun;
@@ -21,8 +21,9 @@ export function buildWaterfall(kit, api, scene, updaters) {
 
   // ---- Roof block over the cave slot: a displaced, subdivided box, flush with the mesa. -------
   const RX0 = -157.2, RX1 = -133, RZ0 = -40.6, RZ1 = -25.4, RY0 = 7.5, RY1 = 28.8;
+  const shelfBottom = (x) => (x < -150.5 ? 7.5 + 14.5 * Math.pow(Math.min(1, (-150.5 - x) / 6.2), 0.8) : 7.5);
   {
-    const g = new THREE.BoxGeometry(RX1 - RX0, RY1 - RY0, RZ1 - RZ0, 14, 12, 9);
+    const g = new THREE.BoxGeometry(RX1 - RX0, RY1 - RY0, RZ1 - RZ0, 18, 12, 9);
     g.translate((RX0 + RX1) / 2, (RY0 + RY1) / 2, (RZ0 + RZ1) / 2);
     const p = g.attributes.position;
     const v = new THREE.Vector3();
@@ -35,11 +36,13 @@ export function buildWaterfall(kit, api, scene, updaters) {
       if (top) { dy = n2 * 0.25; dx *= 0.4; dz *= 0.4; }
       if (bot) { dy = -Math.abs(n1) * 1.1 - Math.abs(n2) * 0.5; }
       if (west && !top && !bot) { dx = -Math.abs(n1) * 1.2 - 0.2; }
-      // Taper the outer overhang so it reads as a natural shelf.
-      if (v.x < -149 && !top) {
-        const k = (v.y - RY0) / (RY1 - RY0);
-        if (v.z < -33) dz += (1 - k) * 1.0; else dz -= (1 - k) * 1.0;
-      }
+      // Undercut: in front of the cliff line the block becomes a thick lip shelf whose
+      // underside slopes back down to the cave mouth (ceiling 7.5 at x = -150.5).
+      const yb = shelfBottom(v.x);
+      const k = (v.y - RY0) / (RY1 - RY0);
+      const yNew = yb + k * (RY1 - yb);
+      dy += yNew - v.y;
+      if (v.x < -150 && !top) { if (v.z < -33) dz += (1 - k) * 0.8; else dz -= (1 - k) * 0.8; }
       // Notch where the river pours over the lip.
       if (top && v.z > -36.5 && v.z < -29.5) dy -= 0.35;
       p.setXYZ(i, v.x + dx, v.y + dy, v.z + dz);
@@ -57,14 +60,16 @@ export function buildWaterfall(kit, api, scene, updaters) {
       color: 0x8c7c6c, jitter: 0, uvOff: false,
       vc: (x, y, z, nx, ny, nz, c) => {
         if (ny > 0.55) c.lerp(new THREE.Color(0.32, 0.42, 0.24), 0.75); // grassy moss on top
+        else if (ny < -0.5) c.multiplyScalar(0.62); // underside of the shelf
         else if (y < 14) c.multiplyScalar(0.7); // wet, darker near the spray
         if (Math.abs(z + 33) < 4.5 && x < -153) c.multiplyScalar(0.6); // behind the falls
       },
     });
-    b.collBox({ x: (-156 + -133) / 2, y: RY0, z: -33, w: 23, h: RY1 - RY0, d: 14, surface: 'rock', tag: 'cave-roof' });
+    b.collBox({ x: (-150.5 + -133) / 2, y: RY0, z: -33, w: 17.5, h: RY1 - RY0, d: 14, surface: 'rock', tag: 'cave-roof' });
+    b.collBox({ x: (-156 + -150.5) / 2, y: 22, z: -33, w: 5.5, h: RY1 - 22, d: 14, surface: 'rock', tag: 'cave-roof' });
   }
   // Extra boulders breaking the silhouette of the shelf and the cliff around the mouth.
-  for (const [x, y, z, r] of [[-155, 23, -41.2, 2.2], [-155.5, 15, -25.0, 2.0], [-151.5, 26.8, -24.8, 1.9], [-154, 11, -40.8, 1.8], [-157.2, 8.2, -38.6, 1.3], [-157.2, 8.4, -27.3, 1.2], [-149.5, 28.2, -42.3, 2.2], [-147.5, 28.0, -23.8, 1.9]]) {
+  for (const [x, y, z, r] of [[-155.6, 26.2, -41.0, 2.0], [-155.6, 25.6, -25.2, 1.8], [-151.5, 27.5, -24.6, 1.8], [-150, 28.3, -42.2, 2.0], [-147.5, 28.2, -23.9, 1.8], [-156.2, 22.6, -38.6, 1.4], [-156.2, 22.9, -27.4, 1.3], [-151.2, 9.0, -38.9, 1.6], [-151.2, 9.2, -27.0, 1.5]]) {
     b.rock('rock', { x, y, z, r, squash: 0.85, rough: 0.35, detail: 1, color: 0x7d786c, jitter: 0.08, vc: (px, py, pz, nx, ny, nz, c) => { if (ny > 0.6) c.lerp(new THREE.Color(0.3, 0.4, 0.22), 0.7); } });
   }
   // Rocks at the waterline around the plunge pool and the cave mouth.
@@ -76,28 +81,42 @@ export function buildWaterfall(kit, api, scene, updaters) {
   // Wall surfaces sit just inside the carved floor (z -37.5..-27.5, x < -137.5) so they hide the
   // steep terrain ramps of the slot. wallAt(i, x, y) gives the surface z for decals.
   const wallZ = [-37.35, -27.65];
+  // Plan radius of the cave around its axis (z = -33): straight sides, then a rounded apse that
+  // follows the carved slot's capsule end (centre x = -142).
+  const AX = -142.6, APSE = 3.9, SIDE = 4.35;
   const wallD = (x, y, zw) => nz3(x, y, zw, 0.21) * 0.9 + nz3(x * 1.7, y * 1.3, zw, 0.37) * 0.4;
-  const wallAt = (i, x, y) => { const zw = wallZ[i]; const d = wallD(x, y, zw); return zw + (i === 0 ? 1 : -1) * (Math.abs(d) * 0.9 + 0.05); };
-  for (const [i, zw] of wallZ.entries()) {
-    const out = i === 0 ? -1 : 1; // wall's outward side (into rock)
-    const g = surfaceGeo(24, 8, (u, v) => {
-      const x = -157 + u * 19.6, y = -2.6 + v * 10.6;
-      return [x, y, wallAt(i, x, y)];
-    });
-    orient(g, [0, 0, -out]);
-    b.add('rock', g, {}, { color: 0x7a6e62, jitter: 0.04, vc: (x, y, z, nx, ny, nz, c) => { c.multiplyScalar(0.5 + 0.5 * Math.min(1, Math.max(0, (y - 1) / 6))); if (y < 1.8 && x < -150) c.lerp(new THREE.Color(0.12, 0.16, 0.12), 0.5); } });
-    b.collBox({ x: -145, y: -2.5, z: zw + out * 0.6, w: 24.5, h: 10.1, d: 1.2, surface: 'rock', walkable: false, tag: 'cave-wall' });
-  }
-  const xb = -137.65;
-  const backAt = (y, z) => xb - (Math.abs(nz3(xb, y, z, 0.25)) * 1.1 + 0.05);
+  const halfAt = (x) => (x > AX ? Math.sqrt(Math.max(0, APSE * APSE - (x - AX) * (x - AX))) * (SIDE / APSE) : SIDE);
+  const wallAt = (i, x, y) => {
+    const d = wallD(x, y, wallZ[i]);
+    return -33 + (i === 0 ? -1 : 1) * (halfAt(x) - Math.abs(d) * 0.9 - 0.05);
+  };
+  // One continuous U-shaped rock surface: param s along the plan curve, y up; displaced inward.
+  const straight = AX + 151.6;
+  const planLen = straight * 2 + Math.PI * APSE;
+  const planAt = (s) => {
+    if (s < straight) return [-151.6 + s, -33 - SIDE, 0, 1];
+    if (s > straight + Math.PI * APSE) return [AX - (s - straight - Math.PI * APSE), -33 + SIDE, 0, -1];
+    const th = (s - straight) / APSE; // 0..pi around the apse
+    return [AX + Math.sin(th) * APSE, -33 - Math.cos(th) * SIDE, -Math.sin(th), Math.cos(th)];
+  };
   {
-    const g = surfaceGeo(10, 8, (u, v) => {
-      const z = -38 + u * 10.6, y = 0.6 + v * 7.4;
-      return [backAt(y, z), y, z];
+    const g = surfaceGeo(46, 8, (u, v) => {
+      const [x, z, ix, iz] = planAt(u * planLen); // (ix, iz) = inward direction
+      const y = -2.6 + v * 10.8;
+      const d = Math.abs(wallD(x, y, z)) * 0.9 + 0.05;
+      return [x + ix * d, y, z + iz * d];
     });
-    orient(g, [-1, 0, 0]);
-    b.add('rock', g, {}, { color: 0x7a6e62, jitter: 0.04, vc: (x, y, z, nx, ny, nz, c) => c.multiplyScalar(0.55 + 0.35 * Math.min(1, y / 6)) });
-    b.collBox({ x: xb + 0.75, y: 0, z: -33, w: 1.6, h: 8, d: 10.4, surface: 'rock', walkable: false, tag: 'cave-wall' });
+    orient(g, [-1, 0, 0]); // interior-facing: the apse normals point back toward the mouth
+    b.add('rock', g, {}, { color: 0x7a6e62, jitter: 0.04, vc: (x, y, z, nx, ny, nz, c) => { c.multiplyScalar(0.5 + 0.5 * Math.min(1, Math.max(0, (y - 1) / 6))); if (y < 1.8 && x < -148) c.lerp(new THREE.Color(0.12, 0.16, 0.12), 0.5); } });
+  }
+  for (const [i, zw] of wallZ.entries()) {
+    const out = i === 0 ? -1 : 1;
+    b.collBox({ x: (-152 + AX) / 2, y: -2.5, z: zw + out * 0.6, w: AX + 152, h: 10.1, d: 1.2, surface: 'rock', walkable: false, tag: 'cave-wall' });
+  }
+  for (let k = 0; k <= 6; k++) {
+    const th = (k / 6) * Math.PI;
+    const x = AX + Math.sin(th) * (APSE + 0.6), z = -33 - Math.cos(th) * (SIDE + 0.6);
+    b.collBox({ x, y: -1, z, w: 1.4, h: 9, d: 1.4, yaw: -th, surface: 'rock', walkable: false, tag: 'cave-wall' });
   }
   // Flat stepping stones to the pedestal, wet pebbles along the walls.
   for (let i = 0; i < 9; i++) {
@@ -108,8 +127,9 @@ export function buildWaterfall(kit, api, scene, updaters) {
   }
   for (let i = 0; i < 26; i++) {
     const side = b.rand() < 0.5 ? 0 : 1;
-    const x = b.r(-151, -138.6);
-    const z = side === 0 ? b.r(-37.1, -35.9) : b.r(-30.1, -27.9);
+    const x = b.r(-151, -139.4);
+    const hw = halfAt(x);
+    const z = side === 0 ? -33 - b.r(hw - 1.3, hw - 0.3) : -33 + b.r(hw - 1.3, hw - 0.3);
     const y = heightAt(x, z);
     if (y < 1.0 || y > 1.7) continue;
     b.rock('rock', { x, y: y + 0.02, z, r: b.r(0.15, 0.55), squash: 0.55, color: 0x5d564c, jitter: 0.12 });
@@ -126,7 +146,8 @@ export function buildWaterfall(kit, api, scene, updaters) {
     }
   }
   for (let k = 0; k < 14; k++) {
-    const x = b.r(-148, -139), z = -33 + (b.rand() < 0.5 ? -1 : 1) * b.r(2.8, 4.0);
+    const x = b.r(-148, -139.5);
+    const z = -33 + (b.rand() < 0.5 ? -1 : 1) * b.r(Math.min(2.6, halfAt(x) - 0.9), halfAt(x) - 0.4);
     const y = heightAt(x, z);
     if (y > 1.6) continue;
     b.add('glow', new THREE.CircleGeometry(b.r(0.08, 0.22), 6), { x, y: y + 0.02, z, pitch: -Math.PI / 2, sx: b.r(1, 1.6) }, { color: [MOSS_GLOW[0] * 0.7, MOSS_GLOW[1] * 0.7, MOSS_GLOW[2] * 0.7], jitter: 0.3 });
@@ -142,12 +163,12 @@ export function buildWaterfall(kit, api, scene, updaters) {
       b.add('glow', g2, { x, y, z, pitch: b.r(-0.5, 0.5) + (dir < 0 ? Math.PI : 0), roll: b.r(-0.5, 0.5) }, { color: [CRYSTAL[0] * 0.55, CRYSTAL[1] * 0.55, CRYSTAL[2] * 0.6], jitter: 0.25 });
     }
   };
-  crystalCluster(-139.3, 1.4, -36.2, 0.9);
-  crystalCluster(-138.9, 1.4, -29.3, 0.75);
-  crystalCluster(-144.5, 1.4, -36.4, 0.55);
-  crystalCluster(-146.5, 1.4, -28.6, 0.6);
-  crystalCluster(-141.5, 6.9, -36.0, 0.6, -1);
-  crystalCluster(-143.5, 7.0, -29.2, 0.5, -1);
+  crystalCluster(-139.7, 1.4, -34.9, 0.9);
+  crystalCluster(-139.9, 1.4, -31.2, 0.75);
+  crystalCluster(-144.8, 1.4, -36.6, 0.55);
+  crystalCluster(-146.5, 1.4, -29.3, 0.6);
+  crystalCluster(-141.8, 6.9, -35.6, 0.6, -1);
+  crystalCluster(-143.8, 7.0, -30.0, 0.5, -1);
   // Pedestal for Api Tirta: carved stone column with a water bowl, offerings around it.
   const F = A.flame;
   const yF = heightAt(F.x, F.z);

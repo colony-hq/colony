@@ -128,7 +128,7 @@ function paintAtlas(S) {
   cell('broadleaf', (w, h) => cluster(w, h, [['#2f5a24', '#4f8034'], ['#3a6a2a', '#5f9440'], ['#2a4e20', '#46722e']], 70, 46, 16));
   cell('banyan', (w, h) => cluster(w, h, [['#244a1e', '#3e6e2c'], ['#2c5422', '#4a7a32']], 120, 30, 12));
   cell('shrub', (w, h) => cluster(w, h, [['#2e4e22', '#4a6e30'], ['#3a5a26', '#587a36']], 80, 36, 14));
-  cell('ketapang', (w, h) => cluster(w, h, [['#2f5a24', '#4f8a34'], ['#3a6a2a', '#62983e'], ['#6a5a24', '#9a6a2a'], ['#2a4e20', '#46722e']], 60, 56, 22));
+  cell('ketapang', (w, h) => cluster(w, h, [['#2f5a24', '#4f8a34'], ['#3a6a2a', '#62983e'], ['#2a4e20', '#46722e'], ['#3a6a2a', '#5a8a36'], ['#2f5a24', '#4f8a34'], ['#7a5a24', '#a06a2a']], 64, 56, 22));
   // Bamboo spray: thin lanceolate leaves on twigs.
   cell('bamboo', (w, h) => {
     g.strokeStyle = '#6a7a3a'; g.lineWidth = 2;

@@ -138,11 +138,12 @@ export function buildCandi(kit, api, scene, updaters) {
     b.within({ x: relief.x, y: yB + 2.28, z: zc }, () => ratna(b, 0.75));
     b.collBox({ x: relief.x, y: yB, z: zc, w: steleX1 - steleX0, h: 2.3, d: bal.t + 0.1, surface: 'stone', walkable: false, tag: 'relief' });
     // The cryptic relief (lamps + reversed sun path) on the inner face, in a carved frame.
-    const fz = relief.z - 0.03;
+    const fz = zc - (bal.t + 0.1) / 2 - 0.012;
     b.add('relief', atlasQuad(3.4, 1.7, RR.panel), { x: relief.x, y: yB + 1.08, z: fz, yaw: Math.PI }, { color: 0xffffff, jitter: 0 });
-    b.box('stone', { x: relief.x, y: yB + 1.98, z: fz - 0.04, w: 3.7, h: 0.14, d: 0.12, color: 0xc4c4b8 });
-    b.box('stone', { x: relief.x, y: yB + 0.18, z: fz - 0.04, w: 3.7, h: 0.14, d: 0.12, color: 0xc4c4b8 });
-    api.anchors.relief = new THREE.Vector3(relief.x, yB + 1.08, relief.z - 0.08);
+    b.box('stone', { x: relief.x, y: yB + 1.98, z: fz - 0.05, w: 3.7, h: 0.14, d: 0.12, color: 0xd0d0c4 });
+    b.box('stone', { x: relief.x, y: yB + 0.18, z: fz - 0.05, w: 3.7, h: 0.14, d: 0.12, color: 0xd0d0c4 });
+    for (const sx of [-1, 1]) b.box('stone', { x: relief.x + sx * 1.8, y: yB + 1.08, z: fz - 0.05, w: 0.14, h: 1.94, d: 0.12, color: 0xd0d0c4 });
+    api.anchors.relief = new THREE.Vector3(relief.x, yB + 1.08, zc - (bal.t + 0.1) / 2 - 0.1);
   }
   // Finials along the balustrade (corners bigger).
   for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) b.within({ x: cx + sx * (T1.half - 0.3), y: yB + bal.h + 0.12, z: cz + sz * (T1.half - 0.3) }, () => ratna(b, 0.75));

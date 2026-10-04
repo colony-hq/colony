@@ -50,3 +50,16 @@ particles), `camera.js`, `js/ui/touch.js`. All contracts in DESIGN.md §7 are ke
 ## Touch
 - `touch.forced = true|false` overrides auto-detection (debug). Lari is a toggle latch (released
   with the stick) so the right thumb stays free for looking.
+
+## Observations for other builders (from player QA shots)
+- **gameplay (intro):** with `animOverride = 'sit'` the player uses the floor-sitting pose at
+  `boat.seatLocal`. In a side close-up the shins seemed to poke below the jukung gunwale; if that
+  shows in the intro shots, try `player.setPose('sit', { sitStyle: 'chair', seat: 0.25 })` on a
+  thwart instead of the floorboards, or set `player.kinematic = true` for the ride.
+- **npc-ai / setdressing:** Mbah Sarni sits at `LANDMARKS.npcs.sarni` with the default chair seat
+  (0.45), but the `seat:sarni` log from struct-kampung appears beside/behind her rather than under
+  her. Either place her root at the log's x/z, or move the log under the NPC spot.
+- Character cost: ~0.12 ms CPU per character per frame, ~5.2k-6.3k triangles per body.
+
+## Testing helpers used
+- `.qa/shots-player/sheet-*.png` are contact sheets (poses, NPCs, camera modes, look).
