@@ -238,13 +238,13 @@ function stoneRecipe(S, seed) {
     }
     const du = Math.min(u - start, end - u) * 2; // metres
     const dv = Math.min(tv, 1 - tv) * (2 / rows);
-    const chip = (N.fbm(u, v, 24, 24, 3) - 0.5) * 0.03;
+    const chip = (N.fbm(u, v, 24, 24, 2) - 0.5) * 0.03;
     const e = Math.min(du, dv) + chip;
     const bevel = smooth(0.0, 0.035, e);
     const [tk, hue] = tint[row][bi];
-    const pit = N.fbm(u, v, 96, 96, 3);
-    const big = N.fbm(u, v, 6, 6, 3);
-    const moss = smooth(0.52, 0.72, N.fbm(u + 0.3, v, 5, 5, 4) + (1 - bevel) * 0.25 + (1 - tv) * 0.08);
+    const pit = N.fbm(u, v, 96, 96, 2);
+    const big = N.fbm(u, v, 6, 6, 2);
+    const moss = smooth(0.52, 0.72, N.fbm(u + 0.3, v, 5, 5, 3) + (1 - bevel) * 0.25 + (1 - tv) * 0.08);
     const lichen = smooth(0.78, 0.84, N.get(u, v, 64, 64)) * (1 - moss);
     let g = tk * (0.86 + (pit - 0.5) * 0.3 + (big - 0.5) * 0.18) * mix(0.3, 1, bevel);
     let cr = g * mix(0.92, 1.0, hue), cg = g * 0.98, cb = g * mix(0.92, 0.86, hue);
@@ -258,11 +258,11 @@ function stoneRecipe(S, seed) {
 function rockRecipe(S, seed) {
   const N = tileNoise(seed);
   return synth(S, (u, v, x, y, col) => {
-    const base = N.fbm(u, v, 4, 4, 5);
-    const rid = 1 - Math.abs(N.fbm(u + 0.5, v, 6, 6, 4) * 2 - 1);
+    const base = N.fbm(u, v, 4, 4, 4);
+    const rid = 1 - Math.abs(N.fbm(u + 0.5, v, 6, 6, 3) * 2 - 1);
     const crack = smooth(0.965, 0.99, rid);
     const strata = 0.5 + 0.5 * Math.sin((v * 9 + base * 1.5) * Math.PI * 2);
-    const grain = N.fbm(u, v, 128, 128, 2);
+    const grain = N.get(u, v, 128, 128);
     let t = 0.6 + (base - 0.5) * 0.45 + strata * 0.07 + (grain - 0.5) * 0.2 - crack * 0.16;
     const warm = N.get(u, v, 3, 3);
     col[0] = t * mix(0.92, 1.02, warm); col[1] = t * 0.95; col[2] = t * mix(0.92, 0.82, warm);
@@ -273,12 +273,12 @@ function rockRecipe(S, seed) {
 function plasterRecipe(S, seed) {
   const N = tileNoise(seed);
   return synth(S, (u, v, x, y, col) => {
-    const stain = N.fbm(u, v, 3, 3, 4);
-    const streak = N.fbm(u, v, 40, 2, 3);
-    const fine = N.fbm(u, v, 128, 128, 2);
-    const crackN = 1 - Math.abs(N.fbm(u + 0.2, v + 0.7, 5, 5, 4) * 2 - 1);
+    const stain = N.fbm(u, v, 3, 3, 3);
+    const streak = N.fbm(u, v, 40, 2, 2);
+    const fine = N.get(u, v, 128, 128);
+    const crackN = 1 - Math.abs(N.fbm(u + 0.2, v + 0.7, 5, 5, 3) * 2 - 1);
     const crack = smooth(0.965, 0.99, crackN);
-    const flake = smooth(0.70, 0.74, N.fbm(u, v, 10, 10, 3));
+    const flake = smooth(0.70, 0.74, N.fbm(u, v, 10, 10, 2));
     let t = 0.92 - smooth(0.45, 0.8, stain) * 0.16 - smooth(0.5, 0.9, streak) * 0.14 + (fine - 0.5) * 0.06 - crack * 0.3;
     col[0] = t * 0.99; col[1] = t * 0.96; col[2] = t * 0.9;
     if (flake > 0) { col[0] = mix(col[0], 0.62, flake); col[1] = mix(col[1], 0.55, flake); col[2] = mix(col[2], 0.48, flake); }
@@ -571,7 +571,7 @@ function decalAtlas(S) {
 function reliefAtlas(S) {
   const W = S, H = S;
   const hc = makeCanvas(W, H);
-  const g = hc.getContext('2d');
+  const g = hc.getContext('2d', { willReadFrequently: true });
   const k = S / 1024;
   const regions = {
     panel: { u0: 0, u1: 1, v0: 0.5, v1: 1 }, // top half, 2:1
@@ -704,7 +704,7 @@ function reliefAtlas(S) {
 
   // Blur for soft carved edges, read heights back.
   const blur = makeCanvas(W, H);
-  const bg = blur.getContext('2d');
+  const bg = blur.getContext('2d', { willReadFrequently: true });
   try { bg.filter = `blur(${Math.max(1, 2.2 * k)}px)`; } catch { /* filter unsupported: sharp edges */ }
   bg.drawImage(hc, 0, 0);
   const src = bg.getImageData(0, 0, W, H).data;

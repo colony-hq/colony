@@ -63,7 +63,7 @@ function drawLeaf(g, x, y, ang, len, wid, col, rib = true, light = null) {
 function paintAtlas(S) {
   const c = document.createElement('canvas');
   c.width = S; c.height = S;
-  const g = c.getContext('2d');
+  const g = c.getContext('2d', { willReadFrequently: true });
   const k = S / 1024;
   g.scale(k, k);
   const r = mulberry32(77);
@@ -190,7 +190,7 @@ function flower(g, x, y, s) {
 // row-flipped DataTexture (v = 1 at the top of the painted canvas).
 function toDataTexture(canvas, aniso) {
   const W = canvas.width, H = canvas.height;
-  const src = canvas.getContext('2d').getImageData(0, 0, W, H).data;
+  const src = canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, W, H).data;
   // Level 0 (alpha-weighted colour).
   const levels = [];
   let w = W, h = H;
