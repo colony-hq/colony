@@ -74,7 +74,7 @@ npc('lumen', { name: 'Lumen', x: 256, z: 148, zone: 'gildmoor', role: 'Sigil sel
 npc('goose_keeper', { name: 'Tamsin', x: 241, z: 180, zone: 'gildmoor', role: 'Tavern keeper', examine: 'Runs the Gilded Goose.', options: ['Trade', 'Talk-to', 'Examine'], shop: 'inn', dialogue: 'tamsin',
   look: { body: 'female', skin: '#c8956b', hair: 'braid', hairColor: '#6a3a1a', top: '#a87a2a', bottom: '#3a2a1a', apron: '#f2ece0' } });
 npc('tax_collector', { name: 'Tax collector', x: 250, z: 172, zone: 'gildmoor', role: "The Sheriff's tax collector", examine: 'Collects for the Sheriff. Keeps a little for himself.', wander: 6, options: ['Talk-to', 'Pickpocket', 'Examine'], dialogue: 'taxman',
-  thieving: { level: 25, xp: 42, credit: [10, 40], stunTicks: 6, maxHit: 3, questItem: 'tax_ledger' },
+  thieving: { level: 10, xp: 30, credit: [6, 25], stunTicks: 6, maxHit: 3, questItem: 'tax_ledger' },
   look: { body: 'male', skin: '#e0b48a', hair: 'short', hairColor: '#1a1a1a', top: '#7a2a2a', bottom: '#2a2a2a', hat: 'feathered-hat' } });
 npc('merchant_gm', { name: 'Merchant', x: 244, z: 158, zone: 'gildmoor', role: 'Merchant', examine: 'Rich. Careless. Perfect.', wander: 4, options: ['Talk-to', 'Pickpocket', 'Examine'], dialogue: 'villager',
   thieving: { level: 40, xp: 65, credit: [20, 80], stunTicks: 6, maxHit: 4 },

@@ -139,16 +139,16 @@ vec3 col = vBase;
   float rockN = slope + (nD.b - 0.5) * 0.16 + (nF.r - 0.5) * 0.08;
   float rockW = smoothstep(0.24, 0.34, rockN) * (1.0 - step(0.48, vMB.x));
   if (rockW > 0.001) {
-    vec2 rp = abs(vWNrm.x) > abs(vWNrm.z) ? vec2(wp.y, vWPos.y) : vec2(wp.x, vWPos.y);
-    rp = mix(wp, rp, smoothstep(0.3, 0.55, slope));
-    vec4 r1 = texture2D(uNoise, rp * 0.045);
-    vec4 r2 = texture2D(uNoise, rp * 0.16);
+    // Blend a top-down and a side projection by slope (sample both, never mix coordinates).
+    vec2 sp = abs(vWNrm.x) > abs(vWNrm.z) ? vec2(wp.y, vWPos.y) : vec2(wp.x, vWPos.y);
+    float sideK = smoothstep(0.3, 0.6, slope);
+    vec4 r1 = mix(texture2D(uNoise, wp * 0.045), texture2D(uNoise, sp * 0.045 + 0.37), sideK);
+    vec4 r2 = mix(texture2D(uNoise, wp * 0.16), texture2D(uNoise, sp * vec2(0.16, 0.24) + 0.61), sideK);
     vec3 rc = vRock * (0.8 + 0.32 * r1.r) * (0.92 + 0.12 * r2.g);
     rc *= 0.93 + 0.07 * sin(vWPos.y * 1.3 + r1.g * 6.0);
     float crk = (1.0 - smoothstep(0.02, 0.09, r2.b)) * smoothstep(0.45, 0.7, r1.b);
     rc *= 1.0 - 0.32 * crk * smoothstep(0.6, 0.95, rockW);
     rc *= 0.82 + 0.32 * clamp(vWNrm.y * 1.4, 0.0, 1.0);
-    // a little moss / dust on gentler rock
     rc = mix(rc, col * 0.9, (1.0 - smoothstep(0.32, 0.5, slope)) * 0.35);
     col = mix(col, rc, rockW);
   }
@@ -186,7 +186,7 @@ vec3 col = vBase;
     col = mix(col, fc, step(0.48, vMB.x));
   }
   // ---- ash + embers near the Ashen Peak ----
-  float ashW = smoothstep(0.3, 0.6, vMC.y + (nD.r - 0.5) * 0.3);
+  float ashW = smoothstep(0.3, 0.6, vMC.y + (nD.r - 0.5) * 0.3) * (1.0 - 0.8 * rockW);
   if (ashW > 0.001) {
     vec3 ashC = mix(vec3(0.27, 0.26, 0.25), vec3(0.46, 0.44, 0.42), nF.g);
     col = mix(col, ashC, ashW * 0.85);
