@@ -5,7 +5,7 @@
 // .qa/notes-actors.md.
 
 import * as THREE from 'three';
-import { Builder, C, rng, materials, glowTexture, clamp, lerp, smooth01, TAU } from './a-core.js';
+import { Builder, C, materials, glowTexture, clamp, lerp, smooth01, TAU } from './a-core.js';
 
 const MAX = 4000;
 

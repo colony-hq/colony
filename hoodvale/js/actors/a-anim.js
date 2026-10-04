@@ -7,7 +7,7 @@
 // Owner: actors builder.
 
 import { HB, HB_COUNT } from './a-humanoid.js';
-import { TAU, pos, clamp, smooth01, lerp, env } from './a-core.js';
+import { TAU, pos, clamp } from './a-core.js';
 
 const B = HB;
 export const OFF = HB_COUNT * 3;
@@ -168,7 +168,6 @@ export function applyHold(P, c, k = 1, moving = 0) {
 // Keyframed animations. A key: { t, e: 'io'|'i'|'o'|'l', <bone>: [x, y, z], off: [x, y, z] }.
 // Channels listed in any key override the base pose (missing channels in a key carry over).
 // ---------------------------------------------------------------------------------------------
-const NAMES = Object.keys(HB);
 function compile(keys) {
   const chans = [];
   const seen = new Set();

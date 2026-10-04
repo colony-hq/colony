@@ -9,7 +9,6 @@ import { METALS, WOODS } from '../data/items.js';
 import { Builder, C, shade, mix, lathe, cyl, cone, sphere, box, torus, extrude, tube, TAU } from './a-core.js';
 
 const LEATHER = '#6a4528', LEATHER_D = '#4a2e1a', WOOD = '#7a5634', WOOD_D = '#5a3c22';
-const GOLD = '#e0b040';
 
 // ---------------------------------------------------------------------------------------------
 // Tints

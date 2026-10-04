@@ -279,7 +279,7 @@ export function createSky(ctx) {
       if (phase !== lastPhase) { lastPhase = phase; sky.phase = phase; ctx.events?.emit?.('sky:phase', { phase, hour: sky.hour }); }
 
       const pr = engine.preset;
-      const fogFar = Math.max(230, Math.min(560, (pr.drawDistance || 480) * 0.85));
+      const fogFar = Math.max(380, Math.min(820, (pr.drawDistance || 480) * 1.2));
       let half = pr.name === 'high' ? 34 : 26;
 
       if (!sky.inDungeon) {
@@ -295,9 +295,9 @@ export function createSky(ctx) {
         domeU.uCloudLit.value.copy(K.hor).lerp(tmpC.setRGB(1, 1, 1), 0.55 * (1 - night)).multiplyScalar(1 - 0.55 * night);
         domeU.uCloudShade.value.copy(K.zen).lerp(K.hor, 0.5).multiplyScalar(0.78);
         domeU.uCover.value = 0.4 + 0.08 * Math.sin(t * 0.01);
-        scene.fog.color.copy(K.hor);
-        scene.fog.near = fogFar * (0.32 - 0.08 * night);
-        scene.fog.far = fogFar * (1 - 0.15 * night);
+        scene.fog.color.copy(K.hor).lerp(K.zen, 0.1).multiplyScalar(0.96);
+        scene.fog.near = fogFar * (0.2 - 0.06 * night);
+        scene.fog.far = fogFar * (1 - 0.2 * night);
         if (scene.background?.isColor) scene.background.copy(K.hor);
         hemi.color.copy(K.hs); hemi.groundColor.copy(K.hg); hemi.intensity = K.hI;
         sun.color.copy(K.key);

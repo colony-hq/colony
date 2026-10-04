@@ -257,8 +257,9 @@ export function createOracle(ctx) {
       record(tier, false, topic, text);
       return text;
     },
-    consult(entity) {
-      resolveLive();
+    async consult(entity) {
+      const pending = resolveLive();
+      if (pending) await Promise.race([pending, new Promise((r) => setTimeout(r, 400))]);
       const e = entity && entity.kind === 'npc' ? entity : ctx.entities?.get?.('n:oracle') || entity || null;
       const st = ctx.quests?.stage?.('oracles_price');
       const shards = ctx.inventory?.count?.('orbium_shard') || 0;

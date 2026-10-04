@@ -89,7 +89,7 @@ export function createBuildings(ctx) {
     mesh.castShadow = shadows;
     mesh.receiveShadow = true;
     group.add(mesh);
-    kit.cull(mesh, FAR);
+    kit.cull(mesh, FAR, { shadowDist: 60, cast: shadows });
   }
 
   const camPos = new THREE.Vector3();

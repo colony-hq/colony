@@ -599,7 +599,7 @@ export function createStructures(ctx) {
     mesh.castShadow = shadows;
     mesh.receiveShadow = true;
     group.add(mesh);
-    kit.cull(mesh, Math.max(160, (ctx.engine?.preset?.drawDistance || 480) * 0.6));
+    kit.cull(mesh, Math.max(160, (ctx.engine?.preset?.drawDistance || 480) * 0.6), { shadowDist: 55, cast: shadows });
   }
   kit.cull(boats, 120);
 

@@ -479,3 +479,22 @@ export function membrane(tris, color, { sag = null } = {}) {
   g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sw, 4));
   return g;
 }
+
+// Soft contact-shadow texture (broad, flat-topped falloff).
+let SHADOW_TEX = null;
+export function shadowTexture() {
+  if (SHADOW_TEX) return SHADOW_TEX;
+  const s = 64;
+  const c = document.createElement('canvas');
+  c.width = c.height = s;
+  const g = c.getContext('2d');
+  const grd = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+  grd.addColorStop(0, 'rgba(255,255,255,1)');
+  grd.addColorStop(0.45, 'rgba(255,255,255,0.85)');
+  grd.addColorStop(0.75, 'rgba(255,255,255,0.35)');
+  grd.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = grd;
+  g.fillRect(0, 0, s, s);
+  SHADOW_TEX = new THREE.CanvasTexture(c);
+  return SHADOW_TEX;
+}

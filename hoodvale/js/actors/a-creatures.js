@@ -6,13 +6,12 @@
 
 import * as THREE from 'three';
 import {
-  Builder, C, shade, mix, hexOf, smooth01, clamp, pos, lerp, TAU, taper, lathe, sphere, box, cyl, cone, torus, extrude,
-  tube, deform, rock, makeBones, boneIndex, rng, hashStr, materials, glowTexture, env, spineTube, membrane,
+  Builder, C, shade, mix, smooth01, pos, lerp, TAU, taper, lathe, sphere, box, cyl, cone, torus, extrude,
+  tube, deform, materials, glowTexture, env, spineTube, membrane,
 } from './a-core.js';
 
 const S = (P, b, x, y, z) => { const k = b * 3; P[k] = x; P[k + 1] = y; P[k + 2] = z; };
 const A = (P, b, x, y, z) => { const k = b * 3; P[k] += x; P[k + 1] += y; P[k + 2] += z; };
-const OFFS = (n) => n * 3;
 const offset = (P, n, x, y, z) => { const o = n * 3; P[o] = x; P[o + 1] = y; P[o + 2] = z; };
 const scl = (P, n, x, y, z) => { const o = n * 3 + 3; P[o] = x; P[o + 1] = y; P[o + 2] = z; };
 const col = (c, f) => C(c || f);
@@ -943,7 +942,7 @@ function oracleGeometry() {
       if (seam) return tmp.copy(cyan);
       return tmp.copy(deep).lerp(violet, smooth01(0.0, 0.9, y)).lerp(pale, smooth01(1.35, 1.8, y) * 0.5);
     },
-    glowFn: (x, y, z) => { const a = Math.atan2(z, x); return Math.abs(Math.sin(a * 7)) > 0.985 && y < 1.25 && y > 0.1 ? 0.8 : 0.1 + 0.3 * smooth01(1.0, 1.75, y); },
+    glowFn: (x, y, z) => { const a = Math.atan2(z, x); return Math.abs(Math.sin(a * 7)) > 0.985 && y < 1.25 && y > 0.1 ? 0.45 : 0.1 + 0.25 * smooth01(1.0, 1.75, y); },
   });
   // Bell sleeves hanging from the shoulders (the hands float just beyond their openings).
   for (const sx of [-1, 1]) {

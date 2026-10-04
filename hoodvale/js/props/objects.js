@@ -43,7 +43,8 @@ export function createObjectViews(ctx) {
     if (!p) {
       p = kit.makePool(root, geo(key, make), opts.material || kit.mat, { capacity: opts.capacity || 24, castShadow: opts.castShadow ?? shadows, receiveShadow: true, name: 'obj:' + ck });
       pools.set(ck, p);
-      kit.cull(p, key.startsWith('tree') ? MID : NEAR);
+      const lodPair = opts.lod ? [geo(key, make), geo(opts.lod[0], opts.lod[1])] : null;
+      kit.cull(p, key.startsWith('tree') ? MID : NEAR, { shadowDist: 40, lod: lodPair, lodDist: 42 });
     }
     return p;
   }
@@ -161,7 +162,7 @@ export function createObjectViews(ctx) {
     const cx = e.x + (e.w || 1) / 2, cz = e.z + (e.d || 1) / 2;
     const y = footprintMinY(e) - 0.08;
     const m = M(cx + (rnd() - 0.5) * 0.2, y, cz + (rnd() - 0.5) * 0.2, yaw, 0, 0, s, sy, s);
-    const tp = pool('tree:' + kind + ':' + lod, cx, cz, () => treeGeometry(kind, lod), { capacity: 48 });
+    const tp = pool('tree:' + kind + ':' + lod, cx, cz, () => treeGeometry(kind, lod), { capacity: 48, lod: lod ? ['tree:' + kind + ':0', () => treeGeometry(kind, 0)] : null });
     const tint = 0.9 + rnd() * 0.16;
     const slot = tp.add(m, [tint, tint * (0.97 + rnd() * 0.06), tint]);
     const sp = pool('stump', cx, cz, () => stumpGeometry(), { capacity: 16 });
@@ -197,7 +198,7 @@ export function createObjectViews(ctx) {
     const m = M(cx, y, cz, rnd() * Math.PI * 2, 0, 0, s, s * (0.85 + rnd() * 0.25), s);
     const zone = map.zoneAt(cx, cz);
     const tone = new THREE.Color(ROCK_TONE[zone] || '#a8a096');
-    const rp = pool('rock:' + lod, cx, cz, () => rockGeometry(lod), { capacity: 32 });
+    const rp = pool('rock:' + lod, cx, cz, () => rockGeometry(lod), { capacity: 32, lod: lod ? ['rock:0', () => rockGeometry(0)] : null });
     const slot = rp.add(m, tone);
     const tint = e.def.model?.tint || '#c4703b';
     const shiny = tint === '#3f6fd8' || tint === '#c9b8ff';
@@ -425,7 +426,7 @@ export function createObjectViews(ctx) {
       bt.mesh.name = 'objects:' + bt.key;
       bt.mesh.castShadow = shadows; bt.mesh.receiveShadow = true;
       root.add(bt.mesh);
-      kit.cull(bt.mesh, MID);
+      kit.cull(bt.mesh, MID, { shadowDist: 45, cast: shadows });
     }
   }
 

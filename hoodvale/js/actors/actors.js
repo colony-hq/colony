@@ -21,15 +21,15 @@ import * as THREE from 'three';
 import { ITEMS } from '../data/items.js';
 import {
   materials, fadeMaterial, acquireGeometry, releaseGeometry, geometryCacheStats, damp, clamp, smooth01, env, wrapAngle,
-  newPose, hexOf, shade, SHARED, makeBones, glowTexture,
+  newPose, hexOf, shade, SHARED, makeBones, shadowTexture,
 } from './a-core.js';
 import { HB, HB_COUNT, HB_UPPER, normaliseLook, buildHumanoid, layoutFor, createHumanoidBones } from './a-humanoid.js';
 import * as AN from './a-anim.js';
 import { CREATURE_RIGS, creatureSpec, buildWisp, buildOracle } from './a-creatures.js';
-import { toolGeometry, tint as gearTint } from './a-gear.js';
+import { toolGeometry } from './a-gear.js';
 import { createFx } from './a-fx.js';
 
-const _v = new THREE.Vector3(), _v2 = new THREE.Vector3(), _m = new THREE.Matrix4();
+const _v = new THREE.Vector3();
 const IDENTITY = new THREE.Matrix4();
 const VARIANT_BODIES = ['goblin', 'troll', 'imp', 'skeleton', 'golem'];
 
@@ -837,7 +837,7 @@ export function createActors(ctx) {
 
   // Soft contact shadows: one instanced draw call for every visible actor near the camera.
   const BLOBS = 256;
-  const blobMat = new THREE.MeshBasicMaterial({ color: 0x000000, map: glowTexture(), transparent: true, opacity: 0.42, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  const blobMat = new THREE.MeshBasicMaterial({ color: 0x000000, map: shadowTexture(), transparent: true, opacity: 0.42, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
   const blobGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
   const blobs = new THREE.InstancedMesh(blobGeo, blobMat, BLOBS);
   blobs.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -860,7 +860,7 @@ export function createActors(ctx) {
     const cull = Math.min(fogFar + 25, ctx.engine?.preset?.drawDistance ?? 400);
     const shadows = !!ctx.engine?.preset?.shadows;
     let nb = 0;
-    blobMat.opacity = shadows ? 0.3 : 0.45;
+    blobMat.opacity = shadows ? 0.35 : 0.55;
     for (const a of list) {
       const p = a.root.position;
       const d = Math.hypot(p.x - camPos.x, p.y - camPos.y, p.z - camPos.z);
@@ -883,7 +883,7 @@ export function createActors(ctx) {
             _bq.setFromUnitVectors(UP, _bn);
             gy = Math.max(p.y, H(p.x, p.z));
           } else _bq.identity();
-          _bs.set(r * 2.2, 1, r * 2.2);
+          _bs.set(r * 3.4, 1, r * 3.4);
           _bp.set(p.x, gy + 0.09, p.z);
           _bm.compose(_bp, _bq, _bs);
           blobs.setMatrixAt(nb++, _bm);

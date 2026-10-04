@@ -83,8 +83,8 @@ vec3 col = vBase;
   mudC = mix(mudC, mudC * vec3(0.8, 0.95, 0.9), smoothstep(0.6, 0.8, nD.r));
   col = mix(col, mudC, mudW);
   // ---- pebbles (river banks, scree) ----
-  vec4 nP = texture2D(uNoise, wp * 0.3);
-  float stone = smoothstep(0.1, 0.25, nP.b) * smoothstep(0.55, 0.7, nP.a);
+  vec4 nP = texture2D(uNoise, wp * 0.42);
+  float stone = smoothstep(0.12, 0.3, nP.b) * smoothstep(0.72, 0.82, nP.a);
   vec3 gravel = mix(vec3(0.50, 0.47, 0.41), vec3(0.62, 0.59, 0.52), nF.g) * (0.9 + 0.15 * nF.r);
   vec3 pebC = mix(gravel, mix(vec3(0.55, 0.53, 0.49), vec3(0.74, 0.71, 0.65), nP.a), stone);
   float pebW = smoothstep(0.35, 0.62, vMA.z + (nD.g - 0.5) * 0.3);
@@ -185,7 +185,7 @@ vec3 col = vBase;
     vec3 ashC = mix(vec3(0.27, 0.26, 0.25), vec3(0.46, 0.44, 0.42), nF.g);
     col = mix(col, ashC, ashW * 0.85);
     vec4 nE = texture2D(uNoise, wp * 0.4);
-    float ember = smoothstep(0.94, 0.985, nE.a) * smoothstep(0.08, 0.2, nE.b) * smoothstep(0.55, 0.95, vMC.y);
+    float ember = smoothstep(0.94, 0.985, nE.a) * smoothstep(0.08, 0.2, nE.b) * smoothstep(0.55, 0.95, vMC.y) * smoothstep(0.6, 0.85, vWNrm.y);
     hvEmis += vec3(1.0, 0.32, 0.06) * ember * (0.55 + 0.45 * sin(uTime * 2.3 + nE.a * 40.0)) * 1.3 * uGlow;
   }
   // ---- Orbio plateau: crystal-tinted ground with glowing veins ----
@@ -278,13 +278,6 @@ function makeMaterial(kind, skirt = false) {
     let fs = FRAG_HEAD + shader.fragmentShader;
     fs = fs.replace('#include <color_fragment>', FRAG_BODY + '\ndiffuseColor.rgb = hvLin(clamp(col, 0.0, 1.5));\n');
     fs = fs.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += hvEmis;\n');
-    if (skirt) {
-      fs = fs.replace('#include <fog_fragment>', /* glsl */`
-#ifdef USE_FOG
-  float hvFog = smoothstep(fogNear * 1.4, fogFar * 2.4, vFogDepth);
-  gl_FragColor.rgb = mix(gl_FragColor.rgb, fogColor, hvFog);
-#endif`);
-    }
     shader.fragmentShader = fs;
   };
   mat.customProgramCacheKey = () => 'hv-terrain-' + kind + (skirt ? '-skirt' : '');
@@ -403,7 +396,7 @@ function buildSkirt(material) {
     let r = 0.46 + 0.08 * t, g = 0.55 + 0.06 * t, b = 0.36;
     const alt = smoothstepJS(20, 60, y);
     r += (0.55 - r) * alt; g += (0.56 - g) * alt; b += (0.50 - b) * alt;
-    const sn = smoothstepJS(58, 74, y + 10 * nr(x * 0.03, z * 0.03)) * smoothstepJS(0.45, 0.75, ny);
+    const sn = smoothstepJS(78, 92, y + 10 * nr(x * 0.03, z * 0.03)) * smoothstepJS(0.5, 0.8, ny) * 0.9;
     r += (0.93 - r) * sn; g += (0.95 - g) * sn; b += (0.97 - b) * sn;
     if (y < 0.2) { const k = smoothstepJS(0.2, -2, y); r += (0.55 - r) * k; g += (0.55 - g) * k; b += (0.46 - b) * k; }
     base[v * 3] = u8(r); base[v * 3 + 1] = u8(g); base[v * 3 + 2] = u8(b);

@@ -8,7 +8,7 @@
 import * as THREE from 'three';
 import {
   Builder, C, shade, mix, hexOf, smooth01, clamp, taper, lathe, sphere, box, cyl, cone, torus, extrude, tube,
-  deform, rock, makeBones, boneIndex, TAU, rng, hashStr,
+  deform, rock, makeBones, TAU, rng, hashStr,
 } from './a-core.js';
 import { weaponParts, shieldParts, quiverParts, bowParts, tint, addParts } from './a-gear.js';
 

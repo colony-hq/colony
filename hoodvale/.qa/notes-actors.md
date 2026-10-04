@@ -34,7 +34,7 @@ a.update(dt)                                     // no-op (animation runs in ctx
 a.dispose()
 // additions
 a.emote(name)                // = play(name, { restart: true })
-a.setTalking(on)             // talk gestures (Oracle: brighter, hands gesture)
+a.setTalking(on)             // talk gestures until setTalking(false); play('talk') every frame also works (times out 0.35 s after the last call)
 a.socket(part, out?)         // world pos: 'head' | 'chest' | 'weapon' (blade/staff tip/tool) | 'bow' | 'handR' | 'handL' | 'mouth' | 'feet'
 a.timing(name)               // { dur, release, impact } seconds (to sync hitsplats / projectiles)
 a.debugPose(name, t); a.freeze(on)   // photo mode for tests
@@ -106,6 +106,10 @@ shield, scarf: colour, scale, eyes: colour }`. Monster bipeds map `model.colors`
 (guards get a tabard in their cloth colour, Sheriff a coat with gold trim + red cape, the Warchief
 wears the bell). All equippable `equip.model.kind`s are drawn, tinted by METALS/WOODS/specials.
 
+## Contact shadows
+Every visible actor within 70 m gets a soft slope-aligned blob shadow (one InstancedMesh for all,
+1 draw call; lighter when shadow maps are on). Named `actor-blobs` in the scene.
+
 ## Performance
 ~173 actors: `actors.update` ≈ 0.5 ms/frame (measured in the village). Full-rate animation within
 32 m, every 2nd frame to 64 m, every 4th to 110 m, every 8th beyond; actors past fog far + 25 m are
@@ -127,3 +131,9 @@ hidden; shadows only within 42 m. Humanoids 3.5–5.5k triangles (full plate ~7k
 ## Testing
 `node --check js/actors/*.js`; studio screenshots: `.qa/shots-actors/*.png` (made with a studio
 lineup at x=600,z=600 using `debugPose`).
+
+## Known issues
+- No IK: the off hand only approximates the grip on greatswords / two-handed tool swings.
+- Equipment / look changes rebuild the merged mesh (~20-30 ms, once per change).
+- Quadruped gaits are procedural approximations; contact shadows can clip on very steep slopes.
+- `play('bow')` is the bowing emote; the archery attack is `shoot` (or `attack` with a bow).

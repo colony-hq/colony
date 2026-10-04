@@ -557,7 +557,8 @@ export function getKit(ctx) {
     night: 0,
     pools,
     // Distance culling (on top of frustum culling): beyond `dist` (or the fog) a mesh/pool hides.
-    cull(target, dist = Infinity) { culls.set(target, dist); },
+    // opts: { shadowDist: cast shadows only within this distance, lod: [hiGeo, loGeo], lodDist }
+    cull(target, dist = Infinity, opts = null) { culls.set(target, { dist, ...(opts || {}) }); },
     uncull(target) { culls.delete(target); },
     makePool(parent, geometry, material, opts) {
       const p = new Pool(parent, geometry, material, opts);
@@ -592,17 +593,26 @@ export function getKit(ctx) {
       if (c.time.frame % 3 === 0 && c.camera) {
         c.camera.getWorldPosition(_cam);
         const fogFar = c.scene?.fog?.far ?? Infinity;
-        for (const [t, dist] of culls) {
-          const lim = Math.min(dist, fogFar + 8);
+        for (const [t, o] of culls) {
+          const lim = Math.min(o.dist, fogFar + 8);
+          let d;
           if (t instanceof Pool) {
             const bs = t.mesh.boundingSphere;
             if (!bs) continue;
-            t.setCulled(bs.center.distanceTo(_cam) - bs.radius > lim);
+            d = bs.center.distanceTo(_cam) - bs.radius;
+            t.setCulled(d > lim);
+            if (o.lod) {
+              const want = d < (o.lodDist ?? 45) ? o.lod[0] : o.lod[1];
+              if (t.mesh.geometry !== want) { t.mesh.geometry = want; t.geometry = want; }
+            }
+            if (o.shadowDist != null) t.mesh.castShadow = t.opts.castShadow && d < o.shadowDist;
           } else {
             const bs = t.geometry?.boundingSphere;
             if (!bs) continue;
             _sph.copy(bs).applyMatrix4(t.matrixWorld);
-            t.visible = _sph.center.distanceTo(_cam) - _sph.radius <= lim;
+            d = _sph.center.distanceTo(_cam) - _sph.radius;
+            t.visible = d <= lim;
+            if (o.shadowDist != null) t.castShadow = (o.cast ?? true) && d < o.shadowDist;
           }
         }
       }
