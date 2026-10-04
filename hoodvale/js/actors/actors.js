@@ -24,7 +24,7 @@ import {
   newPose, hexOf, shade, SHARED, makeBones, shadowTexture,
 } from './a-core.js';
 import { HB, HB_COUNT, HB_UPPER, normaliseLook, buildHumanoid, layoutFor, createHumanoidBones, buildHeldGeometry } from './a-humanoid.js';
-import { modelReady, requestModel, preloadModels, onModelLoaded, HERO_MODELS, MODELS } from './a-model.js';
+import { modelReady, requestModel, preloadModels, onModelLoaded, HERO_MODELS, HERO_IDS, MODELS } from './a-model.js';
 import { setFaceRenderer } from './a-face.js';
 import * as AN from './a-anim.js';
 import { CREATURE_RIGS, creatureSpec, buildWisp, buildOracle } from './a-creatures.js';
@@ -74,6 +74,7 @@ function bipedFromModel(model = {}, monster = '') {
     skin: c.skin || c.body || '#c8956b', top: cloth, bottom: hexOf(shade(cloth, 0.62)), boots: '#2a2018',
     hair: 'short', hairColor: c.hair || '#2a1a12', glow: c.glow || c.core || null, metal: c.metal || null,
   };
+  if (model.gen) look.model = model.gen; // generated body (a-model.js), once it has shipped
   if (monster === 'sheriff_vane') { look.hair = 'slick'; look.beard = 'moustache'; }
   if (monster === 'bandit') { look.beard = 'stubble'; look.hair = 'short'; look.bottom = '#5a4632'; look.scarf = '#8a2a22'; }
   const o = {};
@@ -120,7 +121,9 @@ class HumanDriver {
     const spec = normaliseLook(this.look, this.outfit(), this.variant, { npc: !this.a.player && !this.a.spec?.remote });
     // Generated model (look.model): textured body + held items on the model's own skeleton. Until
     // it has loaded the procedural body stands in, then the actor rebuilds.
-    const mid = this.look.model || null;
+    // Other players may only wear hero models; unshipped ids keep the procedural body.
+    const want = this.look.model || null;
+    const mid = want && MODELS.has(want) && (!this.a.spec?.remote || HERO_IDS.has(want)) ? want : null;
     const M = mid ? modelReady(mid) : null;
     if (mid && !M && this.waiting !== mid) {
       this.waiting = mid;

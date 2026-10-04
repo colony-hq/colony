@@ -9,11 +9,18 @@
 import * as THREE from 'three';
 import { makeActorMaterial } from './a-core.js';
 
-export const HERO_MODELS = [
+// Models whose files ship in assets/chars. Looks may name a model that has not shipped yet
+// (npcs.js, monsters.js gen, saves): those keep their procedural body until it does.
+export const MODELS = new Set(['player_m']);
+// Playable heroes (character creator), in display order; only shipped ones are offered.
+const HEROES = [
   { id: 'player_m', name: 'Ranger', body: 'male' },
+  { id: 'player_f', name: 'Wayfarer', body: 'female' },
+  { id: 'warrior_m', name: 'Warden', body: 'male' },
+  { id: 'mage_f', name: 'Mystic', body: 'female' },
 ];
-// Every model the game knows about (heroes + NPC / monster bodies).
-export const MODELS = new Set(HERO_MODELS.map((m) => m.id));
+export const HERO_IDS = new Set(HEROES.map((m) => m.id));
+export const HERO_MODELS = HEROES.filter((m) => MODELS.has(m.id));
 
 const BONE_NAMES = ['root', 'hips', 'spine', 'chest', 'neck', 'head', 'eyes', 'hair', 'shL', 'elL', 'haL', 'shR', 'elR', 'haR',
   'thL', 'knL', 'ftL', 'thR', 'knR', 'ftR', 'cape', 'cape2', 'wpn', 'wpnL', 'shd', 'nock', 'arrow', 'wingL', 'wingR'];

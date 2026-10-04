@@ -17,11 +17,11 @@ export const DEFAULT_SETTINGS = {
   acceptAid: false, autoRetaliate: true, runDefault: true,
 };
 
-// Saves from before hero models (no `model` key at all): broad-bodied adventurers move to the
-// generated Ranger model; anyone can switch back by making a custom character.
+// Saves from before hero models (no `model` key at all) move to the generated hero of their body
+// type (the custom look stays underneath until that model ships); a new custom character opts out.
 function migrateLook(look) {
   if (!look || typeof look !== 'object' || 'model' in look) return look;
-  return { ...look, model: look.body === 'female' ? null : 'player_m' };
+  return { ...look, model: look.body === 'female' ? 'player_f' : 'player_m' };
 }
 
 export function freshSave(name = 'Adventurer', look = null) {

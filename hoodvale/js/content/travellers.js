@@ -20,7 +20,7 @@ const pts = (list, extra = {}) => list.map(([x, z]) => stop(x, z, extra));
 export const TRAVELLERS = [
   {
     id: 'pip', name: 'Pip the Wanderer', examine: 'A cheerful wanderer with very worn boots. He whistles badly.',
-    look: { body: 'male', skin: '#e8b89a', hair: 'short', hairColor: '#c97b3a', top: '#6a8a4a', bottom: '#5a4a3a', cape: '#8a6a3a' },
+    look: { model: 'player_m', body: 'male', skin: '#e8b89a', hair: 'short', hairColor: '#c97b3a', top: '#6a8a4a', bottom: '#5a4a3a', cape: '#8a6a3a' },
     route: roundTrip([
       ...pts(seg('kings-road', 0, 2)), stop(236, 232, { act: 'chop', objs: ['tree', 'tree_oak'], secs: 14, place: 'Millbrook' }),
       ...pts(seg('kings-road', 3, 4)), stop(250, 186, { act: 'rest', secs: 6, place: 'Gildmoor' }),
@@ -31,7 +31,7 @@ export const TRAVELLERS = [
   },
   {
     id: 'bertie', name: 'Bertie Bramblefoot', examine: 'A broad, bearded woodcutter with an axe over each shoulder.',
-    look: { body: 'male', build: 'stout', skin: '#c8956b', hair: 'short', beard: 'full', hairColor: '#7a4a2a', top: '#8a3a2a', bottom: '#3a3a2a', hat: 'beanie' },
+    look: { model: 'smith_m', body: 'male', build: 'stout', skin: '#c8956b', hair: 'short', beard: 'full', hairColor: '#7a4a2a', top: '#8a3a2a', bottom: '#3a3a2a', hat: 'beanie' },
     route: roundTrip([...pts(seg('forest-road', 0, 3)), stop(150, 176, { act: 'chop', objs: ['tree_oak', 'tree'], secs: 16, place: 'Hoodwood' }), stop(140, 164, { act: 'rest', anim: 'sit', secs: 6, place: 'the Hood camp' })]),
     lines: ['Timber!', "Oak's the best wood. Fight me. Gently.", 'Mind your toes!', 'Two axes. One for each mood.'],
     about: ["Bertie Bramblefoot, woodcutter. I chop in Hoodwood, sell in Brightwater, and eat Friar Tuckwell's stew in between.", 'The Hood leave me be. I leave them firewood. Everyone wins, except the trees.'],
@@ -47,7 +47,7 @@ export const TRAVELLERS = [
   },
   {
     id: 'corwin', name: 'Old Corwin', examine: 'A weathered fisherman who walks to the sea every morning and back every evening.',
-    look: { body: 'male', build: 'old', skin: '#a8754f', hair: 'short', beard: 'short', hairColor: '#cfcfcf', top: '#2a4a6a', bottom: '#3a3a3a', hat: 'wide' },
+    look: { model: 'old_salt', body: 'male', build: 'old', skin: '#a8754f', hair: 'short', beard: 'short', hairColor: '#cfcfcf', top: '#2a4a6a', bottom: '#3a3a3a', hat: 'wide' },
     route: roundTrip([...pts(seg('dock-lane', 0, 2)), stop(212, 292, { act: 'fish', objs: ['fish_net_bait'], secs: 18, place: 'Saltreach' })]),
     lines: ['The sea gives, the sea takes. Mostly it takes my bait.', 'Morning tide, evening tide, and a nap in between.', 'Smell that? Salt. And Brine. The fishmonger, I mean.'],
     about: ["Corwin. I've walked Dock Lane twice a day for fifty years. The lane's worn smooth. So am I.", 'Old Salt and I went to sea together once. He tells it differently. He tells everything differently.'],
@@ -55,7 +55,7 @@ export const TRAVELLERS = [
   },
   {
     id: 'juniper', name: 'Juniper Quill', examine: 'A surveyor with a notebook, a pickaxe and extremely strong opinions about rocks.',
-    look: { body: 'female', skin: '#8a5a3a', hair: 'braid', hairColor: '#1a1a1a', top: '#a87a2a', bottom: '#4a3a2a', hat: 'cap' },
+    look: { model: 'clerk_f', body: 'female', skin: '#8a5a3a', hair: 'braid', hairColor: '#1a1a1a', top: '#a87a2a', bottom: '#4a3a2a', hat: 'cap' },
     route: roundTrip([...pts(seg('miners-way', 0, 5)), stop(84, 258, { act: 'mine', objs: ['rock_copper', 'rock_tin', 'rock_iron'], secs: 16, place: 'Copperhollow' })]),
     lines: ['Copper today, cobalt tomorrow!', "Dunstan says I'm too loud for mining. I SAID, DUNSTAN SAYS—", 'Rocks! Lovely rocks!', 'Noted. Noted. Very noted.'],
     about: ["Juniper Quill, surveyor. I map every vein in Copperhollow so the Sheriff can't tax the ones I don't write down.", 'I have a notebook of rocks I like. It is a very thick notebook.'],
@@ -63,7 +63,7 @@ export const TRAVELLERS = [
   },
   {
     id: 'hesketh', name: 'Hesketh the Bold', examine: 'A self-proclaimed hero in dented armour. Loudly bold.',
-    look: { body: 'male', skin: '#f0c8a8', hair: 'long', hairColor: '#e2c060', top: '#8a8f95', bottom: '#4a4a5a', cape: '#2a4a8a' },
+    look: { model: 'warrior_m', body: 'male', skin: '#f0c8a8', hair: 'long', hairColor: '#e2c060', top: '#8a8f95', bottom: '#4a4a5a', cape: '#2a4a8a' },
     route: roundTrip([...pts(seg('highland-trail', 0, 1)), stop(124, 124, { act: 'chop', objs: ['tree_oak', 'tree', 'tree_maple'], secs: 12, place: 'the Highland Trail' }), stop(112, 104, { act: 'rest', anim: 'think', secs: 10, place: 'the Hood ford' })]),
     lines: ['I once punched a troll! It was asleep. Still counts.', 'Onward! To glory! Or lunch.', 'Fear me, wolves! ...Not too much.', 'Today, the highlands. Tomorrow, the wyrm! Next week, probably.'],
     about: ["Hesketh the Bold! Hero, adventurer, wyrm-slayer-in-waiting. Mostly waiting.", 'I walk up to the ford every day and look at the Ashen Peak. Then I walk back. Planning is half of heroism.'],
@@ -71,7 +71,7 @@ export const TRAVELLERS = [
   },
   {
     id: 'wynn', name: 'Wynn the Tinker', examine: 'A tinker with a clanking pack of pots, pans and spare kettle lids.',
-    look: { body: 'male', build: 'slim', skin: '#c8956b', hair: 'short', hairColor: '#4a3a2a', top: '#7a5a8a', bottom: '#3a3a2a', hat: 'wide' },
+    look: { model: 'villager_m', body: 'male', build: 'slim', skin: '#c8956b', hair: 'short', hairColor: '#4a3a2a', top: '#7a5a8a', bottom: '#3a3a2a', hat: 'wide' },
     route: roundTrip([stop(232, 162, { act: 'rest', secs: 8, place: 'Gildmoor' }), ...pts(seg('west-gate', 1, 3)), stop(172, 205, { act: 'rest', anim: 'craft', secs: 6, place: 'the crossroads' }), ...pts(seg('forest-road', 1, 0)), stop(188, 254, { act: 'rest', secs: 10, place: 'Brightwater' })]),
     lines: ['Pots mended! Kettles unwobbled!', "Marta's kettle? Wobbles by design. Don't touch it.", '*clank* *clank* *clank*', 'Lids! Spouts! Handles! Handles for everything!'],
     about: ['Wynn, tinker. I fix what breaks between Gildmoor and Brightwater, and some things that were fine until I fixed them.', "The Sheriff once asked me to fix his scales. They were already rigged. I made them honest. He hasn't asked again."],
@@ -79,7 +79,7 @@ export const TRAVELLERS = [
   },
   {
     id: 'dovie', name: 'Dovie Lark', examine: 'A young angler with a net almost as big as she is.',
-    look: { body: 'female', skin: '#f0c8a8', hair: 'short', hairColor: '#a87a3a', top: '#3a7a8a', bottom: '#5a4a3a' },
+    look: { model: 'villager_f', body: 'female', skin: '#f0c8a8', hair: 'short', hairColor: '#a87a3a', top: '#3a7a8a', bottom: '#5a4a3a' },
     route: [stop(162, 247, { act: 'fish', objs: ['fish_net_bait'], secs: 20, place: 'the lake' }), stop(175, 250), stop(186, 252, { act: 'rest', secs: 6, place: 'the square' }), stop(178, 262), stop(166, 252)],
     lines: ['I caught a fish THIS big! Well... this big.', 'Tobin says I talk too much for fishing. The fish don\'t mind.', 'Shrimp! Shrimp! Oh. Weed.'],
     about: ["I'm Dovie! I'm going to be the best angler in the Vale. Better than Tobin. Better than Old Salt. Better than the wyrm, probably.", "Tobin's teaching me. He says three words a day. Two of them are 'fish'."],
@@ -87,7 +87,7 @@ export const TRAVELLERS = [
   },
   {
     id: 'fergus', name: 'Fergus Ironsides', examine: 'A veteran miner, grey with rock dust and very proud of his fingers.',
-    look: { body: 'male', build: 'stout', skin: '#a8754f', hair: 'bald', beard: 'long', hairColor: '#9a9a9a', top: '#5a4a3a', bottom: '#3a3a3a', hat: 'helmet-lamp', scale: 0.92 },
+    look: { model: 'smith_m', body: 'male', build: 'stout', skin: '#a8754f', hair: 'bald', beard: 'long', hairColor: '#9a9a9a', top: '#5a4a3a', bottom: '#3a3a3a', hat: 'helmet-lamp', scale: 0.92 },
     route: [stop(80, 266, { act: 'mine', objs: ['rock_iron', 'rock_coal', 'rock_copper'], secs: 18, place: 'the ore field' }), stop(90, 262), stop(98, 261, { act: 'rest', anim: 'sit', secs: 8, place: 'the furnace' }), stop(86, 252, { act: 'mine', objs: ['rock_coal', 'rock_iron', 'rock_tin'], secs: 16, place: 'the north rocks' }), stop(76, 258)],
     lines: ["Iron's honest work.", "Forty years down the hollow. Still got all my fingers. Most of 'em.", 'Coal! Never enough coal.', 'Hah. Rock.'],
     about: ["Fergus Ironsides. I've mined this hollow since before Dunstan was foreman. Before Dunstan had a beard. Before Dunstan.", 'The goblins dug their Warrens under my best seam. I hold a grudge. A very patient grudge.'],
@@ -95,7 +95,7 @@ export const TRAVELLERS = [
   },
   {
     id: 'mira', name: 'Mira Featherstep', examine: 'A ranger in green-grey, quiet as moss. Possibly a friend of the Hood. Possibly not.',
-    look: { body: 'female', skin: '#d9a77c', hair: 'long', hairColor: '#3a2a1a', top: '#4a6a4a', bottom: '#3a3a2a', hood: '#4a6a4a', weapon: 'longbow' },
+    look: { model: 'player_f', body: 'female', skin: '#d9a77c', hair: 'long', hairColor: '#3a2a1a', top: '#4a6a4a', bottom: '#3a3a2a', hood: '#4a6a4a', weapon: 'longbow' },
     route: roundTrip([...pts(seg('fen-path', 0, 1)), stop(104, 164, { act: 'rest', secs: 6, place: 'the Fen Path' }), ...pts(seg('fen-path', 2, 3)), stop(64, 166, { act: 'chop', objs: ['tree_willow', 'tree_oak'], secs: 14, place: 'Mistfen' })]),
     lines: ["Mind the bog. It's hungry.", 'Willow bark makes a lovely tea. Old Wren says otherwise.', '...', 'Quiet feet, quiet fen.'],
     about: ['Mira. I keep the Fen Path clear between the Hood camp and Mistfen. Somebody has to, and the bog lurkers won\'t.', "Am I in the Hood? I'm in the woods. The Hood is also in the woods. Draw your own conclusions."],
