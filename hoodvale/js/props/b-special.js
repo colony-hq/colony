@@ -218,22 +218,7 @@ export const SPECIAL = {
     K.sign("The Sheriff's Keep", { icon: 'crown', y: 3.2, w: 2.6, h: 0.55, board: '#5a1416', ink: '#e8bf4a', n: 1.12 });
     // great hall roof inside the curtain walls
     K.hipRoof({ H: 5.6, pitch: 30, over: -0.75, mat: { tile: TILE.SLATE, color: '#3e4652' } });
-    // the town wall runs through the keep: inner curtain along the ring (skips the vault stairs)
-    const G = ZONES.gildmoor;
-    const stairs = (K.ctx.spawns?.objects || []).find((o) => o.def === 'vault_stairs');
-    let prev = null;
-    for (let a = -Math.PI; a <= Math.PI; a += 0.012) {
-      const x = G.x + Math.cos(a) * G.wallR, z = G.z + Math.sin(a) * G.wallR;
-      const inside = x > x0 + 0.95 && x < x1 - 0.95 && z > z0 + 0.95 && z < z1 - 0.95;
-      const nearStairs = stairs && Math.hypot(x - (stairs.x + 0.5), z - (stairs.z + 0.5)) < 1.05;
-      if (!inside || nearStairs) { prev = null; continue; }
-      if (prev) {
-        const mx = (prev[0] + x) / 2, mz = (prev[1] + z) / 2, len = Math.hypot(x - prev[0], z - prev[1]) + 0.02;
-        const yaw = Math.atan2(-(z - prev[1]), x - prev[0]);
-        K.put(0, 4.6, (B, ya, yb) => B.box(len, yb - ya, 0.9, M(mx, fy + (ya + yb) / 2, mz, yaw), MAT.stone(stone)));
-      }
-      prev = [x, z];
-    }
+    // The keep forms this stretch of the town wall itself (mapgen leaves no ring tiles inside it).
     // interior: carpet to a throne, banners, braziers, tax chests, long table
     const carpetZ0 = z0 + 1.2, carpetZ1 = z1 - 0.95;
     K.S.box(1.3, 0.02, carpetZ1 - carpetZ0, M(d.u, fy + 0.075, (carpetZ0 + carpetZ1) / 2), { tile: TILE.CARPET, color: '#ffffff', uvScale: 1.3, vnoise: 0.02 });

@@ -40,7 +40,7 @@ const CSS = `
 .u-lcard .who .m { font: 12.5px/1.4 var(--font-body); color: var(--parch-dim); }
 .u-lcard .pitch { font: italic 15px/1.45 var(--font-body); color: #e8dcc0; text-align: center; margin: 0; }
 .u-lcard .u-btn { padding: 11px 14px; font-size: 15px; }
-.u-lfoot { pointer-events: auto; font: 12px/1.4 var(--font-body); color: rgba(232,220,192,.7); text-align: center; text-shadow: 0 1px 0 #000; max-width: 520px; }
+.u-lfoot { pointer-events: auto; font: 12px/1.4 var(--font-body); color: rgba(240,230,205,.92); text-align: center; text-shadow: 0 1px 0 #000, 0 0 6px #000; max-width: 520px; padding: 6px 12px; border-radius: 6px; background: rgba(12,9,7,.62); }
 .u-lfoot b { color: var(--chain); font-weight: 600; }
 
 /* creator */

@@ -238,7 +238,9 @@ export function bakeWorld() {
       if (Math.abs(d - G.wallR) > 0.75) continue;
       const ang = Math.atan2(tz + 0.5 - G.z, tx + 0.5 - G.x);
       const isGate = G.gates.some((g) => Math.abs(angDiff(ang, g.ang)) * G.wallR < 2.2);
-      if (!isGate) flags[tz * W + tx] |= T_WALL | T_BLOCK;
+      // Buildings on the ring (the keep, the stables) form part of the wall themselves.
+      const inBuilding = BUILDINGS.some((b) => tx >= b.x && tx < b.x + b.w && tz >= b.z && tz < b.z + b.d);
+      if (!isGate && !inBuilding) flags[tz * W + tx] |= T_WALL | T_BLOCK;
     }
   }
   BAKED = { heights, flags, zones, N, W, H };

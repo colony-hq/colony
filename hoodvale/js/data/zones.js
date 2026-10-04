@@ -79,8 +79,8 @@ export const BRIDGES = [
   { id: 'forest-bridge', kind: 'bridge', x0: 155, x1: 163, z0: 185, z1: 189, deckY: 1.6, axis: 'x' },
   { id: 'miners-bridge', kind: 'bridge', x0: 159, x1: 165, z0: 270, z1: 274, deckY: 1.6, axis: 'x' },
   { id: 'hood-ford', kind: 'bridge', x0: 124, x1: 128, z0: 98, z1: 103, deckY: 1.6, axis: 'x' },
-  { id: 'pier-west', kind: 'pier', x0: 190, x1: 192, z0: 292, z1: 305, deckY: 1.5, axis: 'z' },
-  { id: 'pier-east', kind: 'pier', x0: 200, x1: 202, z0: 292, z1: 302, deckY: 1.5, axis: 'z' },
+  { id: 'pier-west', kind: 'pier', x0: 190, x1: 192, z0: 290, z1: 305, deckY: 1.5, axis: 'z' },
+  { id: 'pier-east', kind: 'pier', x0: 200, x1: 202, z0: 289, z1: 302, deckY: 1.5, axis: 'z' },
 ];
 
 // Fenced pens: rectangle outlines (tiles x0..x1, z0..z1 inclusive) that block movement except at
