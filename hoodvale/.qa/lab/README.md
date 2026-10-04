@@ -10,8 +10,8 @@ Pipeline for the hand-crafted looking characters (player heroes, later NPCs and 
    (orient, exact cross-section slices, joints, skin weights, arms-down re-pose) and writes
    `assets/chars/<id>.json` + `<id>.jpg`. Check the previews it saves (front / side / pose) for left-behind
    vertices (spikes) before shipping. Robes and dresses need `{"skirt":true}` when the legs are not separate.
-4. **Register** the id in `js/actors/a-model.js` (`HERO_MODELS` for the creator, or `MODELS` for NPC /
-   monster bodies), then point a look at it with `look.model = '<id>'`. Run `node tools/manifest.mjs` so the publish step ships the new files, and `.qa/regress.sh`
+4. **Register** the id in `MODELS` in `js/actors/a-model.js` (heroes are already listed in `HEROES`; NPCs,
+   travellers and monsters already point at their ids). Run `node tools/manifest.mjs` so the publish step ships the new files, and `.qa/regress.sh`
    (known pre-existing failure: content-smoke-2 waits for a make menu that a single recipe skips).
 
 Runtime: `a-model.js` loads the JSON + JPEG (same origin), `HumanDriver` builds a textured skinned mesh on
