@@ -77,8 +77,9 @@ export function createCamera(ctx) {
 
   let cx = 0, cy = 0, cz = 0, curLift = 0;
   function place(tx, ty, tz, dt, snap) {
-    const k = snap ? 1 : 1 - Math.exp(-12 * dt);
-    cx += (tx - cx) * k; cy += (ty - cy) * k; cz += (tz - cz) * k;
+    // Follow tightly on the ground plane (movement is continuous now), a little softer vertically.
+    const k = snap ? 1 : 1 - Math.exp(-30 * dt), ky = snap ? 1 : 1 - Math.exp(-12 * dt);
+    cx += (tx - cx) * k; cy += (ty - cy) * ky; cz += (tz - cz) * k;
     const horiz = Math.cos(cur.pitch) * cur.dist;
     const px = cx + Math.sin(cur.yaw) * horiz;
     const pz = cz + Math.cos(cur.yaw) * horiz;

@@ -1,10 +1,11 @@
-// The local player: tile movement on ticks (walk 1 tile, run 2), interpolated rendering with
-// smooth turning, walking to interactions, teleports, run energy, stuns. Owner: game builder.
+// The local player: smooth per-frame movement (no waiting for ticks) at walk / run speed, with
+// tile collision; game logic still sees the tile the player stands on (x, z). Walking to
+// interactions follows A* paths tile by tile, teleports, run energy, stuns. Owner: game builder.
 // API (DESIGN.md §7): entity, actor, x, z, pos, yaw, running, moving, hp/maxHp, walkTo(tx, tz,
 // opts), walkToEntity(e, goal, onArrive), stop(), teleport(tx, tz), face(entityOrTile),
 // setAnim(name|null), playOnce(name, seconds), toggleRun(on?), stun(ticks), stunned, region.
-// WASD walks tile by tile relative to the camera (8 directions, slides along walls, runs when
-// run is on); it cancels actions like a ground click does.
+// WASD moves freely relative to the camera (any direction, slides along walls, runs when run is
+// on) and responds on the same frame; it cancels actions like a ground click does.
 // Events: player:move {x, z}, player:arrive {x, z}, player:teleport {x, z, region},
 //         player:path {steps, goal}, player:click {x, z, kind: 'walk'|'action'} (UI draws yellow /
 //         red crosses), player:stun {ticks}, run:change {on}, region:enter {region}.
@@ -20,7 +21,11 @@ export function createPlayer(ctx) {
   let path = [];
   let onArrive = null;
   let arriveGoal = null;
-  let moving = null; // { from: [x,z], to: [x,z], via?: [x,z], t0 }
+  // Continuous movement state.
+  const WALK = 3.6, RUN = 6.0; // metres (tiles) per second
+  const RADIUS = 0.26; // collision radius against blocked tiles
+  const vel = new THREE.Vector2();
+  let speedNow = 0;
   let anim = null; // forced action animation (chop, mine, ...)
   let animOpts = null; // e.g. { tool: 'iron_axe' } for the actor's tool prop
   let onceAnim = null, onceUntil = 0; // short one-shot animation (attack, eat, ...)
@@ -46,7 +51,7 @@ export function createPlayer(ctx) {
     get yaw() { return entity.yaw; },
     get renderYaw() { return renderYaw; },
     get running() { return state.save.run.on && state.save.run.energy >= 1; },
-    get moving() { return !!path.length || !!moving; },
+    get moving() { return !!path.length || keyWalking || speedNow > 0.15; },
     get hp() { return state.save.hp; },
     get maxHp() { return ctx.skills ? ctx.skills.level('hitpoints') : 10; },
     get stunned() { return ctx.ticks.count < stunnedUntil; },
@@ -77,7 +82,7 @@ export function createPlayer(ctx) {
     stop() { path = []; onArrive = null; arriveGoal = null; },
     teleport(tx, tz) {
       player.stop();
-      moving = null;
+      vel.set(0, 0); speedNow = 0;
       entities.moveTo(entity, tx, tz);
       const cx = tx + 0.5, cz = tz + 0.5;
       pos.set(cx, map.heightAt(cx, cz), cz);
@@ -114,27 +119,8 @@ export function createPlayer(ctx) {
       events.emit('player:stun', { ticks });
     },
     update(dt) {
-      // Interpolate between tick positions.
-      if (moving) {
-        const a = ctx.ticks.count > moving.t0 ? 1 : ctx.ticks.alpha;
-        let x, z;
-        if (moving.via) {
-          const [ax, az] = a < 0.5 ? moving.from : moving.via;
-          const [bx, bz] = a < 0.5 ? moving.via : moving.to;
-          const k = a < 0.5 ? a * 2 : (a - 0.5) * 2;
-          x = ax + (bx - ax) * k; z = az + (bz - az) * k;
-        } else {
-          x = moving.from[0] + (moving.to[0] - moving.from[0]) * a;
-          z = moving.from[1] + (moving.to[1] - moving.from[1]) * a;
-        }
-        pos.set(x + 0.5, map.heightAt(x + 0.5, z + 0.5), z + 0.5);
-        if (a >= 1 && !path.length) moving = null;
-      }
-      // WASD held while standing: turn right away (the step itself waits for the next tick).
-      if (!moving && !keyWalking) {
-        const d = keyDir();
-        if (d && !player.stunned) entity.yaw = Math.atan2(-d[0], -d[1]);
-      }
+      dt = Math.min(dt, 0.1);
+      move(dt);
       // Smooth turning toward the logical yaw (shortest arc).
       const diff = wrap(entity.yaw - renderYaw);
       renderYaw = Math.abs(diff) < 0.002 ? entity.yaw : renderYaw + diff * (1 - Math.exp(-14 * dt));
@@ -144,7 +130,7 @@ export function createPlayer(ctx) {
         v.setYaw?.(renderYaw);
         let a;
         if (state.mode === 'dead') a = 'die';
-        else if (moving) a = moving.via ? 'run' : 'walk';
+        else if (speedNow > 0.4) a = speedNow > (WALK + RUN) / 2 ? 'run' : 'walk';
         else if (onceAnim && ctx.time.t < onceUntil) a = onceAnim;
         else a = anim || 'idle';
         if (a !== 'die') v.play?.(a, a === anim && animOpts ? animOpts : undefined);
@@ -164,9 +150,10 @@ export function createPlayer(ctx) {
     return true;
   }
 
-  // ---- WASD ----
-  // Held direction relative to the camera, snapped to 8 directions: [dx, dz] or null.
+  // ---- Movement ----
+  // Held WASD as a world-space unit direction relative to the camera, or null.
   const KEYS = { KeyW: [0, 1], KeyS: [0, -1], KeyA: [-1, 0], KeyD: [1, 0] };
+  const _d = new THREE.Vector2();
   function keyDir() {
     const input = ctx.input;
     if (!input || input.typing || state.mode !== 'play') return null;
@@ -176,41 +163,110 @@ export function createPlayer(ctx) {
     const yaw = ctx.cameraRig?.yaw ?? 0;
     // Camera sits at +(sin yaw, cos yaw) from the player, so forward is the opposite way.
     const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
-    const mx = fx * f - fz * r, mz = fz * f + fx * r;
-    const oct = Math.round(Math.atan2(mz, mx) / (Math.PI / 4));
-    const a = oct * (Math.PI / 4);
-    return [Math.round(Math.cos(a)), Math.round(Math.sin(a))];
+    _d.set(fx * f - fz * r, fz * f + fx * r);
+    return _d.lengthSq() > 1e-6 ? _d.normalize() : null;
   }
-  // One step from (x, z) toward d, or the nearest of the two neighbouring directions (slide).
-  function stepToward(x, z, d) {
-    const [dx, dz] = d;
-    const tries = [[dx, dz]];
-    if (dx && dz) tries.push([dx, 0], [0, dz]);
-    else if (dx) tries.push([dx, 1], [dx, -1]);
-    else tries.push([1, dz], [-1, dz]);
-    for (const [sx, sz] of tries) if (map.canStep(x, z, x + sx, z + sz)) return { x: x + sx, z: z + sz };
-    return null;
+  // A circle of RADIUS at (x, z) stands on walkable tiles only.
+  function fits(x, z) {
+    const r = RADIUS;
+    return map.isWalkable(Math.floor(x - r), Math.floor(z - r)) && map.isWalkable(Math.floor(x + r), Math.floor(z - r))
+      && map.isWalkable(Math.floor(x - r), Math.floor(z + r)) && map.isWalkable(Math.floor(x + r), Math.floor(z + r));
   }
-  // Intent (priority 5, before the movement tick): refresh a short WASD path every tick.
-  ctx.ticks.on(() => {
-    const d = state.mode === 'play' && !player.stunned ? keyDir() : null;
-    if (!d) {
-      if (keyWalking) { path = []; keyWalking = false; }
-      return;
+  function move(dt) {
+    if (state.mode === 'dead' || player.stunned) { vel.set(0, 0); speedNow = 0; path = []; keyWalking = false; return; }
+    if (state.mode !== 'play' && state.mode !== 'cutscene') { vel.set(0, 0); speedNow = 0; return; }
+    const speed = player.running ? RUN : WALK;
+    const kd = keyDir();
+    let stepped = false;
+    if (kd) {
+      if (!keyWalking) {
+        ctx.actions?.cancel();
+        anim = null;
+        keyWalking = true;
+        path = []; onArrive = null; arriveGoal = null;
+        events.emit('player:path', { steps: 1, goal: null }); // walking away closes dialogue
+      }
+      // Snappy acceleration; collide per axis so walls are slid along.
+      const k = 1 - Math.exp(-22 * dt);
+      vel.x += (kd.x * speed - vel.x) * k;
+      vel.y += (kd.y * speed - vel.y) * k;
+      const nx = pos.x + vel.x * dt, nz = pos.z + vel.y * dt;
+      if (fits(nx, pos.z)) pos.x = nx; else vel.x = 0;
+      if (fits(pos.x, nz)) pos.z = nz; else vel.y = 0;
+      speedNow = vel.length();
+      if (speedNow > 0.2) entity.yaw = Math.atan2(-vel.x, -vel.y);
+      stepped = true;
+    } else {
+      keyWalking = false;
+      if (path.length) {
+        // Follow the path through tile centres at full speed (no tick quantisation).
+        let budget = speed * dt;
+        let lastDx = 0, lastDz = 0;
+        while (budget > 1e-6 && path.length) {
+          const wp = path[0];
+          if (!wp.checked) {
+            if (!map.isWalkable(wp.x, wp.z)) { // something moved into the way: re-path
+              const p = arriveGoal ? map.findPath(entity.x, entity.z, arriveGoal) : null;
+              path = p || [];
+              if (!p) onArrive = null;
+              break;
+            }
+            wp.checked = true;
+          }
+          const tx = wp.x + 0.5, tz = wp.z + 0.5;
+          const dx = tx - pos.x, dz = tz - pos.z;
+          const d = Math.hypot(dx, dz);
+          if (d > 1e-4) { lastDx = dx; lastDz = dz; }
+          if (d <= budget) { pos.x = tx; pos.z = tz; budget -= d; path.shift(); updateTile(); }
+          else { pos.x += (dx / d) * budget; pos.z += (dz / d) * budget; budget = 0; }
+        }
+        if (lastDx || lastDz) entity.yaw = Math.atan2(-lastDx, -lastDz);
+        speedNow = speed;
+        vel.set(0, 0);
+        stepped = true;
+        if (!path.length) {
+          speedNow = 0;
+          const f = onArrive;
+          onArrive = null;
+          f?.();
+          events.emit('player:arrive', { x: entity.x, z: entity.z });
+        }
+      } else if (vel.lengthSq() > 0.0004) {
+        // Ease out of a WASD run.
+        const k = 1 - Math.exp(-18 * dt);
+        vel.x -= vel.x * k; vel.y -= vel.y * k;
+        const nx = pos.x + vel.x * dt, nz = pos.z + vel.y * dt;
+        if (fits(nx, pos.z)) pos.x = nx;
+        if (fits(pos.x, nz)) pos.z = nz;
+        speedNow = vel.length();
+        stepped = true;
+      } else { vel.set(0, 0); speedNow = 0; }
     }
-    const s1 = stepToward(entity.x, entity.z, d);
-    if (!s1) { if (keyWalking) path = []; return; }
-    if (!keyWalking) {
-      ctx.actions?.cancel();
-      anim = null;
-      keyWalking = true;
-      events.emit('player:path', { steps: 1, goal: null }); // walking away closes dialogue
+    if (stepped) {
+      pos.y = map.heightAt(pos.x, pos.z);
+      updateTile();
     }
-    const s2 = player.running ? stepToward(s1.x, s1.z, d) : null;
-    path = s2 ? [s1, s2] : [s1];
-    onArrive = null;
-    arriveGoal = null;
-  }, 5);
+  }
+  // Tile bookkeeping when the player crosses into a new tile.
+  function updateTile() {
+    const tx = Math.floor(pos.x), tz = Math.floor(pos.z);
+    state.save.pos = { x: pos.x, z: pos.z };
+    if (tx === entity.x && tz === entity.z) return;
+    entities.moveTo(entity, tx, tz);
+    state.save.stats.steps += 1;
+    const running = player.running && speedNow > (WALK + RUN) / 2;
+    if (running) {
+      state.save.run.energy = Math.max(0, state.save.run.energy - 0.3);
+      if (state.save.run.energy < 1) {
+        state.save.run.on = false;
+        events.emit('run:change', { on: false, exhausted: true });
+        events.emit('chat:game', { text: "You're out of breath. Rest a moment to recover your run energy.", kind: 'warn' });
+      }
+    }
+    state.markDirty();
+    events.emit('player:move', { x: tx, z: tz, running });
+    checkRegion();
+  }
 
   function checkRegion() {
     const r = player.region;
@@ -221,47 +277,11 @@ export function createPlayer(ctx) {
     }
   }
 
-  // Movement on ticks (priority 10).
-  ctx.ticks.on(() => {
-    if (!path.length || state.mode === 'dead' || player.stunned) return;
-    const run = player.running && path.length > 1;
-    const from = [entity.x, entity.z];
-    let via = null;
-    let next = path.shift();
-    if (!map.canStep(entity.x, entity.z, next.x, next.z)) { // something moved into the way: re-path
-      const p = arriveGoal ? map.findPath(entity.x, entity.z, arriveGoal) : null;
-      path = p || [];
-      if (!p) { onArrive = null; }
-      return;
-    }
-    if (run && path.length && map.canStep(next.x, next.z, path[0].x, path[0].z)) { via = [next.x, next.z]; next = path.shift(); }
-    entity.yaw = Math.atan2(-(next.x - entity.x), -(next.z - entity.z));
-    entities.moveTo(entity, next.x, next.z);
-    moving = { from, via, to: [next.x, next.z], t0: ctx.ticks.count };
-    state.save.pos = { x: next.x + 0.5, z: next.z + 0.5 };
-    state.save.stats.steps += via ? 2 : 1;
-    if (via) {
-      state.save.run.energy = Math.max(0, state.save.run.energy - 0.67);
-      if (state.save.run.energy < 1) {
-        state.save.run.on = false;
-        events.emit('run:change', { on: false, exhausted: true });
-        events.emit('chat:game', { text: "You're out of breath. Rest a moment to recover your run energy.", kind: 'warn' });
-      }
-    }
-    state.markDirty();
-    events.emit('player:move', { x: next.x, z: next.z, running: !!via });
-    if (!path.length && !keyWalking) {
-      const f = onArrive;
-      onArrive = null;
-      f?.();
-      events.emit('player:arrive', { x: next.x, z: next.z });
-    }
-  }, 10);
   // Run energy regenerates while not running (faster when standing still).
   ctx.ticks.on(() => {
     const r = state.save.run;
-    if (moving && moving.via) return;
-    if (r.energy < 100) r.energy = Math.min(100, r.energy + (moving ? 0.4 : 0.7));
+    if (speedNow > (WALK + RUN) / 2) return;
+    if (r.energy < 100) r.energy = Math.min(100, r.energy + (speedNow > 0.2 ? 0.4 : 0.7));
   }, 90);
 
   // Spawn into the world when play starts (or the save is replaced).

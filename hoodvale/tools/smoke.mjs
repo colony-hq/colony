@@ -53,6 +53,9 @@ const Q = opt('q', 'low');
 const [W, H] = String(opt('size', '1280x720')).split('x').map(Number);
 const MOBILE = !!opt('mobile', false);
 const TIMEOUT = Number(opt('timeout', 90000));
+// --page <path>: open another page under the root (e.g. the character lab) and wait for
+// window.labReady instead of the game.
+const PAGE = opt('page', null);
 fs.mkdirSync(OUT, { recursive: true });
 fs.mkdirSync(CACHE, { recursive: true });
 
@@ -103,10 +106,11 @@ page.on('requestfailed', (req) => report.failedRequests.push(req.url() + ' ' + (
 page.on('response', (res) => { if (res.status() >= 400) report.failedRequests.push(res.url() + ' ' + res.status()); });
 
 const t0 = Date.now();
-report.url = `http://127.0.0.1:${port}/dev.html?debug&q=${Q}`;
+report.url = PAGE ? `http://127.0.0.1:${port}/${PAGE}` : `http://127.0.0.1:${port}/dev.html?debug&q=${Q}`;
 await page.goto(report.url, { waitUntil: 'domcontentloaded' });
 try {
-  await page.waitForFunction(() => window.__hv && window.__hv.ctx.state.mode !== 'loading', null, { timeout: TIMEOUT, polling: 250 });
+  if (PAGE) await page.waitForFunction(() => window.labReady, null, { timeout: TIMEOUT, polling: 250 });
+  else await page.waitForFunction(() => window.__hv && window.__hv.ctx.state.mode !== 'loading', null, { timeout: TIMEOUT, polling: 250 });
   report.timings.readyMs = Date.now() - t0;
 } catch {
   report.errors.push('timeout waiting for game ready');
@@ -133,6 +137,14 @@ for (const step of steps) {
       await page.keyboard.up(step.key);
     } else if (step.click) {
       await page.click(step.click, { timeout: 5000 });
+    } else if (step.save) {
+      // { "save": "expr returning base64 or text", "file": "name.ext" } -> <out>/name.ext
+      const v = await page.evaluate((code) => { const r = (0, eval)(code); return r instanceof Promise ? r : Promise.resolve(r); }, step.save);
+      const file = path.join(OUT, step.file);
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      if (/\.(json|txt|js)$/.test(step.file)) fs.writeFileSync(file, typeof v === 'string' ? v : JSON.stringify(v));
+      else fs.writeFileSync(file, Buffer.from(String(v).replace(/^data:[^,]+,/, ''), 'base64'));
+      report.logs.push({ saved: file });
     } else if (step.log) {
       const v = await page.evaluate((code) => JSON.parse(JSON.stringify((0, eval)(code) ?? null)), step.log);
       report.logs.push({ [step.log]: v });
