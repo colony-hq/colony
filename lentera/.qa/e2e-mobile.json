@@ -1,0 +1,77 @@
+[
+ {
+  "wait": 2000
+ },
+ {
+  "eval": "window.__T = { sleep: (ms) => new Promise((r) => setTimeout(r, ms)), L: () => __lentera.ctx, focus() { const f = __lentera.ctx.interact.focus; return f ? { id: f.id, label: typeof f.label === 'function' ? f.label() : f.label } : null; }, async at(x, z, fx, fz, y) { __lentera.teleport(x, z, y); if (fx !== undefined) __lentera.ctx.player.faceToward(fx, fz); __lentera.fastForward(0.6); await __T.sleep(900); return __T.focus(); }, async use() { __lentera.ctx.input.tap('interact'); await __T.sleep(700); __lentera.fastForward(0.3); await __T.sleep(400); return __T.focus(); }, prog() { const L = __lentera.ctx; const p = L.state.progress; return { mode: L.state.mode, quest: p.quest, flames: p.flames, cps: p.checkpoints, nyala: Math.round(p.nyala), credit: +p.credit.balance.toFixed(3), clues: p.clues.map((c) => c.id), kilau: p.kilau.length, flags: Object.keys(p.flags) }; }, near(a, d = 1.6) { const p = __lentera.ctx.player.position; const dx = p.x - a.x, dz = p.z - a.z; const l = Math.hypot(dx, dz) || 1; return [a.x + (dx / l) * d, a.z + (dz / l) * d]; } }; 1"
+ },
+ {
+  "shot": "m01-title"
+ },
+ {
+  "eval": "__lentera.ctx.menus.startGame(true); 1"
+ },
+ {
+  "wait": 3500
+ },
+ {
+  "shot": "m02-intro"
+ },
+ {
+  "eval": "__lentera.ctx.events.emit('intro:skip', {}); __lentera.fastForward(3); 1"
+ },
+ {
+  "wait": 2000
+ },
+ {
+  "shot": "m03-play"
+ },
+ {
+  "eval": "__T.at(-1.9, 156.5, -3.4, 155.2)"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "shot": "m04-near-sarni"
+ },
+ {
+  "eval": "__lentera.ctx.dialogue.open('sarni'); 1"
+ },
+ {
+  "wait": 3000
+ },
+ {
+  "eval": "__lentera.ctx.input.tap('choice1'); 1"
+ },
+ {
+  "wait": 1500
+ },
+ {
+  "eval": "__lentera.ctx.input.tap('choice1'); 1"
+ },
+ {
+  "wait": 1500
+ },
+ {
+  "shot": "m05-tiers"
+ },
+ {
+  "eval": "__lentera.ctx.input.tap('choice1'); 1"
+ },
+ {
+  "wait": 4000
+ },
+ {
+  "eval": "__lentera.fastForward(2); 1"
+ },
+ {
+  "wait": 3000
+ },
+ {
+  "shot": "m06-redup"
+ },
+ {
+  "log": "__T.prog()"
+ }
+]

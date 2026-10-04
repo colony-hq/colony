@@ -462,3 +462,27 @@ runs steps, saves screenshots, prints JSON (errors, warnings, failed requests, l
 `stats()`, `lookFrom([x,y,z],[x,y,z])`, `follow()`. SwiftShader is slow (5–25 fps): keep runs
 short, use `--q low`, and do not run more than one browser at a time per builder.
 Also: `node --check` every file you touch.
+
+---
+
+## 11. Integration addendum (as built)
+
+Builders extended the contracts; these are now part of the API. Details live in
+`.qa/notes-*.md`.
+
+Extra events: `intro:title {title, subtitle}`, `intro:beat {name}`, `intro:skip`,
+`intro:skipProgress {value}`, `subtitle {speaker, text, seconds}`, `subtitle:clear`,
+`credits:show {stats}`, `credits:close {to}`, `game:quit`, `menu:open {id}`,
+`checkpoint:ignite {id}`, `pelita:fail`, `spirit:spawn` / `spirit:banish {x,y,z}`,
+`flare:pulse {x,y,z,banished}`, `kilau:spawn {x,y,z,count}`, `finale:beat {name}`,
+`player:teleport {x,y,z}`, `player:climb`, `player:flareFail {nyala}`.
+
+Clue ids: exact `loc_tirta / loc_bumi / loc_samudra` unlock compass markers; Sedang answers
+emit `<id>_samar` (vague, journal only). The relief gives `pelita_relief`.
+
+Ownership after integration: lighthouse beam = finale.js; fire lights (≤ 4 pooled) =
+flames.js; letterbox = hud.js except in `dialogue` (dialogue.js draws its own); exposure =
+sky.js (others use `sky.exposureBias`).
+
+Debug (`?debug` or `#debug` only): `__lentera.fastForward(seconds)` runs the simulation without
+rendering. E2E step scripts: `.qa/e2e-steps*.json`, `.qa/e2e-mobile*.json`, `.qa/e2e-journal.json`.

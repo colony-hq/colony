@@ -186,7 +186,10 @@ export function createPrompts(ctx) {
     const y = (-v.y * 0.5 + 0.5) * hh;
     const off = behind || x < 24 || x > w - 24 || y < 60 || y > hh - 20;
     if (off || occluded || !labelText) { setPromptVisible(false); return; }
-    prompt.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -100%)`;
+    // Keep the whole pill on screen (long labels near the edges on phones).
+    const half = (prompt.offsetWidth || 0) / 2 + 10;
+    const cx = half * 2 < w ? Math.min(w - half, Math.max(half, x)) : w / 2;
+    prompt.style.transform = `translate(${cx.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -100%)`;
     setPromptVisible(true);
   }
 

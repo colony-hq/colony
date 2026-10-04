@@ -1,0 +1,53 @@
+[
+ {
+  "wait": 1500
+ },
+ {
+  "eval": "window.__T = { sleep: (ms) => new Promise((r) => setTimeout(r, ms)), L: () => __lentera.ctx, focus() { const f = __lentera.ctx.interact.focus; return f ? { id: f.id, label: typeof f.label === 'function' ? f.label() : f.label } : null; }, async at(x, z, fx, fz, y) { __lentera.teleport(x, z, y); if (fx !== undefined) __lentera.ctx.player.faceToward(fx, fz); __lentera.fastForward(0.6); await __T.sleep(900); return __T.focus(); }, async use() { __lentera.ctx.input.tap('interact'); await __T.sleep(700); __lentera.fastForward(0.3); await __T.sleep(400); return __T.focus(); }, prog() { const L = __lentera.ctx; const p = L.state.progress; return { mode: L.state.mode, quest: p.quest, flames: p.flames, cps: p.checkpoints, nyala: Math.round(p.nyala), credit: +p.credit.balance.toFixed(3), clues: p.clues.map((c) => c.id), kilau: p.kilau.length, flags: Object.keys(p.flags) }; }, near(a, d = 1.6) { const p = __lentera.ctx.player.position; const dx = p.x - a.x, dz = p.z - a.z; const l = Math.hypot(dx, dz) || 1; return [a.x + (dx / l) * d, a.z + (dz / l) * d]; } }; 1"
+ },
+ {
+  "eval": "__lentera.play(); __lentera.ctx.quest.setStep('seek'); __lentera.ctx.state.progress.flames.tirta='carried'; __lentera.ctx.events.emit('clue:add', {id:'loc_samudra', text:'Api Samudra ada di kabin buritan kapal karam, lepas pantai barat.', source:'Pak Darto', tier:'terang'}); __lentera.fastForward(1); 1"
+ },
+ {
+  "eval": "__lentera.ctx.sky.setTimeOfDay(0.6, 0); __T.at(-120, 150, -150, 145)"
+ },
+ {
+  "eval": "__lentera.ctx.spirits.debugSpawn(-126, 147); __lentera.ctx.spirits.debugSpawn(-128, 152); __lentera.fastForward(2.5); 1"
+ },
+ {
+  "wait": 1500
+ },
+ {
+  "shot": "j01-ghosts-night"
+ },
+ {
+  "eval": "__lentera.ctx.input.tap('flare'); __lentera.fastForward(0.4); 1"
+ },
+ {
+  "wait": 1200
+ },
+ {
+  "shot": "j02-flare"
+ },
+ {
+  "log": "__T.prog()"
+ },
+ {
+  "eval": "__lentera.ctx.journal.open('peta'); 1"
+ },
+ {
+  "wait": 2500
+ },
+ {
+  "shot": "j03-journal-map"
+ },
+ {
+  "eval": "__lentera.ctx.journal.setTab ? __lentera.ctx.journal.setTab('petunjuk') : 0; 1"
+ },
+ {
+  "wait": 1500
+ },
+ {
+  "shot": "j04-journal-clues"
+ }
+]

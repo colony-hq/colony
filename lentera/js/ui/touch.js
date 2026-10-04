@@ -56,6 +56,9 @@ const CSS = `
   pointer-events: none;
 }
 #touch .tc-label.show { opacity: 1; transform: none; }
+/* The floating interact prompt (ui/prompts.js) already names the target and is tappable, so the
+   pill above Aksi would only duplicate it and collide with Lari. */
+#touch .tc-label { display: none; }
 #touch .tc-top { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 12px); right: calc(env(safe-area-inset-right, 0px) + 12px); display: flex; gap: 10px; pointer-events: none; }
 #touch .tc-small {
   position: relative; width: 46px; height: 46px; border-radius: 12px;

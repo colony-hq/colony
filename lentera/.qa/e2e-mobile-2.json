@@ -1,0 +1,50 @@
+[
+ {
+  "wait": 2000
+ },
+ {
+  "eval": "window.__T = { sleep: (ms) => new Promise((r) => setTimeout(r, ms)), L: () => __lentera.ctx, focus() { const f = __lentera.ctx.interact.focus; return f ? { id: f.id, label: typeof f.label === 'function' ? f.label() : f.label } : null; }, async at(x, z, fx, fz, y) { __lentera.teleport(x, z, y); if (fx !== undefined) __lentera.ctx.player.faceToward(fx, fz); __lentera.fastForward(0.6); await __T.sleep(900); return __T.focus(); }, async use() { __lentera.ctx.input.tap('interact'); await __T.sleep(700); __lentera.fastForward(0.3); await __T.sleep(400); return __T.focus(); }, prog() { const L = __lentera.ctx; const p = L.state.progress; return { mode: L.state.mode, quest: p.quest, flames: p.flames, cps: p.checkpoints, nyala: Math.round(p.nyala), credit: +p.credit.balance.toFixed(3), clues: p.clues.map((c) => c.id), kilau: p.kilau.length, flags: Object.keys(p.flags) }; }, near(a, d = 1.6) { const p = __lentera.ctx.player.position; const dx = p.x - a.x, dz = p.z - a.z; const l = Math.hypot(dx, dz) || 1; return [a.x + (dx / l) * d, a.z + (dz / l) * d]; } }; 1"
+ },
+ {
+  "eval": "__lentera.play(); __lentera.fastForward(1); 1"
+ },
+ {
+  "eval": "__T.at(-0.9, 157.5, -3.4, 155.2)"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "shot": "n01-near-sarni"
+ },
+ {
+  "eval": "__lentera.ctx.dialogue.open('sarni'); 1"
+ },
+ {
+  "wait": 3000
+ },
+ {
+  "eval": "__lentera.fastForward(2); 1"
+ },
+ {
+  "wait": 1500
+ },
+ {
+  "shot": "n02-dialogue"
+ },
+ {
+  "eval": "__lentera.ctx.dialogue.close(); __lentera.fastForward(1); 1"
+ },
+ {
+  "eval": "__lentera.ctx.sky.setTimeOfDay(0.6, 0); __lentera.ctx.checkpoints.light('kampung'); __lentera.fastForward(5); 1"
+ },
+ {
+  "eval": "__T.at(4, 166, 0, 158)"
+ },
+ {
+  "wait": 1500
+ },
+ {
+  "shot": "n03-night-kampung"
+ }
+]

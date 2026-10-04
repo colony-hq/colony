@@ -332,8 +332,8 @@ export function createCameraRig(ctx) {
     // The dialogue panel covers the bottom ~45% (desktop) / ~55% (portrait phones), so frame the
     // NPC's face in the upper part of the screen with the player off to one side.
     const portrait = (ctx.engine?.size?.h ?? 1) > (ctx.engine?.size?.w ?? 1);
-    const back = 2.0 + Math.min(1.4, d * 0.2) + (portrait ? 0.9 : 0);
-    const sideOff = portrait ? 0.9 : 1.25;
+    const back = 2.0 + Math.min(1.4, d * 0.2) + (portrait ? 0.7 : 0);
+    const sideOff = portrait ? 1.6 : 1.3;
     tmp.set(p.x - dx * back + rx * s * sideOff, head + 0.4, p.z - dz * back + rz * s * sideOff);
     // Pull in if blocked.
     const vx = tmp.x - p.x, vy = tmp.y - head, vz = tmp.z - p.z;

@@ -234,7 +234,8 @@ export const DIALOGUE_CSS = /* css */ `
   #dialogue .dlg-list { grid-template-columns: 1fr; gap: 5px; }
   #dialogue .dlg-plate { left: 12px; padding: 6px 12px 7px 10px; gap: 9px; }
   #dialogue .dlg-role { font-size: 9.5px; letter-spacing: .14em; }
-  #dialogue .dlg-purse { right: 10px; padding: 4px 9px 4px 7px; font-size: 11px; }
+  #dialogue .dlg-purse { right: 10px; top: 10px; padding: 4px 9px 4px 7px; font-size: 11px; }
+  #dialogue .dlg-body { padding-top: 40px; }
   #dialogue .dlg-purse small { display: none; }
   #dialogue .dlg-lamps { grid-template-columns: 1fr; gap: 7px; }
   #dialogue .lamp { padding: 9px 12px 9px 10px; grid-template-areas: "ico nm cs" "ico md cs" "ico nt nt"; }
