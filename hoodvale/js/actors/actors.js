@@ -142,9 +142,11 @@ class HumanDriver {
     let geo, heldGeo = null, relKey = null;
     if (M) {
       geo = M.geo;
-      heldGeo = acquireGeometry('held:' + spec.key, () => buildHeldGeometry(spec, layout) || new THREE.BufferGeometry());
-      relKey = 'held:' + spec.key;
-      if (!heldGeo.attributes.position) heldGeo = null;
+      const o = spec.outfit;
+      if (o.weapon || o.shield || (o.ammo && o.ammo.kind === 'quiver')) {
+        relKey = 'held:' + spec.key;
+        heldGeo = acquireGeometry(relKey, () => buildHeldGeometry(spec, layout));
+      }
     } else {
       geo = acquireGeometry(spec.key, () => buildHumanoid(spec).geo);
       relKey = spec.key;

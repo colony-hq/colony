@@ -400,7 +400,7 @@ export function releaseGeometry(key) {
 }
 export function geometryCacheStats() {
   let verts = 0;
-  for (const e of GEO_CACHE.values()) verts += e.geo.attributes.position.count;
+  for (const e of GEO_CACHE.values()) verts += e.geo.attributes.position?.count || 0;
   return { entries: GEO_CACHE.size, verts };
 }
 
