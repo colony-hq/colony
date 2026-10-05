@@ -1,7 +1,7 @@
 {
   "page": "index.html",
-  "count": 151,
-  "bytes": 2765107,
+  "count": 157,
+  "bytes": 4237526,
   "files": {
     "js/actors/a-anim.js": "js/actors/a-anim.js",
     "js/actors/a-body.js": "js/actors/a-body.js",
@@ -152,6 +152,12 @@
     "js/world/w-fx.js": "js/world/w-fx.js",
     "js/world/w-scatter.js": "js/world/w-scatter.js",
     "js/world/water.js": "js/world/water.js",
+    "assets/chars/banker_m.jpg": "assets/chars/banker_m.jpg",
+    "assets/chars/banker_m.json": "assets/chars/banker_m.json",
+    "assets/chars/guide_f.jpg": "assets/chars/guide_f.jpg",
+    "assets/chars/guide_f.json": "assets/chars/guide_f.json",
+    "assets/chars/mage_f.jpg": "assets/chars/mage_f.jpg",
+    "assets/chars/mage_f.json": "assets/chars/mage_f.json",
     "assets/chars/player_m.jpg": "assets/chars/player_m.jpg",
     "assets/chars/player_m.json": "assets/chars/player_m.json"
   }

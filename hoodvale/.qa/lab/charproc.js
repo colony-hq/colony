@@ -300,7 +300,15 @@ export function skin(geo, J, H) {
     let isArm;
     const beyond = v.x * sg > J.bodyOut[sd][bb] + H * 0.012;
     const inRng = rng && v.x >= rng[0] - H * 0.012 && v.x <= rng[1] + H * 0.012;
-    if (rng || bb < J.armBMin[sd]) isArm = v.y > T.y - H * 0.03 && (inRng || (beyond && sa.t > 0.7 && sa.d < Math.max(rA, rUp) * 3));
+    // Separate bits beyond the body next to the arm: thumbs (near the hand) and the inner rims of
+    // open cuffs / bell sleeves (along the forearm, close to the axis).
+    // Gap rule: in a tracked slice, whatever lies in the outer half of the gap between the body and
+    // the arm's cross-section belongs to the arm (bell-sleeve rims hang well off the arm axis).
+    const R = Math.max(rA, rUp);
+    const inner = rng ? (sg < 0 ? -rng[1] : rng[0]) : 0;
+    const gapArm = rng && sa.t > 0.25 && v.x * sg > (J.bodyOut[sd][bb] + inner) / 2;
+    const near = beyond && ((sa.t > 0.7 && sa.d < R * 3) || gapArm);
+    if (rng || bb < J.armBMin[sd]) isArm = v.y > T.y - H * 0.03 && (inRng || near);
     else isArm = v.y >= J.armpitY - H * 0.02 && v.y < J.shoulderTopY + rA * 0.6 && sa.t > -0.12 && v.x * sg > torsoEdge &&
       (sa.d < Math.max(rA * 1.7, rUp * 1.3) || (v.y < J.armpitY + H * 0.05 && v.x * sg > J.torsoSide[sd] + H * 0.01));
     if (isArm && v.y < yN) {

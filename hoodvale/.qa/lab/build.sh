@@ -5,11 +5,13 @@
 set -e
 cd "$(dirname "$0")/../.."
 ID="$1"; OPTS="${2:-{\}}"
+# Options go inside a JSON string in the steps file: escape their quotes.
+OPTS_ESC=$(printf '%s' "$OPTS" | sed 's/"/\\"/g')
 OUT="${LAB_OUT:-/tmp/hv-lab}"
 mkdir -p "$OUT" assets/chars
 cat > "$OUT/steps-$ID.json" <<JSON
 [
-  { "eval": "lab.process('$ID', $OPTS).then((r) => JSON.stringify(r).slice(0, 400))" },
+  { "eval": "lab.process('$ID', $OPTS_ESC).then((r) => JSON.stringify(r).slice(0, 400))" },
   { "save": "lab.asset('$ID')", "file": "$ID.json" },
   { "save": "lab.texture('$ID', 1024)", "file": "$ID.jpg" },
   { "eval": "lab.view(0)" }, { "shot": "$ID-front" },

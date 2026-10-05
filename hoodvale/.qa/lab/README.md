@@ -29,10 +29,11 @@ same skeleton. Armour pieces (helms, platebodies, legs) are not drawn on generat
 
 ## Saving generations: two characters per concept sheet
 
-The account currently allows about 5 generations a day (grace period). Concept art is made two characters at a
+The account currently allows exactly 5 generations a day (grace period), resetting at 00:00 UTC. Concept art is made two characters at a
 time (3:2 sheet), split locally and uploaded, so each character costs ~1.5 generations instead of 2:
 
-1. `generate_image` (gpt_image_2_5, aspect 3:2) with the duo template below.
+1. `generate_image` (gpt_image_2_5, aspect 3:2, `resolution: '2k'` so each character keeps ~1300 px; the default
+   1k sheet gives only ~640 px per character) with the duo template below.
 2. Download the sheet, `node .qa/lab/split.mjs sheet.png a.png b.png` (one image per character, 2:3 on white).
 3. `media_upload` per crop -> `curl -X PUT -H "Content-Type: image/png" -H "If-None-Match: *" --data-binary @a.png '<upload_url>'`
    (HTTP 200) -> `media_confirm` (type image) -> use the media_id as the Tripo `image_references`.
@@ -58,11 +59,11 @@ scale 0.72-1.3 on top), troll 1.9 (scale 1.8), everyone else 1.78.
 | id | used by | build opts | concept | status |
 | --- | --- | --- | --- | --- |
 | player_m | hero Ranger, traveller Pip | | single | shipped |
-| guide_f | Guide Elowen | height 1.70 | image job e25f0a4e-1757-4667-b660-00ce87945d3f | needs 3D |
-| banker_m | bankers Osric / Fen, clerk Bram | | image job 9e9fb8e8-7574-4e82-b819-40f6c0b7cce5 (crop media 76347c72-e069-47ac-aac5-4f6fb8e6cdd8) | needs 3D |
-| mage_f | hero Mystic, Lumen | skirt, height 1.70 | image job a0acb393-cd6e-45ba-9e40-b435eae3e507 | needs 3D |
-| player_f + warrior_m | heroes Wayfarer / Warden, travellers Mira / Hesketh | f: height 1.70 | duo 1 | to do |
-| villager_f + villager_m | villagers, travellers Dovie / Wynn | f: skirt, height 1.70 | duo 2 | to do |
+| guide_f | Guide Elowen | height 1.70 | image job e25f0a4e-1757-4667-b660-00ce87945d3f | shipped 2026-10-05 |
+| banker_m | bankers Osric / Fen, clerk Bram | | image job 9e9fb8e8-7574-4e82-b819-40f6c0b7cce5 | shipped 2026-10-05 |
+| mage_f | hero Mystic, Lumen | skirt, height 1.70 | image job a0acb393-cd6e-45ba-9e40-b435eae3e507 | shipped 2026-10-05 |
+| player_f + warrior_m | heroes Wayfarer / Warden, travellers Mira / Hesketh | f: height 1.70 | duo 1 done; crops uploaded: player_f media b7713650-6f8e-4ef6-9c43-22dfa499b773, warrior_m media e4b00c26-7785-4c5b-ac7e-c754c0d4187d | needs 3D |
+| villager_f + villager_m | villagers, travellers Dovie / Wynn | f: skirt, height 1.70 | duo 2 done; crops uploaded: villager_f media 08e9e073-b72b-429f-8d31-c1b4daf2e8e4, villager_m media c34428ce-1005-407c-b0f8-c720e5b1e8c0 | needs 3D |
 | smith_m + innkeeper_f | Harlan, Brackwell, Dunstan, Little Jon, travellers Bertie / Fergus; Marta, Tamsin, Nell | f: skirt, height 1.70 | duo 3 | to do |
 | shopkeep_m + farmer_m | Pell, Brine; Hale, Tobin | | duo 4 | to do |
 | elder_m + clerk_f | Rowan, Grimsby, Sol; Ada, Ida, traveller Juniper | m: skirt; f: height 1.70 | duo 5 | to do |
@@ -96,7 +97,7 @@ Descriptions (keep these exact so the cast stays consistent):
 - noble_m: a sly well-fed male merchant with short brown hair, green velvet doublet with a gold-embroidered vest, gold necklace, dark trousers, buckled shoes, a feathered cap
 - troll (single, 2:3, single-character template): a huge hunched mountain troll with grey-green stony skin, tiny eyes, a big nose, small tusks, very long arms, a ragged hide loincloth, bare big feet
 
-Daily order (5 generations a day): (1) 3D guide_f, banker_m, mage_f + duos 1, 2; (2) 3D player_f, warrior_m,
+Daily order (5 generations a day): (1, done 2026-10-05) 3D guide_f, banker_m, mage_f + duos 1, 2; (2) 3D player_f, warrior_m,
 villager_f, villager_m + duo 3; (3) 3D smith_m, innkeeper_f + duos 4, 5, 6; (4) 3D shopkeep_m, farmer_m,
 elder_m, clerk_f, robyn; (5) 3D old_salt + duos 7, 8, 9 + 3D goblin; (6) 3D bandit, guard, sheriff, friar, wren;
 (7) duo 10, troll concept + 3D marlowe, noble_m, troll. If the account limit is lifted, do it all in one go.
