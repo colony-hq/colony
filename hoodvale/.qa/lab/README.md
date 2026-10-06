@@ -62,9 +62,9 @@ scale 0.72-1.3 on top), troll 1.9 (scale 1.8), everyone else 1.78.
 | guide_f | Guide Elowen | height 1.70 | image job e25f0a4e-1757-4667-b660-00ce87945d3f | shipped 2026-10-05 |
 | banker_m | bankers Osric / Fen, clerk Bram | | image job 9e9fb8e8-7574-4e82-b819-40f6c0b7cce5 | shipped 2026-10-05 |
 | mage_f | hero Mystic, Lumen | skirt, height 1.70 | image job a0acb393-cd6e-45ba-9e40-b435eae3e507 | shipped 2026-10-05 |
-| player_f + warrior_m | heroes Wayfarer / Warden, travellers Mira / Hesketh | f: height 1.70 | duo 1 done; crops uploaded: player_f media b7713650-6f8e-4ef6-9c43-22dfa499b773, warrior_m media e4b00c26-7785-4c5b-ac7e-c754c0d4187d | needs 3D |
-| villager_f + villager_m | villagers, travellers Dovie / Wynn | f: skirt, height 1.70 | duo 2 done; crops uploaded: villager_f media 08e9e073-b72b-429f-8d31-c1b4daf2e8e4, villager_m media c34428ce-1005-407c-b0f8-c720e5b1e8c0 | needs 3D |
-| smith_m + innkeeper_f | Harlan, Brackwell, Dunstan, Little Jon, travellers Bertie / Fergus; Marta, Tamsin, Nell | f: skirt, height 1.70 | duo 3 | to do |
+| player_f + warrior_m | heroes Wayfarer / Warden, travellers Mira / Hesketh | f: height 1.70 | duo 1 | shipped 2026-10-06 |
+| villager_f + villager_m | villagers, travellers Dovie / Wynn | f: skirt, height 1.70 | duo 2 | shipped 2026-10-06 |
+| smith_m + innkeeper_f | Harlan, Brackwell, Dunstan, Little Jon, travellers Bertie / Fergus; Marta, Tamsin, Nell | f: skirt, height 1.70 | duo 3 (2k) done; crops uploaded: smith_m media 1f9448f0-5551-4098-9d39-7c6e6f519821, innkeeper_f media 6497b82e-df76-4c2c-a1f5-f15d1569882a | needs 3D |
 | shopkeep_m + farmer_m | Pell, Brine; Hale, Tobin | | duo 4 | to do |
 | elder_m + clerk_f | Rowan, Grimsby, Sol; Ada, Ida, traveller Juniper | m: skirt; f: height 1.70 | duo 5 | to do |
 | robyn + old_salt | Robyn; Old Salt, traveller Corwin | robyn: height 1.70 | duo 6 | to do |
@@ -97,7 +97,7 @@ Descriptions (keep these exact so the cast stays consistent):
 - noble_m: a sly well-fed male merchant with short brown hair, green velvet doublet with a gold-embroidered vest, gold necklace, dark trousers, buckled shoes, a feathered cap
 - troll (single, 2:3, single-character template): a huge hunched mountain troll with grey-green stony skin, tiny eyes, a big nose, small tusks, very long arms, a ragged hide loincloth, bare big feet
 
-Daily order (5 generations a day): (1, done 2026-10-05) 3D guide_f, banker_m, mage_f + duos 1, 2; (2) 3D player_f, warrior_m,
+Daily order (5 generations a day): (1, done 2026-10-05) 3D guide_f, banker_m, mage_f + duos 1, 2; (2, done 2026-10-06) 3D player_f, warrior_m,
 villager_f, villager_m + duo 3; (3) 3D smith_m, innkeeper_f + duos 4, 5, 6; (4) 3D shopkeep_m, farmer_m,
 elder_m, clerk_f, robyn; (5) 3D old_salt + duos 7, 8, 9 + 3D goblin; (6) 3D bandit, guard, sheriff, friar, wren;
 (7) duo 10, troll concept + 3D marlowe, noble_m, troll. If the account limit is lifted, do it all in one go.

@@ -188,6 +188,14 @@ export function findJoints(geo, H, opts = {}) {
     J['rArm' + sd] = Math.max(rArm, H * 0.03); J['armDir' + sd] = dir; J['armLen' + sd] = len;
   }
   const shoulderTopY = Math.max(J.shL.y, J.shR.y) + Math.max(J.rArmL, J.rArmR);
+  // Skirt / robe hem: the lowest slice (above the ankles) where one cross-section spans both legs.
+  // Cloth above it swings with the thighs only; below it are the shins and feet.
+  J.hemY = crotchY;
+  if (skirt) {
+    for (let b = Math.floor(S.length * 0.03); b < Math.floor((crotchY / H) * S.length); b++) {
+      if (S[b].clusters.some((c) => c.min < -H * 0.01 && c.max > H * 0.01)) { J.hemY = S[b].y; break; }
+    }
+  }
   // Per-slice arm cross-sections (x ranges) for exact arm membership below the armpit.
   J.nSlices = S.length;
   J.armSl = { L: new Map(), R: new Map() };
@@ -339,9 +347,10 @@ export function skin(geo, J, H) {
     if (v.y < legTop) {
       const T0 = J['th' + sd], K = J['kn' + sd], A = J['ft' + sd];
       let list;
-      if (J.skirt && v.y > K.y - H * 0.02) {
-        // Skirts / robes: hips with a pull from the nearer thigh, more toward the hem.
-        const f = sm(legTop, K.y, v.y) * 0.7;
+      if (J.skirt && v.y > J.hemY - H * 0.006) {
+        // Skirts / robes: hips with a pull from the nearer thigh, more toward the hem (never the knee,
+        // so long hems do not fold with the shins).
+        const f = sm(legTop, Math.min(K.y, J.hemY + H * 0.05), v.y) * 0.7;
         const wl = Math.min(1, Math.max(0, 0.5 - v.x / (H * 0.18)));
         list = [[HB.hips, 1 - f], [HB.thL, f * wl], [HB.thR, f * (1 - wl)]];
       } else if (v.y > K.y + H * 0.035) {
