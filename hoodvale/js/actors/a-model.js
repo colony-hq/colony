@@ -11,7 +11,7 @@ import { makeActorMaterial } from './a-core.js';
 
 // Models whose files ship in assets/chars. Looks may name a model that has not shipped yet
 // (npcs.js, monsters.js gen, saves): those keep their procedural body until it does.
-export const MODELS = new Set(['player_m', 'guide_f', 'banker_m', 'mage_f', 'player_f', 'warrior_m', 'villager_f', 'villager_m']);
+export const MODELS = new Set(['player_m', 'guide_f', 'banker_m', 'mage_f', 'player_f', 'warrior_m', 'villager_f', 'villager_m', 'smith_m', 'innkeeper_f']);
 // Playable heroes (character creator), in display order; only shipped ones are offered.
 const HEROES = [
   { id: 'player_m', name: 'Ranger', body: 'male' },

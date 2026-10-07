@@ -9,7 +9,8 @@ Pipeline for the hand-crafted looking characters (player heroes, later NPCs and 
 3. **Auto-rig** onto the HB skeleton: `.qa/lab/build.sh <id> ['{"skirt":true}']` runs `lab.html` headless
    (orient, exact cross-section slices, joints, skin weights, arms-down re-pose) and writes
    `assets/chars/<id>.json` + `<id>.jpg`. Check the previews it saves (front / side / pose) for left-behind
-   vertices (spikes) before shipping. Robes and dresses need `{"skirt":true}` when the legs are not separate.
+   vertices (spikes) and that the front view shows the face (Tripo meshes face the right way; `{"flip":true}`
+   turns one that does not) before shipping. Robes and dresses need `{"skirt":true}` when the legs are not separate.
 4. **Register** the id in `MODELS` in `js/actors/a-model.js` (heroes are already listed in `HEROES`; NPCs,
    travellers and monsters already point at their ids). Run `node tools/manifest.mjs` so the publish step ships the new files, and `.qa/regress.sh`
    (known pre-existing failure: content-smoke-2 waits for a make menu that a single recipe skips).
@@ -64,10 +65,10 @@ scale 0.72-1.3 on top), troll 1.9 (scale 1.8), everyone else 1.78.
 | mage_f | hero Mystic, Lumen | skirt, height 1.70 | image job a0acb393-cd6e-45ba-9e40-b435eae3e507 | shipped 2026-10-05 |
 | player_f + warrior_m | heroes Wayfarer / Warden, travellers Mira / Hesketh | f: height 1.70 | duo 1 | shipped 2026-10-06 |
 | villager_f + villager_m | villagers, travellers Dovie / Wynn | f: skirt, height 1.70 | duo 2 | shipped 2026-10-06 |
-| smith_m + innkeeper_f | Harlan, Brackwell, Dunstan, Little Jon, travellers Bertie / Fergus; Marta, Tamsin, Nell | f: skirt, height 1.70 | duo 3 (2k) done; crops uploaded: smith_m media 1f9448f0-5551-4098-9d39-7c6e6f519821, innkeeper_f media 6497b82e-df76-4c2c-a1f5-f15d1569882a | needs 3D |
-| shopkeep_m + farmer_m | Pell, Brine; Hale, Tobin | | duo 4 | to do |
-| elder_m + clerk_f | Rowan, Grimsby, Sol; Ada, Ida, traveller Juniper | m: skirt; f: height 1.70 | duo 5 | to do |
-| robyn + old_salt | Robyn; Old Salt, traveller Corwin | robyn: height 1.70 | duo 6 | to do |
+| smith_m + innkeeper_f | Harlan, Brackwell, Dunstan, Little Jon, travellers Bertie / Fergus; Marta, Tamsin, Nell | f: skirt, height 1.70 (smith auto-detects skirt: long apron) | duo 3 (2k) | shipped 2026-10-07 |
+| shopkeep_m + farmer_m | Pell, Brine; Hale, Tobin | | duo 4 (2k) done; crops uploaded: shopkeep_m media eed93033-8c3e-41f0-b0a1-885c4eb92174, farmer_m media 87ff82f5-b817-443a-8c86-f33a41fbc343 | needs 3D |
+| elder_m + clerk_f | Rowan, Grimsby, Sol; Ada, Ida, traveller Juniper | m: skirt; f: height 1.70 | duo 5 (2k) done; crops uploaded: elder_m media 9e576779-c6dd-4b5d-811e-10775bdb3651, clerk_f media a203a17c-898f-4c19-8ae1-ce516ae4feea | needs 3D |
+| robyn + old_salt | Robyn; Old Salt, traveller Corwin | robyn: height 1.70 | duo 6 (2k) done; crops uploaded: robyn media 189f627c-33ac-4a7b-83b8-30209a7af345, old_salt media 72de86cd-c352-4faf-b3c2-8855810de6ed | needs 3D |
 | goblin + bandit | goblin, brute, warchief; bandit | goblin: height 1.4 | duo 7 | to do |
 | guard + sheriff | sheriff's guard, vault knight; Sheriff Vane (NPC + boss) | | duo 8 | to do |
 | friar + wren | Friar Tuckwell; Old Wren | skirt; wren: skirt, height 1.70 | duo 9 | to do |
@@ -98,6 +99,6 @@ Descriptions (keep these exact so the cast stays consistent):
 - troll (single, 2:3, single-character template): a huge hunched mountain troll with grey-green stony skin, tiny eyes, a big nose, small tusks, very long arms, a ragged hide loincloth, bare big feet
 
 Daily order (5 generations a day): (1, done 2026-10-05) 3D guide_f, banker_m, mage_f + duos 1, 2; (2, done 2026-10-06) 3D player_f, warrior_m,
-villager_f, villager_m + duo 3; (3) 3D smith_m, innkeeper_f + duos 4, 5, 6; (4) 3D shopkeep_m, farmer_m,
+villager_f, villager_m + duo 3; (3, done 2026-10-07) 3D smith_m, innkeeper_f + duos 4, 5, 6; (4) 3D shopkeep_m, farmer_m,
 elder_m, clerk_f, robyn; (5) 3D old_salt + duos 7, 8, 9 + 3D goblin; (6) 3D bandit, guard, sheriff, friar, wren;
 (7) duo 10, troll concept + 3D marlowe, noble_m, troll. If the account limit is lifted, do it all in one go.

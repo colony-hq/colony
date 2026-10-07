@@ -29,7 +29,7 @@ export async function loadGLB(url) {
 // ---------------------------------------------------------------------------------------------
 // 1. Orient and scale
 // ---------------------------------------------------------------------------------------------
-export function orient(geo, height) {
+export function orient(geo, height, flip = false) {
   geo.computeBoundingBox();
   let bb = geo.boundingBox;
   const ext = new THREE.Vector3().subVectors(bb.max, bb.min);
@@ -48,7 +48,8 @@ export function orient(geo, height) {
   const s = height / (bb.max.y - bb.min.y);
   geo.applyMatrix4(new THREE.Matrix4().makeTranslation(-(bb.max.x + bb.min.x) / 2, -bb.min.y, -(bb.max.z + bb.min.z) / 2));
   geo.applyMatrix4(new THREE.Matrix4().makeScale(s, s, s));
-  // Facing: toes stick out forward from the ankles. Compare the foot slice to the shin slice.
+  // Facing: Tripo meshes all come out facing -z here, so nothing turns unless asked (flip: true;
+  // flip: 'auto' guesses from the toes, which long skirts and chunky boots can fool).
   const p = geo.attributes.position;
   let footMin = Infinity, footMax = -Infinity, shinZ = 0, shinN = 0;
   for (let i = 0; i < p.count; i++) {
@@ -57,10 +58,11 @@ export function orient(geo, height) {
     else if (y > height * 0.1 && y < height * 0.16) { shinZ += z; shinN++; }
   }
   shinZ /= Math.max(1, shinN);
-  const frontPlus = footMax - shinZ > shinZ - footMin; // toes toward +z
-  if (frontPlus) geo.applyMatrix4(new THREE.Matrix4().makeRotationY(Math.PI));
+  const toesPlus = footMax - shinZ > shinZ - footMin; // toes toward +z (guess)
+  const turn = flip === true || (flip === 'auto' && toesPlus);
+  if (turn) geo.applyMatrix4(new THREE.Matrix4().makeRotationY(Math.PI));
   geo.computeBoundingBox();
-  return { scale: s, flipped: frontPlus };
+  return { scale: s, flipped: turn, toesPlus };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -490,9 +492,9 @@ export function textureJPEG(map, size = 1024, quality = 0.86) {
 }
 
 // Full pipeline.
-export async function processCharacter(url, { id, height = 1.78, skirt = false, tex = 1024, hand, ankle, outward, raw = false } = {}) {
+export async function processCharacter(url, { id, height = 1.78, skirt = false, tex = 1024, hand, ankle, outward, raw = false, flip = false } = {}) {
   const { geo, map } = await loadGLB(url);
-  const info = orient(geo, height);
+  const info = orient(geo, height, flip);
   if (!geo.attributes.normal) geo.computeVertexNormals();
   const J = findJoints(geo, height, { skirt, hand, ankle });
   const sk = skin(geo, J, height);
